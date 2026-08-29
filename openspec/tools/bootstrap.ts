@@ -63,7 +63,7 @@ function stageId(workRoot: string): string {
   return `baseline-${text(workSpec.baselineCommit, "baseline.workSpec.baselineCommit").slice(0, 12)}`;
 }
 function stageRoot(workRoot: string): string { return join(workRoot, "openspec/bootstrap-stage", stageId(workRoot)); }
-function archiveTarget(workRoot: string): string { return join(workRoot, "openspec/changes/archive", `2026-08-27-${changeSlug}`); }
+function archiveTarget(workRoot: string): string { return join(workRoot, "openspec/changes/archive", `2026-08-30-${changeSlug}`); }
 
 function verifyBaseline(workRoot: string): Record<string, unknown> {
   const manifest = baseline(workRoot);
@@ -130,7 +130,7 @@ function buildCandidate(workRoot: string, candidate: string): void {
   const source = join(workRoot, "openspec/changes", changeSlug);
   rmSync(candidate, { recursive: true, force: true }); mkdirSync(candidate, { recursive: true });
   for (const entry of readdirSync(source, { withFileTypes: true })) {
-    if (entry.name === "bootstrap" || entry.name === ".delivery") continue;
+    if (entry.name === ".delivery") continue;
     const targetName = directoryMap[entry.name] ?? entry.name;
     const from = join(source, entry.name); const to = join(candidate, targetName);
     if (entry.isSymbolicLink()) symlinkSync(readlinkSync(from), to);
@@ -173,51 +173,94 @@ function stage(workRoot: string, privateRoot: string, consumerRoot: string): voi
     rollbackRoot: `openspec/.bootstrap-rollback/${stageId(workRoot)}`,
   };
   atomicWriteJson(join(root, "activation-plan.json"), plan);
-  atomicWriteJson(join(bootstrapDir(workRoot), "bootstrap-state.json"), { schemaVersion: 1, stageId: stageId(workRoot), status: "staged", updatedAt: now(), planSha256: sha256File(join(root, "activation-plan.json")), rollbackRoot: plan.rollbackRoot });
+  const state = { schemaVersion: 1, stageId: stageId(workRoot), status: "staged", updatedAt: now(), planSha256: sha256File(join(root, "activation-plan.json")), rollbackRoot: plan.rollbackRoot };
+  atomicWriteJson(join(bootstrapDir(workRoot), "bootstrap-state.json"), state);
+  atomicWriteJson(join(candidate, "bootstrap/bootstrap-state.json"), state);
   console.log(JSON.stringify(plan, null, 2));
 }
-
-function removeForbiddenProjection(workRoot: string, consumerRoot: string): void {
-  const forbidden = object(readJson(join(bootstrapDir(workRoot), "forbidden-paths.json")), "forbidden-paths");
+type ForbiddenProjectionBackup = { linksPath: string; links: string; excludePath: string; exclude: string; projected: string; symlinkTarget?: string };
+function removeForbiddenProjection(forbidden: Record<string, unknown>, consumerRoot: string): ForbiddenProjectionBackup {
   const removal = object(forbidden.existingRemoval, "forbidden-paths.existingRemoval");
   const linksPath = text(removal.linksRegistry, "existingRemoval.linksRegistry");
   const excludePath = text(removal.excludeFile, "existingRemoval.excludeFile");
   const target = text(removal.linksTarget, "existingRemoval.linksTarget");
-  const links = readFileSync(linksPath, "utf8").split(/\r?\n/).filter((line) => !line.split("\t").includes(target)).join("\n");
-  writeFileSync(linksPath, links.endsWith("\n") ? links : `${links}\n`, "utf8");
-  const exclude = readFileSync(excludePath, "utf8").split(/\r?\n/).filter((line) => line.trim() !== target).join("\n");
-  writeFileSync(excludePath, exclude.endsWith("\n") ? exclude : `${exclude}\n`, "utf8");
+  const originalLinks = readFileSync(linksPath, "utf8");
+  const originalExclude = readFileSync(excludePath, "utf8");
   const projected = join(consumerRoot, target);
+  const backup: ForbiddenProjectionBackup = { linksPath, links: originalLinks, excludePath, exclude: originalExclude, projected };
+  if (pathExists(projected) && lstatSync(projected).isSymbolicLink()) backup.symlinkTarget = readlinkSync(projected);
+  const links = originalLinks.split(/\r?\n/).filter((line) => !line.split("\t").includes(target)).join("\n");
+  writeFileSync(linksPath, links.endsWith("\n") ? links : `${links}\n`, "utf8");
+  const exclude = originalExclude.split(/\r?\n/).filter((line) => line.trim() !== target).join("\n");
+  writeFileSync(excludePath, exclude.endsWith("\n") ? exclude : `${exclude}\n`, "utf8");
   if (pathExists(projected)) rmSync(projected, { recursive: true, force: true });
+  return backup;
+}
+function restoreForbiddenProjection(backup: ForbiddenProjectionBackup): void {
+  writeFileSync(backup.linksPath, backup.links, "utf8");
+  writeFileSync(backup.excludePath, backup.exclude, "utf8");
+  if (backup.symlinkTarget && !pathExists(backup.projected)) symlinkSync(backup.symlinkTarget, backup.projected);
 }
 
 function activate(workRoot: string, privateRoot: string, consumerRoot: string): void {
   verifyBaseline(workRoot);
+  const currentStageId = stageId(workRoot);
+  const forbiddenContract = object(readJson(join(bootstrapDir(workRoot), "forbidden-paths.json")), "forbidden-paths");
   const root = stageRoot(workRoot); const planPath = join(root, "activation-plan.json");
   if (!existsSync(planPath)) fail("尚未 stage");
   const approvalPath = join(bootstrapDir(workRoot), "stage-approval.json");
   const approval = object(readJson(approvalPath), "stage-approval");
-  if (approval.schemaVersion !== 1 || approval.stageId !== stageId(workRoot) || approval.approved !== true || approval.planSha256 !== sha256File(planPath)) fail("stage-approval 与当前 stage 不匹配");
+  if (approval.schemaVersion !== 1 || approval.stageId !== currentStageId || approval.approved !== true || approval.planSha256 !== sha256File(planPath)) fail("stage-approval 与当前 stage 不匹配");
   text(approval.approvedBy, "stage-approval.approvedBy"); text(approval.approvedAt, "stage-approval.approvedAt");
-  const rollback = join(workRoot, "openspec/.bootstrap-rollback", stageId(workRoot));
+  const rollback = join(workRoot, "openspec/.bootstrap-rollback", currentStageId);
   if (existsSync(rollback)) fail(`rollback 目录已存在: ${rollback}`);
   withFileLock(join(workRoot, "openspec/.bootstrap.lock"), () => {
     mkdirSync(join(rollback, "changes"), { recursive: true });
     for (const slug of [changeSlug, ...removeSlugs]) renameSync(join(workRoot, "openspec/changes", slug), join(rollback, "changes", slug));
+    let projectionBackup: ForbiddenProjectionBackup | undefined;
+    const target = archiveTarget(workRoot);
     try {
-      const target = archiveTarget(workRoot); if (existsSync(target)) fail(`归档目标已存在: ${target}`);
+      if (existsSync(target)) fail(`归档目标已存在: ${target}`);
       mkdirSync(dirname(target), { recursive: true });
       renameSync(join(root, "candidate-change"), target);
-      removeForbiddenProjection(workRoot, consumerRoot);
-      atomicWriteJson(join(bootstrapDir(workRoot), "bootstrap-state.json"), { schemaVersion: 1, stageId: stageId(workRoot), status: "activated", updatedAt: now(), planSha256: sha256File(planPath), rollbackRoot: relative(workRoot, rollback), privateRoot });
+      projectionBackup = removeForbiddenProjection(forbiddenContract, consumerRoot);
+      atomicWriteJson(join(rollback, "activation-record.json"), { schemaVersion: 1, stageId: currentStageId, archiveTarget: relative(workRoot, target), activatedAt: now() });
+      atomicWriteJson(join(target, "bootstrap/bootstrap-state.json"), { schemaVersion: 1, stageId: currentStageId, status: "activated", updatedAt: now(), planSha256: sha256File(planPath), rollbackRoot: relative(workRoot, rollback), privateRoot });
     } catch (error) {
-      for (const slug of [changeSlug, ...removeSlugs]) {
-        const saved = join(rollback, "changes", slug); if (existsSync(saved)) renameSync(saved, join(workRoot, "openspec/changes", slug));
+      if (projectionBackup) restoreForbiddenProjection(projectionBackup);
+      if (existsSync(target)) {
+        mkdirSync(dirname(join(root, "candidate-change")), { recursive: true });
+        renameSync(target, join(root, "candidate-change"));
       }
+      for (const slug of [changeSlug, ...removeSlugs]) {
+        const saved = join(rollback, "changes", slug);
+        if (existsSync(saved)) renameSync(saved, join(workRoot, "openspec/changes", slug));
+      }
+      rmSync(rollback, { recursive: true, force: true });
       throw error;
     }
   });
   console.log(JSON.stringify({ status: "activated", archive: archiveTarget(workRoot), deletedActive: removeSlugs }, null, 2));
+}
+
+function rollbackActivation(workRoot: string): void {
+  const rollbackRoot = join(workRoot, "openspec/.bootstrap-rollback");
+  const candidates = existsSync(rollbackRoot)
+    ? readdirSync(rollbackRoot).filter((name) => existsSync(join(rollbackRoot, name, "activation-record.json")))
+    : [];
+  if (candidates.length !== 1) fail(`需要恰好一个可回滚激活记录，实际 ${candidates.length}`);
+  const currentStageId = candidates[0];
+  const rollback = join(rollbackRoot, currentStageId);
+  withFileLock(join(workRoot, "openspec/.bootstrap.lock"), () => {
+    rmSync(archiveTarget(workRoot), { recursive: true, force: true });
+    for (const slug of [changeSlug, ...removeSlugs]) {
+      const saved = join(rollback, "changes", slug);
+      if (!existsSync(saved) || existsSync(join(workRoot, "openspec/changes", slug))) fail(`无法恢复 active Change: ${slug}`);
+      renameSync(saved, join(workRoot, "openspec/changes", slug));
+    }
+    atomicWriteJson(join(bootstrapDir(workRoot), "bootstrap-state.json"), { schemaVersion: 1, stageId: currentStageId, status: "rolled_back", updatedAt: now(), planSha256: sha256File(join(workRoot, "openspec/bootstrap-stage", currentStageId, "activation-plan.json")), rollbackRoot: relative(workRoot, rollback) });
+  });
+  console.log(JSON.stringify({ status: "rolled_back", restoredActive: [changeSlug, ...removeSlugs], forbiddenProjection: "remains removed by target contract" }, null, 2));
 }
 
 function main(): void {
@@ -226,6 +269,7 @@ function main(): void {
   if (command === "dry-run") dryRun(workRoot, privateRoot, consumerRoot);
   else if (command === "stage") stage(workRoot, privateRoot, consumerRoot);
   else if (command === "activate") activate(workRoot, privateRoot, consumerRoot);
-  else fail("用法: bootstrap.ts <dry-run|stage|activate> --work-root <dir> --private-root <dir> --consumer-root <dir>");
+  else if (command === "rollback") rollbackActivation(workRoot);
+  else fail("用法: bootstrap.ts <dry-run|stage|activate|rollback> --work-root <dir> --private-root <dir> --consumer-root <dir>");
 }
 try { main(); } catch (error) { console.error((error as Error).message); process.exitCode = 1; }
