@@ -1,6 +1,6 @@
 #!/usr/bin/env -S node --experimental-strip-types
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
   atomicWriteJson,
   exactKeys,
@@ -12,6 +12,7 @@ import {
   readJson,
   requiredOption,
   sha256File,
+  type JsonObject,
   stringArray,
   text,
   withFileLock,
@@ -259,18 +260,61 @@ function guard(changeRoot: string, operation: string): void {
   console.log(JSON.stringify({ allowed: true, operation, mode: info.mode }, null, 2));
 }
 
-function sourcesInspect(changeRoot: string): void {
-  const value = object(readJson(sourcesPath(changeRoot)), "sources");
-  exactKeys(value, ["schemaVersion", "changeSlug", "sources"], ["schemaVersion", "changeSlug", "sources"], "sources");
-  if (integer(value.schemaVersion, "sources.schemaVersion") !== 1) fail("sources.schemaVersion 仅支持 1");
-  if (!Array.isArray(value.sources)) fail("sources.sources 必须是数组");
-  for (const [index, source] of value.sources.entries()) {
+function parseSources(value: unknown): JsonObject {
+  const parsed = object(value, "sources");
+  exactKeys(parsed, ["schemaVersion", "changeSlug", "sources"], ["schemaVersion", "changeSlug", "sources"], "sources");
+  if (integer(parsed.schemaVersion, "sources.schemaVersion") !== 1) fail("sources.schemaVersion 仅支持 1");
+  if (!Array.isArray(parsed.sources)) fail("sources.sources 必须是数组");
+  for (const [index, source] of parsed.sources.entries()) {
     const item = object(source, `sources[${index}]`);
     exactKeys(item, ["id", "kind", "location", "observedAt", "sha256", "completeness"], ["id", "kind", "location", "observedAt", "completeness"], `sources[${index}]`);
     text(item.id, `sources[${index}].id`); text(item.kind, `sources[${index}].kind`); text(item.location, `sources[${index}].location`); text(item.observedAt, `sources[${index}].observedAt`); text(item.completeness, `sources[${index}].completeness`);
     if (item.sha256 !== undefined) text(item.sha256, `sources[${index}].sha256`);
   }
-  console.log(JSON.stringify(value, null, 2));
+  return parsed;
+}
+function sourcesInspect(changeRoot: string): void {
+  console.log(JSON.stringify(parseSources(readJson(sourcesPath(changeRoot))), null, 2));
+}
+function sourcesWrite(changeRoot: string, options: Map<string, string>): void {
+  const imported = parseSources(readJson(requiredOption(options, "file")));
+  const info = parseInfo(infoPath(changeRoot));
+  if (imported.changeSlug !== info.slug) fail("sources.changeSlug 与 Change 不一致");
+  withFileLock(lockPath(changeRoot), () => atomicWriteJson(sourcesPath(changeRoot), imported));
+  console.log(JSON.stringify(imported, null, 2));
+}
+
+function updateSnapshot(changeRoot: string, options: Map<string, string>): void {
+  const paths = readJson(requiredOption(options, "paths-file"));
+  if (!Array.isArray(paths) || paths.some((path) => typeof path !== "string")) fail("更新路径清单必须是字符串数组");
+  const files: Record<string, string> = {};
+  for (const value of paths as string[]) {
+    const path = resolve(changeRoot, value);
+    const rel = relative(changeRoot, path);
+    if (isAbsolute(rel) || rel === ".." || rel.startsWith(`..${sep}`)) fail(`更新路径越出 Change: ${value}`);
+    if (!existsSync(path)) fail(`更新路径不存在: ${value}`);
+    files[rel.split(sep).join("/")] = sha256File(path);
+  }
+  const snapshot = { schemaVersion: 1, changeSlug: parseInfo(infoPath(changeRoot)).slug, createdAt: now(), files };
+  atomicWriteJson(join(controlDir(changeRoot), "update-snapshot.json"), snapshot);
+  console.log(JSON.stringify(snapshot, null, 2));
+}
+
+function updateDiagnose(changeRoot: string): void {
+  const snapshot = object(readJson(join(controlDir(changeRoot), "update-snapshot.json")), "update-snapshot");
+  exactKeys(snapshot, ["schemaVersion", "changeSlug", "createdAt", "files"], ["schemaVersion", "changeSlug", "createdAt", "files"], "update-snapshot");
+  if (snapshot.schemaVersion !== 1 || snapshot.changeSlug !== parseInfo(infoPath(changeRoot)).slug) fail("update-snapshot 与 Change 不一致");
+  const files = object(snapshot.files, "update-snapshot.files");
+  const changed: Array<{ path: string; before: string; after: string | null }> = [];
+  for (const [path, beforeValue] of Object.entries(files)) {
+    const before = text(beforeValue, `update-snapshot.files.${path}`);
+    const current = join(changeRoot, path);
+    const after = existsSync(current) ? sha256File(current) : null;
+    if (after !== before) changed.push({ path, before, after });
+  }
+  const approvals = parseApprovals(approvalsPath(changeRoot));
+  if (invalidateChangedApprovals(changeRoot, approvals)) atomicWriteJson(approvalsPath(changeRoot), approvals);
+  console.log(JSON.stringify({ changed, approvalRevision: approvals.revision, approvals: approvals.approvals }, null, 2));
 }
 
 function main(): void {
@@ -286,9 +330,12 @@ function main(): void {
   else if (command === "task" && action === "set") taskSet(changeRoot, parsed.options);
   else if (command === "task" && action === "render") renderTasks(changeRoot);
   else if (command === "sources" && action === "inspect") sourcesInspect(changeRoot);
+  else if (command === "sources" && action === "write") sourcesWrite(changeRoot, parsed.options);
+  else if (command === "update" && action === "snapshot") updateSnapshot(changeRoot, parsed.options);
+  else if (command === "update" && action === "diagnose") updateDiagnose(changeRoot);
   else if (command === "runtime-check") console.log(JSON.stringify({ allowed: true, runtime: "delivery-spec-runtime", schema: "delivery-change" }, null, 2));
   else if (command === "guard") guard(changeRoot, requiredOption(parsed.options, "operation"));
-  else fail("用法: delivery-control.ts <runtime-check|init|inspect|approval inspect|approval set|task inspect|task write|task set|task render|sources inspect|guard> --change-root <dir>");
+  else fail("用法: delivery-control.ts <runtime-check|init|inspect|approval inspect|approval set|task inspect|task write|task set|task render|sources inspect|sources write|update snapshot|update diagnose|guard> --change-root <dir>");
 }
 
 try { main(); } catch (error) { console.error((error as Error).message); process.exitCode = 1; }

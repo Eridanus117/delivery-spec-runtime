@@ -13,6 +13,15 @@ test("严格合同、批准失效和任务并发版本", () => {
     for (const [path, body] of [["02-需求理解/index.md", "requirements\n"], ["05-改造方案/change-plan.md", "plan\n"], ["06-测试方案/test-plan.md", "tests\n"]]) writeFileSync(join(change, path), body);
     let result = runTool("delivery-control.ts", ["init", "--change-root", change, "--slug", "demo-change", "--display-name", "演示变更", "--mode", "delivery", "--repository-role", "private"]);
     assert.equal(result.status, 0, result.stderr);
+    const sourcesFile = join(root, "sources.json");
+    writeFileSync(sourcesFile, JSON.stringify({ schemaVersion: 1, changeSlug: "demo-change", sources: [{ id: "request", kind: "conversation", location: "local", observedAt: new Date().toISOString(), completeness: "complete" }] }));
+    result = runTool("delivery-control.ts", ["sources", "write", "--change-root", change, "--file", sourcesFile]);
+    assert.equal(result.status, 0, result.stderr);
+    const invalidSourcesFile = join(root, "invalid-sources.json");
+    writeFileSync(invalidSourcesFile, JSON.stringify({ schemaVersion: 1, changeSlug: "demo-change", sources: [], unknown: true }));
+    result = runTool("delivery-control.ts", ["sources", "write", "--change-root", change, "--file", invalidSourcesFile]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /未知字段 unknown/);
     for (const gate of ["requirements", "changePlan", "testPlan"]) {
       result = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--gate", gate, "--status", "approved", "--actor", "tester"]);
       assert.equal(result.status, 0, result.stderr);
@@ -30,10 +39,17 @@ test("严格合同、批准失效和任务并发版本", () => {
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /版本冲突/);
 
+    const updatePaths = join(root, "update-paths.json");
+    writeFileSync(updatePaths, JSON.stringify(["05-改造方案/change-plan.md"]));
+    result = runTool("delivery-control.ts", ["update", "snapshot", "--change-root", change, "--paths-file", updatePaths]);
+    assert.equal(result.status, 0, result.stderr);
     writeFileSync(join(change, "05-改造方案/change-plan.md"), "changed plan\n");
     result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /changePlan 尚未批准/);
+    result = runTool("delivery-control.ts", ["update", "diagnose", "--change-root", change]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /05-改造方案\/change-plan\.md/);
 
     const infoPath = join(change, ".delivery/change-info.json");
     const info = JSON.parse(readFileSync(infoPath, "utf8"));

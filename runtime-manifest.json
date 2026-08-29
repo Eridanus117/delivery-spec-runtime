@@ -96,7 +96,7 @@
     {
       "source": ".omp/commands/opsx-update.md",
       "target": ".omp/commands/opsx-update.md",
-      "sha256": "sha256:34a9260e3cd0e6b670b83f6868c032f239aa4a5c844a64da9b3e6e3936a3d201"
+      "sha256": "sha256:e9e47637fd2b583a50cabe68816f9b3d92d65b1b03f46303cd1072ef8a946ae1"
     },
     {
       "source": ".omp/commands/opsx-verify.md",
