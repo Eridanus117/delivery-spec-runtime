@@ -1,4 +1,5 @@
 #!/usr/bin/env -S node --experimental-strip-types
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
@@ -64,6 +65,18 @@ function stageId(workRoot: string): string {
 }
 function stageRoot(workRoot: string): string { return join(workRoot, "openspec/bootstrap-stage", stageId(workRoot)); }
 function archiveTarget(workRoot: string): string { return join(workRoot, "openspec/changes/archive", `2026-08-30-${changeSlug}`); }
+function git(workRoot: string, args: string[]): string {
+  const result = spawnSync("git", args, { cwd: workRoot, encoding: "utf8" });
+  if (result.status !== 0) fail(`Git 前置校验失败: git ${args.join(" ")}\n${result.stderr}`);
+  return result.stdout.trim();
+}
+function verifyGitBaseline(workRoot: string, requireClean: boolean): void {
+  const workSpec = object(baseline(workRoot).workSpec, "baseline.workSpec");
+  const baselineCommit = text(workSpec.baselineCommit, "baseline.workSpec.baselineCommit");
+  git(workRoot, ["cat-file", "-e", `${baselineCommit}^{commit}`]);
+  git(workRoot, ["merge-base", "--is-ancestor", baselineCommit, "HEAD"]);
+  if (requireClean && git(workRoot, ["status", "--porcelain"]).length > 0) fail("迁移前置要求工作资产仓无未提交修改");
+}
 
 function verifyBaseline(workRoot: string): Record<string, unknown> {
   const manifest = baseline(workRoot);
@@ -92,6 +105,7 @@ function verifyBaseline(workRoot: string): Record<string, unknown> {
 }
 
 function dryRun(workRoot: string, privateRoot: string, consumerRoot: string): void {
+  verifyGitBaseline(workRoot, true);
   const manifest = verifyBaseline(workRoot);
   const report = {
     schemaVersion: 1,
@@ -119,8 +133,15 @@ function parseLegacyTasks(path: string): Array<Record<string, unknown>> {
     const heading = /^##\s+(.+)$/.exec(line); if (heading) { phase = heading[1]; continue; }
     const match = /^- \[([ xX])\]\s+(\d+\.\d+)\s+(?:\[([^\]]+)\]\s+)?(.+)$/.exec(line); if (!match) continue;
     const marker = match[3] ?? "planned";
-    const status = match[1].toLowerCase() === "x" ? "completed" : marker === "blocked_external" ? "blocked_external" : "pending";
-    tasks.push({ id: match[2], phase, title: match[4], status, dependsOn: [], note: `由改造前 07 一次性导入；原状态 ${marker}` });
+    const parts = match[4].split("；");
+    const title = parts[0];
+    const deliverable = parts.find((part) => part.startsWith("交付物："))?.slice("交付物：".length) ?? `旧任务 ${match[2]} 的声明交付物`;
+    const verification = parts.find((part) => part.startsWith("验证："))?.slice("验证：".length) ?? `按旧任务 ${match[2]} 的验证说明复核`;
+    const status = marker === "verified" && match[1].toLowerCase() === "x" ? "verified" : marker === "blocked_external" ? "blocked_external" : match[1].toLowerCase() === "x" ? "implemented_unverified" : "planned";
+    const task: Record<string, unknown> = { id: match[2], phase, title, status, dependsOn: [], deliverable, verification, note: `由改造前 07 一次性导入；原状态 ${marker}` };
+    if (status === "verified") task.evidence = "bootstrap/baseline-manifest.json#workSpec.baselineCommit";
+    if (status === "blocked_external") task.blocker = "等待维护者审阅并批准当前stage迁移映射";
+    tasks.push(task);
   }
   if (tasks.length === 0) fail("未从旧 07 解析到任务");
   return tasks;
@@ -137,24 +158,38 @@ function buildCandidate(workRoot: string, candidate: string): void {
     else if (entry.isDirectory()) copyTree(from, to);
     else cpSync(from, to);
   }
+  const primaryFiles: Array<[string, string]> = [
+    ["01-原始需求/index.md", "01-原始需求/原始需求索引.md"],
+    ["02-需求理解/index.md", "02-需求理解/需求理解.md"],
+    ["03-业务现状/business-current.md", "03-业务现状/业务现状.md"],
+    ["04-技术现状/technical-current.md", "04-技术现状/技术现状.md"],
+    ["05-改造方案/change-plan.md", "05-改造方案/改造方案.md"],
+    ["06-测试方案/test-plan.md", "06-测试方案/测试方案.md"],
+    ["07-实施任务/tasks.md", "07-实施任务/实施任务.md"],
+  ];
+  for (const [from, to] of primaryFiles) renameSync(join(candidate, from), join(candidate, to));
+  writeFileSync(join(candidate, ".openspec.yaml"), "schema: delivery-change\ncreated: 2026-08-30\n", "utf8");
   const oldSpecsLink = join(candidate, "02-需求理解/specs");
   if (pathExists(oldSpecsLink)) rmSync(oldSpecsLink, { recursive: true, force: true });
   symlinkSync("../specs", oldSpecsLink);
   const createdAt = now();
-  mkdirSync(join(candidate, ".delivery"), { recursive: true });
-  atomicWriteJson(join(candidate, ".delivery/change-info.json"), { schemaVersion: 1, slug: changeSlug, displayName: "优化物流 Change 审阅工作流", mode: "delivery", repositoryRole: "work", schema: "delivery-change", createdAt });
-  const artifactPaths: Record<string, string> = { requirements: "02-需求理解/index.md", changePlan: "05-改造方案/change-plan.md", testPlan: "06-测试方案/test-plan.md" };
+  // 控制 JSON 全部位于 Change 根目录；不得重新引入历史 `.delivery` 容器。
+  atomicWriteJson(join(candidate, "change-info.json"), { schemaVersion: 1, displayName: "优化物流 Change 审阅工作流" });
+  const artifactPaths: Record<string, string> = { requirements: "02-需求理解/需求理解.md", changePlan: "05-改造方案/改造方案.md", testPlan: "06-测试方案/测试方案.md" };
   const approvals: Record<string, unknown> = {};
   for (const gate of ["requirements", "changePlan", "testPlan", "stage", "release", "archive"]) {
     const artifact = artifactPaths[gate];
     approvals[gate] = artifact ? { status: "approved", updatedAt: createdAt, actor: "user", evidence: "approved implementation baseline", artifactSha256: sha256File(join(candidate, artifact)) } : { status: "pending", updatedAt: createdAt };
   }
-  atomicWriteJson(join(candidate, ".delivery/artifact-approvals.json"), { schemaVersion: 1, changeSlug, revision: 0, approvals });
-  atomicWriteJson(join(candidate, ".delivery/task-state.json"), { schemaVersion: 1, changeSlug, revision: 0, updatedAt: createdAt, tasks: parseLegacyTasks(join(source, "07-implementation-tasks/tasks.md")) });
-  atomicWriteJson(join(candidate, ".delivery/sources.json"), { schemaVersion: 1, changeSlug, sources: [{ id: "baseline-manifest", kind: "local-git-baseline", location: "bootstrap/baseline-manifest.json", observedAt: createdAt, completeness: "complete", sha256: sha256File(join(source, "bootstrap/baseline-manifest.json")) }] });
+  atomicWriteJson(join(candidate, "artifact-approvals.json"), { schemaVersion: 1, changeSlug, revision: 0, approvals });
+  atomicWriteJson(join(candidate, "task-state.json"), { schemaVersion: 1, changeSlug, revision: 0, updatedAt: createdAt, tasks: parseLegacyTasks(join(source, "07-implementation-tasks/tasks.md")) });
+  atomicWriteJson(join(candidate, "change-sources.json"), { schemaVersion: 1, changeSlug, sources: [{ id: "baseline-manifest", kind: "local-git-baseline", location: "bootstrap/baseline-manifest.json", observedAt: createdAt, completeness: "complete", sha256: sha256File(join(source, "bootstrap/baseline-manifest.json")) }] });
 }
 
+
+
 function stage(workRoot: string, privateRoot: string, consumerRoot: string): void {
+  verifyGitBaseline(workRoot, true);
   verifyBaseline(workRoot);
   const root = stageRoot(workRoot); rmSync(root, { recursive: true, force: true }); mkdirSync(root, { recursive: true });
   const candidate = join(root, "candidate-change"); buildCandidate(workRoot, candidate);
@@ -173,7 +208,8 @@ function stage(workRoot: string, privateRoot: string, consumerRoot: string): voi
     rollbackRoot: `openspec/.bootstrap-rollback/${stageId(workRoot)}`,
   };
   atomicWriteJson(join(root, "activation-plan.json"), plan);
-  const state = { schemaVersion: 1, stageId: stageId(workRoot), status: "staged", updatedAt: now(), planSha256: sha256File(join(root, "activation-plan.json")), rollbackRoot: plan.rollbackRoot };
+  const state = { schemaVersion: 1, stageId: stageId(workRoot), status: "in_progress", updatedAt: now(), planSha256: sha256File(join(root, "activation-plan.json")), rollbackRoot: plan.rollbackRoot };
+  atomicWriteJson(join(workRoot, "openspec/bootstrap-state.json"), state);
   atomicWriteJson(join(bootstrapDir(workRoot), "bootstrap-state.json"), state);
   atomicWriteJson(join(candidate, "bootstrap/bootstrap-state.json"), state);
   console.log(JSON.stringify(plan, null, 2));
@@ -203,6 +239,7 @@ function restoreForbiddenProjection(backup: ForbiddenProjectionBackup): void {
 }
 
 function activate(workRoot: string, privateRoot: string, consumerRoot: string): void {
+  verifyGitBaseline(workRoot, false);
   verifyBaseline(workRoot);
   const currentStageId = stageId(workRoot);
   const forbiddenContract = object(readJson(join(bootstrapDir(workRoot), "forbidden-paths.json")), "forbidden-paths");
@@ -225,7 +262,9 @@ function activate(workRoot: string, privateRoot: string, consumerRoot: string): 
       renameSync(join(root, "candidate-change"), target);
       projectionBackup = removeForbiddenProjection(forbiddenContract, consumerRoot);
       atomicWriteJson(join(rollback, "activation-record.json"), { schemaVersion: 1, stageId: currentStageId, archiveTarget: relative(workRoot, target), activatedAt: now() });
-      atomicWriteJson(join(target, "bootstrap/bootstrap-state.json"), { schemaVersion: 1, stageId: currentStageId, status: "activated", updatedAt: now(), planSha256: sha256File(planPath), rollbackRoot: relative(workRoot, rollback), privateRoot });
+      const committedState = { schemaVersion: 1, stageId: currentStageId, status: "committed", updatedAt: now(), planSha256: sha256File(planPath), rollbackRoot: relative(workRoot, rollback), privateRoot };
+      atomicWriteJson(join(target, "bootstrap/bootstrap-state.json"), committedState);
+      atomicWriteJson(join(workRoot, "openspec/bootstrap-state.json"), committedState);
     } catch (error) {
       if (projectionBackup) restoreForbiddenProjection(projectionBackup);
       if (existsSync(target)) {
@@ -240,7 +279,7 @@ function activate(workRoot: string, privateRoot: string, consumerRoot: string): 
       throw error;
     }
   });
-  console.log(JSON.stringify({ status: "activated", archive: archiveTarget(workRoot), deletedActive: removeSlugs }, null, 2));
+  console.log(JSON.stringify({ status: "committed", archive: archiveTarget(workRoot), deletedActive: removeSlugs }, null, 2));
 }
 
 function rollbackActivation(workRoot: string): void {
@@ -258,7 +297,9 @@ function rollbackActivation(workRoot: string): void {
       if (!existsSync(saved) || existsSync(join(workRoot, "openspec/changes", slug))) fail(`无法恢复 active Change: ${slug}`);
       renameSync(saved, join(workRoot, "openspec/changes", slug));
     }
-    atomicWriteJson(join(bootstrapDir(workRoot), "bootstrap-state.json"), { schemaVersion: 1, stageId: currentStageId, status: "rolled_back", updatedAt: now(), planSha256: sha256File(join(workRoot, "openspec/bootstrap-stage", currentStageId, "activation-plan.json")), rollbackRoot: relative(workRoot, rollback) });
+    const rolledBackState = { schemaVersion: 1, stageId: currentStageId, status: "rolled_back", updatedAt: now(), planSha256: sha256File(join(workRoot, "openspec/bootstrap-stage", currentStageId, "activation-plan.json")), rollbackRoot: relative(workRoot, rollback) };
+    atomicWriteJson(join(bootstrapDir(workRoot), "bootstrap-state.json"), rolledBackState);
+    atomicWriteJson(join(workRoot, "openspec/bootstrap-state.json"), rolledBackState);
   });
   console.log(JSON.stringify({ status: "rolled_back", restoredActive: [changeSlug, ...removeSlugs], forbiddenProjection: "remains removed by target contract" }, null, 2));
 }

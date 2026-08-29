@@ -7,6 +7,7 @@ description: "进入探索模式——深入思考想法、调查问题、明确
 node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" runtime-check --change-root "<planningHome.root>"
 ```
 入口非零时立即停止；不得绕过 runtime lock、commit、manifest 或投影摘要检查。
+选择、列出或报告 active Change 时，必须对每个候选运行 `runtime-entry.ts inspect --change-root "<changeRoot>"`，显示 `displayName (slug)`；sidecar 缺失或无效时停止，机器选择键与 OpenSpec 参数只能使用slug。
 
 进入探索模式。深入思考，自由地进行可视化，让对话自然发展，无论它走向何方。
 

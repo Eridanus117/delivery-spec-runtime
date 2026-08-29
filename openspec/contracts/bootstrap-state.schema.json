@@ -20,8 +20,9 @@
     },
     "status": {
       "enum": [
-        "staged",
-        "activated",
+        "idle",
+        "in_progress",
+        "committed",
         "rolled_back"
       ]
     },

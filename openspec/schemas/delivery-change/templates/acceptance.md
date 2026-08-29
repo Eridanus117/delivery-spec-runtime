@@ -8,7 +8,7 @@
 
 ## 前置门禁
 
-- [ ] delivery：`07-实施任务/tasks.md` 无未完成复选框。
+- [ ] delivery：`07-实施任务/实施任务.md` 无未完成复选框。
 - [ ] delivery：实际 commit、依赖版本和目标环境已锁定，06 必需场景、runner、输入和清理规则可执行。
 - [ ] rehearsal：逐项列出未完成、跳过和阻塞，不把既有源码或 artifact 文件存在写成已完成。
 - [ ] rehearsal：未伪造 run-id、环境、输入、输出、trace 或清理结果。

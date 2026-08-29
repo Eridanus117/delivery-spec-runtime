@@ -1,6 +1,6 @@
 #!/usr/bin/env -S node --experimental-strip-types
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
   atomicWriteJson,
   exactKeys,
@@ -12,6 +12,7 @@ import {
   readJson,
   requiredOption,
   sha256File,
+  sha256Paths,
   type JsonObject,
   stringArray,
   text,
@@ -20,48 +21,54 @@ import {
 
 type Mode = "delivery" | "rehearsal";
 type ApprovalStatus = "pending" | "approved" | "rejected";
-type TaskStatus = "pending" | "in_progress" | "blocked_external" | "completed" | "abandoned";
+type TaskStatus = "planned" | "implemented_unverified" | "blocked_external" | "verified";
 
 type ChangeInfo = {
   schemaVersion: 1;
-  slug: string;
   displayName: string;
-  mode: Mode;
-  repositoryRole: "work" | "private";
-  schema: "delivery-change";
-  createdAt: string;
 };
+type ChangeMode = { schemaVersion: 1; mode: "rehearsal"; reason: string; approvedBy: string; approvedAt: string };
 type Approval = { status: ApprovalStatus; updatedAt: string; actor?: string; evidence?: string; artifactSha256?: string };
 type ApprovalState = { schemaVersion: 1; changeSlug: string; revision: number; approvals: Record<string, Approval> };
-type Task = { id: string; phase: string; title: string; status: TaskStatus; dependsOn: string[]; verification?: string; note?: string };
+type Task = { id: string; phase: string; title: string; status: TaskStatus; dependsOn: string[]; deliverable: string; verification: string; evidence?: string; blocker?: string; note?: string };
 type TaskState = { schemaVersion: 1; changeSlug: string; revision: number; updatedAt: string; tasks: Task[] };
 
 const approvalGates = ["requirements", "changePlan", "testPlan", "stage", "release", "archive"] as const;
-const artifactByGate: Record<string, string | undefined> = {
-  requirements: "02-需求理解/index.md",
-  changePlan: "05-改造方案/change-plan.md",
-  testPlan: "06-测试方案/test-plan.md",
+const artifactByGate: Record<string, string[] | undefined> = {
+  requirements: ["02-需求理解/需求理解.md", "specs"],
+  changePlan: ["05-改造方案/改造方案.md"],
+  testPlan: ["06-测试方案/测试方案.md"],
 };
-
-function controlDir(changeRoot: string): string {
-  return join(changeRoot, ".delivery");
+function artifactDigest(changeRoot: string, paths: string[]): string {
+  return sha256Paths(changeRoot, paths);
 }
-function infoPath(changeRoot: string): string { return join(controlDir(changeRoot), "change-info.json"); }
-function approvalsPath(changeRoot: string): string { return join(controlDir(changeRoot), "artifact-approvals.json"); }
-function tasksPath(changeRoot: string): string { return join(controlDir(changeRoot), "task-state.json"); }
-function sourcesPath(changeRoot: string): string { return join(controlDir(changeRoot), "sources.json"); }
-function lockPath(changeRoot: string): string { return join(controlDir(changeRoot), "control.lock"); }
+
+function lockPath(changeRoot: string): string { return join(changeRoot, ".delivery-control.lock"); }
+function infoPath(changeRoot: string): string { return join(changeRoot, "change-info.json"); }
+function approvalsPath(changeRoot: string): string { return join(changeRoot, "artifact-approvals.json"); }
+function tasksPath(changeRoot: string): string { return join(changeRoot, "task-state.json"); }
+function sourcesPath(changeRoot: string): string { return join(changeRoot, "change-sources.json"); }
+function modePath(changeRoot: string): string { return join(changeRoot, "change-mode.json"); }
+function updateSnapshotPath(changeRoot: string): string { return join(changeRoot, ".delivery-update-snapshot.json"); }
 
 function parseInfo(path: string): ChangeInfo {
   const value = object(readJson(path), "change-info");
-  exactKeys(value, ["schemaVersion", "slug", "displayName", "mode", "repositoryRole", "schema", "createdAt"], ["schemaVersion", "slug", "displayName", "mode", "repositoryRole", "schema", "createdAt"], "change-info");
+  exactKeys(value, ["schemaVersion", "displayName"], ["schemaVersion", "displayName"], "change-info");
   if (integer(value.schemaVersion, "change-info.schemaVersion") !== 1) fail("change-info.schemaVersion 仅支持 1");
-  const mode = text(value.mode, "change-info.mode");
-  if (mode !== "delivery" && mode !== "rehearsal") fail("change-info.mode 非法");
-  const role = text(value.repositoryRole, "change-info.repositoryRole");
-  if (role !== "work" && role !== "private") fail("change-info.repositoryRole 非法");
-  if (text(value.schema, "change-info.schema") !== "delivery-change") fail("change-info.schema 必须是 delivery-change");
-  return { schemaVersion: 1, slug: text(value.slug, "change-info.slug"), displayName: text(value.displayName, "change-info.displayName"), mode, repositoryRole: role, schema: "delivery-change", createdAt: text(value.createdAt, "change-info.createdAt") };
+  return { schemaVersion: 1, displayName: text(value.displayName, "change-info.displayName") };
+}
+function parseMode(changeRoot: string): Mode {
+  if (!existsSync(modePath(changeRoot))) return "delivery";
+  const value = object(readJson(modePath(changeRoot)), "change-mode");
+  exactKeys(value, ["schemaVersion", "mode", "reason", "approvedBy", "approvedAt"], ["schemaVersion", "mode", "reason", "approvedBy", "approvedAt"], "change-mode");
+  if (value.schemaVersion !== 1 || value.mode !== "rehearsal") fail("change-mode 只允许显式 rehearsal");
+  text(value.reason, "change-mode.reason"); text(value.approvedBy, "change-mode.approvedBy"); text(value.approvedAt, "change-mode.approvedAt");
+  return "rehearsal";
+}
+function slugFor(changeRoot: string): string {
+  const slug = basename(changeRoot);
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) fail(`Change目录名不是ASCII kebab-case slug: ${slug}`);
+  return slug;
 }
 
 function parseApproval(value: unknown, label: string): Approval {
@@ -87,12 +94,15 @@ function parseApprovals(path: string): ApprovalState {
 
 function parseTask(value: unknown, index: number): Task {
   const item = object(value, `task[${index}]`);
-  exactKeys(item, ["id", "phase", "title", "status", "dependsOn", "verification", "note"], ["id", "phase", "title", "status", "dependsOn"], `task[${index}]`);
+  exactKeys(item, ["id", "phase", "title", "status", "dependsOn", "deliverable", "verification", "evidence", "blocker", "note"], ["id", "phase", "title", "status", "dependsOn", "deliverable", "verification"], `task[${index}]`);
   const status = text(item.status, `task[${index}].status`);
-  if (!(["pending", "in_progress", "blocked_external", "completed", "abandoned"] as string[]).includes(status)) fail(`task[${index}].status 非法`);
-  const result: Task = { id: text(item.id, `task[${index}].id`), phase: text(item.phase, `task[${index}].phase`), title: text(item.title, `task[${index}].title`), status: status as TaskStatus, dependsOn: stringArray(item.dependsOn, `task[${index}].dependsOn`) };
-  if (item.verification !== undefined) result.verification = text(item.verification, `task[${index}].verification`);
+  if (!(["planned", "implemented_unverified", "blocked_external", "verified"] as string[]).includes(status)) fail(`task[${index}].status 非法`);
+  const result: Task = { id: text(item.id, `task[${index}].id`), phase: text(item.phase, `task[${index}].phase`), title: text(item.title, `task[${index}].title`), status: status as TaskStatus, dependsOn: stringArray(item.dependsOn, `task[${index}].dependsOn`), deliverable: text(item.deliverable, `task[${index}].deliverable`), verification: text(item.verification, `task[${index}].verification`) };
+  if (item.evidence !== undefined) result.evidence = text(item.evidence, `task[${index}].evidence`);
+  if (item.blocker !== undefined) result.blocker = text(item.blocker, `task[${index}].blocker`);
   if (item.note !== undefined) result.note = text(item.note, `task[${index}].note`);
+  if (status === "verified" && !result.evidence) fail(`task[${index}] verified 缺少 evidence`);
+  if (status === "blocked_external" && !result.blocker) fail(`task[${index}] blocked_external 缺少 blocker`);
   return result;
 }
 
@@ -108,8 +118,7 @@ function parseTasks(path: string): TaskState {
     ids.add(task.id);
   }
   for (const task of tasks) for (const dependency of task.dependsOn) if (!ids.has(dependency)) fail(`task ${task.id} 依赖不存在: ${dependency}`);
-  const inProgress = tasks.filter((task) => task.status === "in_progress");
-  if (inProgress.length > 1) fail("最多只能有一个 in_progress task");
+  // 并发写由 revision 和排他锁控制；四种业务状态不承载会话级执行锁。
   return { schemaVersion: 1, changeSlug: text(value.changeSlug, "task-state.changeSlug"), revision: integer(value.revision, "task-state.revision"), updatedAt: text(value.updatedAt, "task-state.updatedAt"), tasks };
 }
 
@@ -123,31 +132,35 @@ function inspect(changeRoot: string): void {
   const info = parseInfo(infoPath(changeRoot));
   const approvals = parseApprovals(approvalsPath(changeRoot));
   const tasks = existsSync(tasksPath(changeRoot)) ? parseTasks(tasksPath(changeRoot)) : null;
-  console.log(JSON.stringify({ info, approvals, tasks }, null, 2));
+  console.log(JSON.stringify({ slug: slugFor(changeRoot), displayName: info.displayName, mode: parseMode(changeRoot), approvals, tasks }, null, 2));
 }
 
 function init(changeRoot: string, options: Map<string, string>): void {
   if (existsSync(infoPath(changeRoot))) fail("Change 已初始化");
   const mode = requiredOption(options, "mode");
   if (mode !== "delivery" && mode !== "rehearsal") fail("--mode 只能是 delivery 或 rehearsal");
-  const role = requiredOption(options, "repository-role");
-  if (role !== "work" && role !== "private") fail("--repository-role 只能是 work 或 private");
   const slug = requiredOption(options, "slug");
-  const info: ChangeInfo = { schemaVersion: 1, slug, displayName: requiredOption(options, "display-name"), mode, repositoryRole: role, schema: "delivery-change", createdAt: now() };
+  if (slug !== slugFor(changeRoot)) fail("--slug 必须等于Change目录名");
+  const info: ChangeInfo = { schemaVersion: 1, displayName: requiredOption(options, "display-name") };
   withFileLock(lockPath(changeRoot), () => {
     atomicWriteJson(infoPath(changeRoot), info);
     atomicWriteJson(approvalsPath(changeRoot), initialApprovals(slug));
+    if (mode === "rehearsal") {
+      const rehearsal: ChangeMode = { schemaVersion: 1, mode: "rehearsal", reason: requiredOption(options, "reason"), approvedBy: requiredOption(options, "approved-by"), approvedAt: requiredOption(options, "approved-at") };
+      atomicWriteJson(modePath(changeRoot), rehearsal);
+    }
   });
-  console.log(JSON.stringify(info, null, 2));
+  console.log(JSON.stringify({ slug, displayName: info.displayName, mode }, null, 2));
 }
 
 function invalidateChangedApprovals(changeRoot: string, state: ApprovalState): boolean {
   let changed = false;
-  for (const [gate, artifact] of Object.entries(artifactByGate)) {
+  for (const [gate, artifactPaths] of Object.entries(artifactByGate)) {
     const approval = state.approvals[gate];
-    if (!artifact || approval.status !== "approved" || !approval.artifactSha256) continue;
-    const path = join(changeRoot, artifact);
-    if (!existsSync(path) || sha256File(path) !== approval.artifactSha256) {
+    if (!artifactPaths || approval.status !== "approved" || !approval.artifactSha256) continue;
+    let current: string | null = null;
+    try { current = artifactDigest(changeRoot, artifactPaths); } catch { current = null; }
+    if (current !== approval.artifactSha256) {
       state.approvals[gate] = { status: "pending", updatedAt: now(), evidence: "已批准制品内容发生变化，自动失效" };
       changed = true;
     }
@@ -168,11 +181,9 @@ function approvalSet(changeRoot: string, options: Map<string, string>): void {
     const approval: Approval = { status: status as ApprovalStatus, updatedAt: now() };
     if (options.has("actor")) approval.actor = requiredOption(options, "actor");
     if (options.has("evidence")) approval.evidence = requiredOption(options, "evidence");
-    const artifact = artifactByGate[gate];
-    if (status === "approved" && artifact) {
-      const path = join(changeRoot, artifact);
-      if (!existsSync(path)) fail(`待批准制品不存在: ${artifact}`);
-      approval.artifactSha256 = sha256File(path);
+    const artifactPaths = artifactByGate[gate];
+    if (status === "approved" && artifactPaths) {
+      approval.artifactSha256 = artifactDigest(changeRoot, artifactPaths);
     }
     state.approvals[gate] = approval;
     state.revision += 1;
@@ -191,8 +202,8 @@ function approvalsInspect(changeRoot: string): void {
 
 function taskWrite(changeRoot: string, options: Map<string, string>): void {
   const imported = parseTasks(requiredOption(options, "file"));
-  const info = parseInfo(infoPath(changeRoot));
-  if (imported.changeSlug !== info.slug) fail("task-state.changeSlug 与 Change 不一致");
+  parseInfo(infoPath(changeRoot));
+  if (imported.changeSlug !== slugFor(changeRoot)) fail("task-state.changeSlug 与 Change 不一致");
   withFileLock(lockPath(changeRoot), () => atomicWriteJson(tasksPath(changeRoot), imported));
   console.log(JSON.stringify(imported, null, 2));
 }
@@ -206,11 +217,14 @@ function taskSet(changeRoot: string, options: Map<string, string>): void {
     const task = state.tasks.find((candidate) => candidate.id === id);
     if (!task) fail(`未知 task id: ${id}`);
     const status = requiredOption(options, "status");
-    if (!(["pending", "in_progress", "blocked_external", "completed", "abandoned"] as string[]).includes(status)) fail(`任务状态非法: ${status}`);
-    if ((status === "in_progress" || status === "completed") && task.dependsOn.some((dependency) => state.tasks.find((candidate) => candidate.id === dependency)?.status !== "completed")) fail(`task ${id} 的依赖尚未完成`);
-    if (status === "in_progress" && state.tasks.some((candidate) => candidate.id !== id && candidate.status === "in_progress")) fail("已有 in_progress task");
+    if (!(["planned", "implemented_unverified", "blocked_external", "verified"] as string[]).includes(status)) fail(`任务状态非法: ${status}`);
+    if ((status === "implemented_unverified" || status === "verified") && task.dependsOn.some((dependency) => state.tasks.find((candidate) => candidate.id === dependency)?.status !== "verified")) fail(`task ${id} 的依赖尚未验证`);
     task.status = status as TaskStatus;
+    if (options.has("evidence")) task.evidence = requiredOption(options, "evidence");
+    if (options.has("blocker")) task.blocker = requiredOption(options, "blocker");
     if (options.has("note")) task.note = requiredOption(options, "note");
+    if (task.status === "verified" && !task.evidence) fail(`task ${id} verified 缺少 evidence`);
+    if (task.status === "blocked_external" && !task.blocker) fail(`task ${id} blocked_external 缺少 blocker`);
     state.revision += 1;
     state.updatedAt = now();
     atomicWriteJson(tasksPath(changeRoot), state);
@@ -220,19 +234,22 @@ function taskSet(changeRoot: string, options: Map<string, string>): void {
 
 function renderTasks(changeRoot: string): void {
   const state = parseTasks(tasksPath(changeRoot));
-  const lines = ["# 实施任务", "", `> 机器真源：\`.delivery/task-state.json\`，revision ${state.revision}。本文件只用于人工审阅。`, ""];
+  const lines = ["# 实施任务", "", `> 机器真源：\`task-state.json\`，revision ${state.revision}。本文件只用于人工审阅。`, ""];
   let phase = "";
   for (const task of state.tasks) {
     if (task.phase !== phase) {
       phase = task.phase;
       lines.push(`## ${phase}`, "");
     }
-    const checked = task.status === "completed" ? "x" : " ";
+    const checked = task.status === "verified" ? "x" : " ";
     lines.push(`- [${checked}] ${task.id} [${task.status}] ${task.title}`);
-    if (task.verification) lines.push(`  - 验证：${task.verification}`);
+    lines.push(`  - 交付物：${task.deliverable}`);
+    lines.push(`  - 验证：${task.verification}`);
+    if (task.evidence) lines.push(`  - 证据：${task.evidence}`);
+    if (task.blocker) lines.push(`  - blocker：${task.blocker}`);
     if (task.note) lines.push(`  - 说明：${task.note}`);
   }
-  const path = join(changeRoot, "07-实施任务", "tasks.md");
+  const path = join(changeRoot, "07-实施任务", "实施任务.md");
   writeFileSync(path, `${lines.join("\n")}\n`, "utf8");
   console.log(JSON.stringify({ path, revision: state.revision }, null, 2));
 }
@@ -240,24 +257,28 @@ function renderTasks(changeRoot: string): void {
 function guard(changeRoot: string, operation: string): void {
   const info = parseInfo(infoPath(changeRoot));
   const approvals = parseApprovals(approvalsPath(changeRoot));
+  const mode = parseMode(changeRoot);
   if (invalidateChangedApprovals(changeRoot, approvals)) atomicWriteJson(approvalsPath(changeRoot), approvals);
   if (operation === "apply") {
-    if (info.mode !== "delivery") fail("rehearsal 模式禁止 apply");
+    if (mode !== "delivery") fail("rehearsal 模式禁止 apply");
     for (const gate of ["requirements", "changePlan", "testPlan"]) if (approvals.approvals[gate].status !== "approved") fail(`${gate} 尚未批准`);
   } else if (operation === "acceptance") {
     const tasks = parseTasks(tasksPath(changeRoot));
-    if (info.mode === "delivery" && tasks.tasks.some((task) => task.status !== "completed")) fail("delivery 验收前全部任务必须 completed");
+    if (mode === "delivery" && tasks.tasks.some((task) => task.status !== "verified")) fail("delivery 验收前全部任务必须 verified");
   } else if (operation === "release") {
-    const acceptance = join(changeRoot, "08-验收", "acceptance.md");
-    if (info.mode === "delivery" && (!existsSync(acceptance) || !/^结论:\s*PASS\s*$/m.test(readFileSync(acceptance, "utf8")))) fail("delivery 发布前需要严格 PASS");
-    if (info.mode === "delivery" && approvals.approvals.release.status !== "approved") fail("release 尚未批准");
+    guard(changeRoot, "acceptance");
+    const acceptance = join(changeRoot, "08-验收", "验收记录.md");
+    if (mode === "delivery" && (!existsSync(acceptance) || !/^结论:\s*PASS\s*$/m.test(readFileSync(acceptance, "utf8")))) fail("delivery 发布前需要严格 PASS");
+    if (mode === "rehearsal" && (!existsSync(acceptance) || !/^结论:\s*(PARTIAL|FAIL|BLOCKED)\s*$/m.test(readFileSync(acceptance, "utf8")))) fail("rehearsal 发布记录前需要非PASS验收结论");
+    if (mode === "delivery" && approvals.approvals.release.status !== "approved") fail("release 尚未批准");
   } else if (operation === "archive") {
+    if (mode === "rehearsal") fail("rehearsal 模式禁止 archive");
     guard(changeRoot, "release");
     if (approvals.approvals.archive.status !== "approved") fail("archive 尚未批准");
-    const release = join(changeRoot, "09-发布", "release-plan.md");
+    const release = join(changeRoot, "09-发布", "发布计划.md");
     if (!existsSync(release) || !/(release-id\s*:|release-not-required)/.test(readFileSync(release, "utf8"))) fail("缺少成功 release-id 或 release-not-required");
   } else fail(`未知 guard operation: ${operation}`);
-  console.log(JSON.stringify({ allowed: true, operation, mode: info.mode }, null, 2));
+  console.log(JSON.stringify({ allowed: true, operation, mode }, null, 2));
 }
 
 function parseSources(value: unknown): JsonObject {
@@ -265,10 +286,14 @@ function parseSources(value: unknown): JsonObject {
   exactKeys(parsed, ["schemaVersion", "changeSlug", "sources"], ["schemaVersion", "changeSlug", "sources"], "sources");
   if (integer(parsed.schemaVersion, "sources.schemaVersion") !== 1) fail("sources.schemaVersion 仅支持 1");
   if (!Array.isArray(parsed.sources)) fail("sources.sources 必须是数组");
+  const ids = new Set<string>();
   for (const [index, source] of parsed.sources.entries()) {
     const item = object(source, `sources[${index}]`);
     exactKeys(item, ["id", "kind", "location", "observedAt", "sha256", "completeness"], ["id", "kind", "location", "observedAt", "completeness"], `sources[${index}]`);
-    text(item.id, `sources[${index}].id`); text(item.kind, `sources[${index}].kind`); text(item.location, `sources[${index}].location`); text(item.observedAt, `sources[${index}].observedAt`); text(item.completeness, `sources[${index}].completeness`);
+    const id = text(item.id, `sources[${index}].id`);
+    if (ids.has(id)) fail(`重复来源id: ${id}`);
+    ids.add(id);
+    text(item.kind, `sources[${index}].kind`); text(item.location, `sources[${index}].location`); text(item.observedAt, `sources[${index}].observedAt`); text(item.completeness, `sources[${index}].completeness`);
     if (item.sha256 !== undefined) text(item.sha256, `sources[${index}].sha256`);
   }
   return parsed;
@@ -278,10 +303,30 @@ function sourcesInspect(changeRoot: string): void {
 }
 function sourcesWrite(changeRoot: string, options: Map<string, string>): void {
   const imported = parseSources(readJson(requiredOption(options, "file")));
-  const info = parseInfo(infoPath(changeRoot));
-  if (imported.changeSlug !== info.slug) fail("sources.changeSlug 与 Change 不一致");
+  parseInfo(infoPath(changeRoot));
+  if (imported.changeSlug !== slugFor(changeRoot)) fail("sources.changeSlug 与 Change 不一致");
   withFileLock(lockPath(changeRoot), () => atomicWriteJson(sourcesPath(changeRoot), imported));
   console.log(JSON.stringify(imported, null, 2));
+}
+
+function adapterInspect(options: Map<string, string>): void {
+  const registry = object(readJson(requiredOption(options, "registry")), "source-adapters");
+  exactKeys(registry, ["schemaVersion", "adapters"], ["schemaVersion", "adapters"], "source-adapters");
+  if (registry.schemaVersion !== 1 || !Array.isArray(registry.adapters)) fail("source-adapters合同非法");
+  const ids = new Set<string>();
+  for (const [index, value] of registry.adapters.entries()) {
+    const adapter = object(value, `adapters[${index}]`);
+    exactKeys(adapter, ["id", "command", "trustDomain", "kinds"], ["id", "command", "trustDomain", "kinds"], `adapters[${index}]`);
+    const id = text(adapter.id, `adapters[${index}].id`);
+    if (ids.has(id)) fail(`重复adapter id: ${id}`);
+    ids.add(id);
+    const command = text(adapter.command, `adapters[${index}].command`);
+    if (isAbsolute(command) || command.split(/[\\/\\\\]/).includes("..")) fail(`adapter command越界: ${command}`);
+    const trustDomain = text(adapter.trustDomain, `adapters[${index}].trustDomain`);
+    if (trustDomain !== "work" && trustDomain !== "private") fail(`adapter trustDomain非法: ${trustDomain}`);
+    stringArray(adapter.kinds, `adapters[${index}].kinds`);
+  }
+  console.log(JSON.stringify(registry, null, 2));
 }
 
 function updateSnapshot(changeRoot: string, options: Map<string, string>): void {
@@ -295,15 +340,15 @@ function updateSnapshot(changeRoot: string, options: Map<string, string>): void 
     if (!existsSync(path)) fail(`更新路径不存在: ${value}`);
     files[rel.split(sep).join("/")] = sha256File(path);
   }
-  const snapshot = { schemaVersion: 1, changeSlug: parseInfo(infoPath(changeRoot)).slug, createdAt: now(), files };
-  atomicWriteJson(join(controlDir(changeRoot), "update-snapshot.json"), snapshot);
+  const snapshot = { schemaVersion: 1, changeSlug: slugFor(changeRoot), createdAt: now(), files };
+  atomicWriteJson(updateSnapshotPath(changeRoot), snapshot);
   console.log(JSON.stringify(snapshot, null, 2));
 }
 
 function updateDiagnose(changeRoot: string): void {
-  const snapshot = object(readJson(join(controlDir(changeRoot), "update-snapshot.json")), "update-snapshot");
+  const snapshot = object(readJson(updateSnapshotPath(changeRoot)), "update-snapshot");
   exactKeys(snapshot, ["schemaVersion", "changeSlug", "createdAt", "files"], ["schemaVersion", "changeSlug", "createdAt", "files"], "update-snapshot");
-  if (snapshot.schemaVersion !== 1 || snapshot.changeSlug !== parseInfo(infoPath(changeRoot)).slug) fail("update-snapshot 与 Change 不一致");
+  if (snapshot.schemaVersion !== 1 || snapshot.changeSlug !== slugFor(changeRoot)) fail("update-snapshot 与 Change 不一致");
   const files = object(snapshot.files, "update-snapshot.files");
   const changed: Array<{ path: string; before: string; after: string | null }> = [];
   for (const [path, beforeValue] of Object.entries(files)) {
@@ -335,7 +380,7 @@ function main(): void {
   else if (command === "update" && action === "diagnose") updateDiagnose(changeRoot);
   else if (command === "runtime-check") console.log(JSON.stringify({ allowed: true, runtime: "delivery-spec-runtime", schema: "delivery-change" }, null, 2));
   else if (command === "guard") guard(changeRoot, requiredOption(parsed.options, "operation"));
-  else fail("用法: delivery-control.ts <runtime-check|init|inspect|approval inspect|approval set|task inspect|task write|task set|task render|sources inspect|sources write|update snapshot|update diagnose|guard> --change-root <dir>");
+  else if (command === "adapter" && action === "inspect") adapterInspect(parsed.options);
+  else fail("用法: delivery-control.ts <runtime-check|init|inspect|approval inspect|approval set|task inspect|task write|task set|task render|sources inspect|sources write|adapter inspect|update snapshot|update diagnose|guard> --change-root <dir>");
 }
-
 try { main(); } catch (error) { console.error((error as Error).message); process.exitCode = 1; }

@@ -11,5 +11,5 @@ export function runTool(tool: string, args: string[], options: { cwd?: string; e
   });
 }
 export function createArtifactTree(changeRoot: string): void {
-  for (const path of ["02-需求理解", "05-改造方案", "06-测试方案", "07-实施任务"]) mkdirSync(join(changeRoot, path), { recursive: true });
+  for (const path of ["02-需求理解", "05-改造方案", "06-测试方案", "07-实施任务", "specs/example"]) mkdirSync(join(changeRoot, path), { recursive: true });
 }

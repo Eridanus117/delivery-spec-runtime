@@ -7,6 +7,7 @@ description: "使用实验性的工件工作流（OPSX）启动新的变更"
 node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" runtime-check --change-root "<planningHome.root>"
 ```
 入口非零时立即停止；不得绕过 runtime lock、commit、manifest 或投影摘要检查。
+选择、列出或报告 active Change 时，必须对每个候选运行 `runtime-entry.ts inspect --change-root "<changeRoot>"`，显示 `displayName (slug)`；sidecar 缺失或无效时停止，机器选择键与 OpenSpec 参数只能使用slug。
 
 以实验性的工件驱动方式启动新的变更。
 
@@ -50,15 +51,14 @@ node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entr
    使用返回的 `planningHome`、`changeRoot`、`artifactPaths` 和 `nextSteps`，不要假定存储库的本地路径。
 
    如果选定的架构是 `delivery-change`，必须初始化机器合同。`displayName` 使用用户确认的中文展示名；
-   `repository-role` 按当前资产仓确定为 `work` 或 `private`。模式默认为 `delivery`，只有用户明确要求流程演练时使用 `rehearsal`：
+   模式默认为 `delivery`，只有用户明确要求流程演练并提供原因、批准人和时间时使用 `rehearsal`：
    ```bash
    node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" init \
-     --change-root "<changeRoot>" --slug "<name>" --display-name "<中文展示名>" \
-     --mode "<delivery-or-rehearsal>" --repository-role "<work-or-private>"
-   node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" inspect \
-     --change-root "<changeRoot>"
+     --change-root "<changeRoot>" --slug "<name>" --display-name "<中文展示名>" --mode delivery
    ```
-   不得因为缺少实现输入推断为 `rehearsal`；机器合同初始化失败时删除本次新建的空 Change 并停止。
+   rehearsal 改用 `--mode rehearsal --reason "<原因>" --approved-by "<批准人>" --approved-at "<ISO时间>"`。
+   初始化后运行 `runtime-entry.ts inspect --change-root "<changeRoot>"`。不得在 `change-info.json` 重复保存slug或模式；
+   不得因为缺少实现输入推断为 rehearsal；机器合同初始化失败时删除本次新建的空 Change 并停止。
 
 5. **获取第一个工件的说明**
 
@@ -76,7 +76,7 @@ node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entr
 - 变更名称和位置
 - 使用的架构或工作流，以及工件顺序
 - 当前状态（已完成 0/N 个工件）
-- 有效的变更模式、中文展示名及资产仓角色，来源均为 `.delivery/change-info.json`
+- 有效模式来自严格 `change-mode.json`（缺失即delivery）；展示名只来自 `change-info.json`，机器slug只来自目录名
 - 第一个工件的模板
 - 提示：“准备好创建第一个工件了吗？运行 `/opsx-continue`，或者直接描述此变更的内容，我会为你起草。”
 

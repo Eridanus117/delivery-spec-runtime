@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { execFileSync } from "node:child_process";
 
@@ -72,6 +72,39 @@ export function sha256Buffer(value: Buffer | string): string {
 
 export function sha256File(path: string): string {
   return sha256Buffer(readFileSync(path));
+}
+
+export function sha256Paths(root: string, inputs: string[]): string {
+  const rootReal = realpathSync(root);
+  const files = new Map<string, string>();
+  const visitedDirectories = new Set<string>();
+  function assertInside(path: string): string {
+    const real = realpathSync(path);
+    const rel = relative(rootReal, real);
+    if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) fail(`摘要路径越出Change根: ${path}`);
+    return real;
+  }
+  function collect(path: string): void {
+    const real = assertInside(path);
+    const stat = lstatSync(real);
+    if (stat.isDirectory()) {
+      if (visitedDirectories.has(real)) return;
+      visitedDirectories.add(real);
+      for (const entry of readdirSync(real).sort((left, right) => Buffer.from(left).compare(Buffer.from(right)))) collect(join(real, entry));
+      return;
+    }
+    if (!stat.isFile()) fail(`摘要输入不是普通文件: ${path}`);
+    files.set(real, relative(rootReal, real).split(sep).join("/"));
+  }
+  for (const input of inputs) collect(resolve(rootReal, input));
+  const digest = createHash("sha256");
+  for (const [real, rel] of [...files.entries()].sort((left, right) => Buffer.from(left[1]).compare(Buffer.from(right[1])))) {
+    digest.update(rel);
+    digest.update(Buffer.from([0]));
+    digest.update(readFileSync(real));
+    digest.update(Buffer.from([0]));
+  }
+  return `sha256:${digest.digest("hex")}`;
 }
 
 export function atomicWriteJson(path: string, value: unknown): void {

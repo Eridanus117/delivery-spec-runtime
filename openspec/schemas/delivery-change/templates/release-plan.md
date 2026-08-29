@@ -8,7 +8,7 @@
 
 ## 08 验收门禁
 
-- [ ] delivery：`08-验收/acceptance.md` 结论为严格 PASS。
+- [ ] delivery：`08-验收/验收记录.md` 结论为严格 PASS。
 - [ ] delivery：至少一个 PASS run-id 覆盖必需 Requirement 和清理结果。
 - [ ] rehearsal：08 结论为 PARTIAL、FAIL 或 BLOCKED，09 仅记录 NO-GO 原因。
 
@@ -77,4 +77,4 @@ rehearsal 不得创建 `releases/` 或 release-id。
 - [ ] delivery：观察窗口完成，日志、指标、开关和回滚状态完整，且 `/opsx-verify` 无 critical。
 - [ ] rehearsal：始终禁止 spec sync 和 archive；NO-GO 是流程演练的终态。
 
-决策依据留在 `05-改造方案/change-plan.md`；跨项目工作时间线留在 `work-knowledge`。
+决策依据留在 `05-改造方案/改造方案.md`；跨项目工作时间线留在 `work-knowledge`。

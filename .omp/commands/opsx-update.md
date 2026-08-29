@@ -7,8 +7,14 @@ description: "更新变更 - 修订现有规划产物并保持其一致性（实
 node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" runtime-check --change-root "<planningHome.root>"
 ```
 入口非零时立即停止；不得绕过 runtime lock、commit、manifest 或投影摘要检查。
+选择、列出或报告 active Change 时，必须对每个候选运行 `runtime-entry.ts inspect --change-root "<changeRoot>"`，显示 `displayName (slug)`；sidecar 缺失或无效时停止，机器选择键与 OpenSpec 参数只能使用slug。
 
 修订现有变更的规划产物并保持其一致性。绝不编辑代码。
+
+若用户明确要求执行 OpenSpec 自身的 `openspec update`（而不是修订 Change 产物），必须通过以下 wrapper 执行；它无论 update 成败都会按 lock 恢复 runtime 投影，禁止直接调用 `openspec update`：
+```bash
+node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" runtime-update --asset-root "<planningHome.root>"
+```
 
 **存储库选择：** 如果用户指定了一个存储库（存储库是一个在本机注册的独立 OpenSpec 存储库），或当前工作位于某个存储库中，请运行 `openspec store list --json` 以发现已注册的存储库 ID，然后在读取或写入规范和变更的命令（`new change`、`status`、`instructions`、`list`、`show`、`validate`、`archive`、`doctor`、`context`、`schemas`、`view`）中传递 `--store <id>`。一旦选定，就将 `--store <id>` 视为后续整个工作流中的固定选项。以下命令中每个未限定范围的示例都只是简写：运行前，请追加该标志。例如，应运行 `openspec status --change "<name>" --json --store "<id>"`，而不是下面显示的未限定范围形式。其他命令不接受此标志。命令打印的提示中已经带有该标志；后续操作中请保留它。如果没有指定存储库，命令将作用于最近的本地 `openspec/` 根目录。
 
@@ -54,7 +60,7 @@ node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entr
    将所有待修改的 `existingOutputPaths` 写成 Change 根相对路径 JSON 数组，再在写入前冻结摘要：
    ```bash
    node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" update snapshot \
-     --change-root "<changeRoot>" --paths-file "<changeRoot>/.delivery/update-paths.json"
+     --change-root "<changeRoot>" --paths-file "<changeRoot>/.delivery-update-paths.json"
    ```
    路径越界、缺失或合同失败时停止。
 

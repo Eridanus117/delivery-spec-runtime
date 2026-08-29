@@ -33,3 +33,19 @@ test("公开候选拒绝秘密与禁用路径", () => {
     assert.match(result.stderr, /非法路径/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test("公开候选示例必须有合规provenance", () => {
+  const root = mkdtempSync(join(tmpdir(), "delivery-candidate-provenance-"));
+  try {
+    const runtime = join(root, "runtime"); mkdirSync(join(runtime, "examples"), { recursive: true });
+    writeFileSync(join(runtime, "examples/demo.json"), "{}\n");
+    writeFileSync(join(runtime, "public-allowlist.json"), JSON.stringify({ schemaVersion: 1, paths: ["examples/demo.json"], forbiddenPathSegments: [".specify", ".speckit", "speckit"] }));
+    let result = runTool("public-candidate.ts", ["generate", "--runtime-root", runtime, "--output-root", join(root, "candidate")]);
+    assert.notEqual(result.status, 0); assert.match(result.stderr, /缺少允许清单provenance/);
+    writeFileSync(join(runtime, "examples/demo.json.provenance.json"), JSON.stringify({ schemaVersion: 1, example: "demo", sourceCategory: "synthetic", reviewConclusion: "approved-for-public-candidate", reviewedAt: "2026-08-30T00:00:00Z", reviewedBy: "test" }));
+    writeFileSync(join(runtime, "public-allowlist.json"), JSON.stringify({ schemaVersion: 1, paths: ["examples/demo.json", "examples/demo.json.provenance.json"], forbiddenPathSegments: [".specify", ".speckit", "speckit"] }));
+    result = runTool("public-candidate.ts", ["generate", "--runtime-root", runtime, "--output-root", join(root, "candidate")]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(JSON.parse(readFileSync(join(root, "candidate/candidate-report.json"), "utf8")).checks.examples, "provenance_pass");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

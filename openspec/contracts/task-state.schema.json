@@ -35,7 +35,9 @@
           "phase",
           "title",
           "status",
-          "dependsOn"
+          "dependsOn",
+          "deliverable",
+          "verification"
         ],
         "properties": {
           "id": {
@@ -49,11 +51,10 @@
           },
           "status": {
             "enum": [
-              "pending",
-              "in_progress",
+              "planned",
+              "implemented_unverified",
               "blocked_external",
-              "completed",
-              "abandoned"
+              "verified"
             ]
           },
           "dependsOn": {
@@ -62,13 +63,56 @@
               "type": "string"
             }
           },
+          "deliverable": {
+            "type": "string",
+            "minLength": 1
+          },
           "verification": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          },
+          "blocker": {
+            "type": "string",
+            "minLength": 1
           },
           "note": {
             "type": "string"
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "verified"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "evidence"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "blocked_external"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "blocker"
+              ]
+            }
+          }
+        ]
       }
     }
   }

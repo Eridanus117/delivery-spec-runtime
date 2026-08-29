@@ -48,6 +48,15 @@ function main(): void {
   const assetRoot = assetIndex >= 0 ? resolve(argv[assetIndex + 1] ?? fail("--asset-root 缺少值")) : findUp(process.cwd(), "openspec/runtime-lock.json");
   if (assetIndex >= 0) argv.splice(assetIndex, 2);
   const lock = parseLock(join(assetRoot, "openspec/runtime-lock.json"));
+  const bootstrapStatePath = join(assetRoot, "openspec/bootstrap-state.json");
+  if (existsSync(bootstrapStatePath)) {
+    const bootstrapState = JSON.parse(readFileSync(bootstrapStatePath, "utf8")) as Record<string, unknown>;
+    const allowed = ["schemaVersion", "stageId", "status", "updatedAt", "planSha256", "rollbackRoot", "privateRoot"];
+    for (const key of Object.keys(bootstrapState)) if (!allowed.includes(key)) fail(`bootstrap-state 存在未知字段 ${key}`);
+    for (const key of allowed.slice(0, 6)) if (!(key in bootstrapState)) fail(`bootstrap-state 缺少字段 ${key}`);
+    if (bootstrapState.schemaVersion !== 1 || !["idle", "in_progress", "committed", "rolled_back"].includes(String(bootstrapState.status))) fail("bootstrap-state合同非法");
+    if (bootstrapState.status === "in_progress") fail(`bootstrap正在进行，所有生命周期Command停止: ${bootstrapState.stageId}`);
+  }
   const runtimeRoot = process.env.DELIVERY_SPEC_RUNTIME_ROOT
     ? resolve(process.env.DELIVERY_SPEC_RUNTIME_ROOT)
     : join(findUp(assetRoot, "_org/workspace.json"), "delivery-spec-runtime");
@@ -65,6 +74,15 @@ function main(): void {
   for (const [target, digest] of Object.entries(lock.projection)) {
     const path = join(assetRoot, target);
     if (!existsSync(path) || hash(path) !== digest) fail(`安装投影漂移: ${target}`);
+  }
+  if (argv[0] === "runtime-update") {
+    const update = spawnSync("openspec", ["update"], { cwd: assetRoot, encoding: "utf8" });
+    const reinstall = spawnSync(process.execPath, ["--experimental-strip-types", join(runtimeRoot, "openspec/tools/runtime-install.ts"), "install", "--runtime-root", runtimeRoot, "--asset-root", assetRoot, "--runtime-commit", lock.runtimeCommit], { cwd: assetRoot, encoding: "utf8" });
+    if (reinstall.status !== 0) fail(`OpenSpec update后runtime恢复失败: ${reinstall.stderr}`);
+    if (update.status !== 0) fail(`OpenSpec update失败，runtime投影已恢复: ${update.stderr}`);
+    process.stdout.write(update.stdout);
+    process.stdout.write(reinstall.stdout);
+    return;
   }
   const result = spawnSync(process.execPath, ["--experimental-strip-types", join(runtimeRoot, "openspec/tools/delivery-control.ts"), ...argv, "--asset-root", assetRoot], { cwd: assetRoot, stdio: "inherit" });
   if (result.error) throw result.error;

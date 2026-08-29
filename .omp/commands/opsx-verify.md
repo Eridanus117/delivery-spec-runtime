@@ -7,6 +7,7 @@ description: "在归档前验证实现是否与变更工件匹配"
 node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" runtime-check --change-root "<planningHome.root>"
 ```
 入口非零时立即停止；不得绕过 runtime lock、commit、manifest 或投影摘要检查。
+选择、列出或报告 active Change 时，必须对每个候选运行 `runtime-entry.ts inspect --change-root "<changeRoot>"`，显示 `displayName (slug)`；sidecar 缺失或无效时停止，机器选择键与 OpenSpec 参数只能使用slug。
 
 验证实现是否与变更工件（规范、任务、设计）匹配。
 
@@ -78,8 +79,8 @@ node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entr
    **任务完成情况：**
 
    - 运行 `runtime-entry.ts task inspect --change-root "<changeRoot>"` 读取机器真源。
-   - 统计 `completed` 与任务总数；Markdown 任务文件仅用于人工审阅，不解析复选框。
-   - 每个非 `completed` 任务均为 CRITICAL；报告 task id、状态及解除方式，不能建议手工修改复选框。
+   - 统计 `verified` 与任务总数；Markdown 任务文件仅用于人工审阅，不解析复选框。
+   - 每个非 `verified` 任务均为 CRITICAL；报告 task id、状态、验证方式、evidence 或 blocker。
 
    **规范覆盖情况：**
 

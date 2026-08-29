@@ -1,6 +1,6 @@
 # 实现任务拆分
 
-> 状态真源：`.delivery/task-state.json`。本文件由 `runtime-entry.ts task render` 生成，只用于人工审阅；禁止反向解析复选框。
+> 状态真源：`task-state.json`。本文件由 `runtime-entry.ts task render` 生成，只用于人工审阅；禁止反向解析复选框。
 
 ## 1. 前置与契约
 

@@ -1,47 +1,19 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Delivery Change Info",
+  "title": "Delivery Change Display Info",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "schemaVersion",
-    "slug",
-    "displayName",
-    "mode",
-    "repositoryRole",
-    "schema",
-    "createdAt"
+    "displayName"
   ],
   "properties": {
     "schemaVersion": {
       "const": 1
     },
-    "slug": {
-      "type": "string",
-      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
-    },
     "displayName": {
       "type": "string",
       "minLength": 1
-    },
-    "mode": {
-      "enum": [
-        "delivery",
-        "rehearsal"
-      ]
-    },
-    "repositoryRole": {
-      "enum": [
-        "work",
-        "private"
-      ]
-    },
-    "schema": {
-      "const": "delivery-change"
-    },
-    "createdAt": {
-      "type": "string",
-      "format": "date-time"
     }
   }
 }

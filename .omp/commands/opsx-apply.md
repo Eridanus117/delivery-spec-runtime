@@ -7,6 +7,7 @@ description: "实现 OpenSpec 变更中的任务（实验性）"
 node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" runtime-check --change-root "<planningHome.root>"
 ```
 入口非零时立即停止；不得绕过 runtime lock、commit、manifest 或投影摘要检查。
+选择、列出或报告 active Change 时，必须对每个候选运行 `runtime-entry.ts inspect --change-root "<changeRoot>"`，显示 `displayName (slug)`；sidecar 缺失或无效时停止，机器选择键与 OpenSpec 参数只能使用slug。
 
 实现 OpenSpec 变更中的任务。
 
@@ -78,19 +79,19 @@ node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entr
 
 5. **显示当前进度**
 
-   显示机器状态中的模式、revision、已完成 N/M、当前 `in_progress` 任务、可执行任务和 `blocked_external`。
+   显示机器状态中的模式、revision、各状态计数、可执行任务和 `blocked_external` blocker。
 
 6. **实施任务（循环执行，直到完成或外部门禁阻塞）**
 
-   对于每个依赖已完成的待处理任务：
-   - 使用当前 revision 原子标记为 `in_progress`
-   - 进行所需的代码变更并执行该任务声明的验证
-   - 验证成功后使用返回的新 revision 标记为 `completed`
-   - 每次状态写入后运行 `task render` 更新 `07-实施任务/tasks.md` 人工视图
+   对于每个依赖已验证的 `planned` 或 `implemented_unverified` 任务：
+   - 进行所需的代码变更；源码完成后以当前 revision 标记为 `implemented_unverified`
+   - 执行任务声明的验证；成功后以新 revision 标记为 `verified` 并传入可读取的 `--evidence`
+   - 外部输入缺失时标记为 `blocked_external` 并传入具体 `--blocker`
+   - 每次状态写入后运行 `task render` 更新 `07-实施任务/实施任务.md` 人工视图
    ```bash
    node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" task set \
-     --change-root "<changeRoot>" --id "<task-id>" --status "<in_progress-or-completed>" \
-     --expected-revision "<revision>"
+     --change-root "<changeRoot>" --id "<task-id>" --status "<state>" \
+     --expected-revision "<revision>" [--evidence "<path>"] [--blocker "<reason>"]
    node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" task render \
      --change-root "<changeRoot>"
    ```
@@ -164,10 +165,10 @@ node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entr
 - 如果任务存在歧义，请先暂停并询问，然后再实施
 - 如果实现暴露出问题，请暂停并建议更新制品
 - 保持代码更改最小，并限定在每个任务的范围内
-- 每完成一个任务后立即原子更新 `.delivery/task-state.json` 并重新渲染人工视图
+- 每完成一个任务后立即原子更新 `task-state.json` 并重新渲染人工视图
 - 遇到错误、阻碍或需求不明确时暂停——不要猜测
 - 当任务需要进行规范描述之外的工作时，说明新增范围并暂停——绝不默默缩小、推迟或简化掉指定行为
-- 只有在任务指定行为完整实现且验证通过时，才把机器状态标记为 `completed`
+- 只有在任务指定行为完整实现、验证通过且证据可读取时，才把机器状态标记为 `verified`
 - 使用命令行工具输出中的 `contextFiles`，不要假定具体文件名
 - 不要使用 `context` 或操作指导作为任务完成的证明
 - 应用相关的项目上下文；报告与控制性工作流输入的冲突

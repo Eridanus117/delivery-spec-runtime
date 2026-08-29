@@ -46,6 +46,11 @@ function parseLock(path: string): Lock {
 function safeRelative(path: string, forbidden: string[]): void {
   if (isAbsolute(path) || path.split(/[\\/]/).some((segment) => segment === ".." || forbidden.includes(segment.toLowerCase()))) fail(`非法投影路径: ${path}`);
 }
+function allowedProjectionPath(path: string): boolean {
+  return path === "openspec/tools/runtime-entry.ts"
+    || /^openspec\/schemas\/delivery-change\/(?:schema\.yaml|templates\/[a-z0-9-]+\.md)$/.test(path)
+    || /^\.omp\/commands\/opsx-(?:new|continue|apply|verify|sync|archive|update|explore|propose)\.md$/.test(path);
+}
 
 function install(runtimeRoot: string, assetRoot: string, expectedCommit?: string): void {
   const manifestPath = join(runtimeRoot, "runtime-manifest.json");
@@ -57,6 +62,7 @@ function install(runtimeRoot: string, assetRoot: string, expectedCommit?: string
   for (const item of manifest.projection) {
     safeRelative(item.source, manifest.forbiddenPathSegments);
     safeRelative(item.target, manifest.forbiddenPathSegments);
+    if (item.source !== item.target || !allowedProjectionPath(item.target)) fail(`投影不在固定运行时边界: ${item.target}`);
     const source = join(runtimeReal, item.source);
     if (!existsSync(source) || !lstatSync(source).isFile()) fail(`投影源不是普通文件: ${item.source}`);
     const sourceReal = realpathSync(source);
@@ -97,6 +103,7 @@ function install(runtimeRoot: string, assetRoot: string, expectedCommit?: string
       for (const oldTarget of Object.keys(oldProjection)) {
         if (oldTarget in newProjection) continue;
         safeRelative(oldTarget, manifest.forbiddenPathSegments);
+        if (!allowedProjectionPath(oldTarget)) fail(`旧runtime-lock含越界投影，拒绝删除: ${oldTarget}`);
         rmSync(join(assetReal, oldTarget), { force: true });
       }
       const lock: Lock = { schemaVersion: 1, runtimeRepository: "delivery-spec-runtime", runtimeCommit: commit, runtimeManifestSha256: sha256File(manifestPath), installedAt: now(), projection: newProjection };

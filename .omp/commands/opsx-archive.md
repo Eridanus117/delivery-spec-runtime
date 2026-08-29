@@ -7,6 +7,7 @@ description: "在实验性工作流中归档已完成的变更"
 node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" runtime-check --change-root "<planningHome.root>"
 ```
 入口非零时立即停止；不得绕过 runtime lock、commit、manifest 或投影摘要检查。
+选择、列出或报告 active Change 时，必须对每个候选运行 `runtime-entry.ts inspect --change-root "<changeRoot>"`，显示 `displayName (slug)`；sidecar 缺失或无效时停止，机器选择键与 OpenSpec 参数只能使用slug。
 
 在实验性工作流中归档已完成的变更。
 
@@ -65,18 +66,10 @@ node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entr
    - 提示用户确认是否继续
    - 如果用户确认，则继续
 
-3. **检查任务完成状态**
+3. **复核机器任务状态**
 
-   读取任务文件（通常为 `tasks.md`）以检查未完成的任务。
-
-   统计标记为 `- [ ]`（未完成）和 `- [x]`（已完成）的任务数量。
-
-   **如果发现未完成的任务：**
-   - 显示警告并给出未完成任务的数量
-   - 提示用户确认是否继续
-   - 如果用户确认，则继续
-
-   **如果不存在任务文件：** 继续执行，不显示与任务相关的警告。
+   运行 `runtime-entry.ts task inspect --change-root "<changeRoot>"` 展示任务状态。archive guard 已要求全部必需任务为
+   `verified`；任何非 verified 状态必须停止，不能通过人工确认或修改 Markdown checkbox 绕过。
 
 4. **评估增量规范同步状态**
 
