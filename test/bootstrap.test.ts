@@ -49,19 +49,20 @@ test("bootstrap stage必须外部批准，activation可恢复且保持受保护�
     result = bootstrap(f, "stage"); assert.equal(result.status, 0, result.stderr);
     const staged = JSON.parse(result.stdout); const stagedCandidate = join(f.work, "openspec/bootstrap-stage", staged.stageId, "candidate-change");
     assert.deepEqual(tree(stagedCandidate), staged.candidateTree, "人工批准绑定的candidateTree必须覆盖stage最终字节");
+    assert.equal(staged.activeTarget, `openspec/changes/${slug}`); assert.equal("archiveTarget" in staged, false);
     result = bootstrap(f, "activate"); assert.notEqual(result.status, 0); assert.match(result.stderr, /stage-approval/);
     const manifest = JSON.parse(readFileSync(join(f.work, "openspec/changes", slug, "bootstrap/baseline-manifest.json"), "utf8")); const stageId = `baseline-${manifest.workSpec.baselineCommit.slice(0, 12)}`; const plan = join(f.work, "openspec/bootstrap-stage", stageId, "activation-plan.json");
     put(join(f.work, "openspec/changes", slug, "bootstrap/stage-approval.json"), `${JSON.stringify({ schemaVersion: 1, stageId, approved: true, approvedBy: "bootstrap-test", approvedAt: new Date().toISOString(), planSha256: sha256File(plan) }, null, 2)}\n`);
     result = bootstrap(f, "activate"); assert.equal(result.status, 0, result.stderr);
-    const archive = join(f.work, "openspec/changes/archive", `2026-08-30-${slug}`);
-    assert.equal(existsSync(join(archive, "change-info.json")), true); assert.equal(existsSync(join(archive, ".delivery")), false); assert.equal(existsSync(join(archive, "06-测试方案/测试方案.md")), true);
-    assert.deepEqual(JSON.parse(readFileSync(join(archive, "artifact-approvals.json"), "utf8")), { schemaVersion: 1, artifacts: {} });
-    const sources = JSON.parse(readFileSync(join(archive, "change-sources.json"), "utf8")); assert.deepEqual(sources.sources.map((item: { authority: number }) => item.authority), [1, 2]);
-    const task = JSON.parse(readFileSync(join(archive, "task-state.json"), "utf8")).tasks[0]; assert.deepEqual(Object.keys(task).sort(), ["blocker", "deliverables", "evidence", "id", "state", "verification"]);
+    const active = join(f.work, "openspec/changes", slug);
+    assert.equal(existsSync(join(active, "change-info.json")), true); assert.equal(existsSync(join(active, ".delivery")), false); assert.equal(existsSync(join(active, "06-测试方案/测试方案.md")), true);
+    assert.deepEqual(JSON.parse(readFileSync(join(active, "artifact-approvals.json"), "utf8")), { schemaVersion: 1, artifacts: {} });
+    const sources = JSON.parse(readFileSync(join(active, "change-sources.json"), "utf8")); assert.deepEqual(sources.sources.map((item: { authority: number }) => item.authority), [1, 2]);
+    const task = JSON.parse(readFileSync(join(active, "task-state.json"), "utf8")).tasks[0]; assert.deepEqual(Object.keys(task).sort(), ["blocker", "deliverables", "evidence", "id", "state", "verification"]);
     for (const name of removed) assert.equal(existsSync(join(f.work, "openspec/changes", name)), false);
-    assert.equal(tree(join(f.work, "openspec/specs")).digest, specsBefore); assert.notEqual(tree(join(f.work, "openspec/changes/archive")).digest, archivesBefore);
+    assert.equal(tree(join(f.work, "openspec/specs")).digest, specsBefore); assert.equal(tree(join(f.work, "openspec/changes/archive")).digest, archivesBefore);
     assert.equal(existsSync(join(f.consumer, ".specify")), false); assert.doesNotMatch(readFileSync(f.links, "utf8"), /\.specify/); assert.doesNotMatch(readFileSync(f.exclude, "utf8"), /\.specify/);
-    result = bootstrap(f, "rollback"); assert.equal(result.status, 0, result.stderr); assert.equal(existsSync(archive), false); for (const name of [slug, ...removed]) assert.equal(existsSync(join(f.work, "openspec/changes", name)), true);
+    result = bootstrap(f, "rollback"); assert.equal(result.status, 0, result.stderr); assert.equal(existsSync(join(active, "change-info.json")), false); assert.equal(existsSync(join(active, "07-implementation-tasks/tasks.md")), true); for (const name of removed) assert.equal(existsSync(join(f.work, "openspec/changes", name)), true); assert.equal(tree(join(f.work, "openspec/changes/archive")).digest, archivesBefore);
   } finally { rmSync(f.root, { recursive: true, force: true }); }
 });
 

@@ -2,7 +2,7 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, relative } from "node:path";
+import { basename, join, relative } from "node:path";
 import { atomicWriteJson, fail, now, object, parseArgs, readJson, requiredOption, sha256Buffer, sha256File, text, withFileLock } from "./runtime-lib.ts";
 
 const changeSlug = "optimize-logistics-change-review-workflow";
@@ -64,7 +64,7 @@ function stageId(workRoot: string): string {
   return `baseline-${text(workSpec.baselineCommit, "baseline.workSpec.baselineCommit").slice(0, 12)}`;
 }
 function stageRoot(workRoot: string): string { return join(workRoot, "openspec/bootstrap-stage", stageId(workRoot)); }
-function archiveTarget(workRoot: string): string { return join(workRoot, "openspec/changes/archive", `2026-08-30-${changeSlug}`); }
+function activeTarget(workRoot: string): string { return join(workRoot, "openspec/changes", changeSlug); }
 function git(workRoot: string, args: string[]): string {
   const result = spawnSync("git", args, { cwd: workRoot, encoding: "utf8" });
   if (result.status !== 0) fail(`Git 前置校验失败: git ${args.join(" ")}\n${result.stderr}`);
@@ -114,7 +114,7 @@ function dryRun(workRoot: string, privateRoot: string, consumerRoot: string): vo
     status: "ready_to_stage",
     baselineCommit: object(manifest.workSpec, "baseline.workSpec").baselineCommit,
     operations: [
-      `迁移 ${changeSlug} 到 delivery-change 中文九层并归档为 ${relative(workRoot, archiveTarget(workRoot))}`,
+      `迁移 ${changeSlug} 到 delivery-change 中文九层并保持 active，严格完成08、09和verify后再归档`,
       ...removeSlugs.map((slug) => `删除 active ${slug}，不迁移、不归档、不写 legacy`),
       "保留既有 openspec/changes/archive 与 openspec/specs 内容",
       `初始化私人资产仓 ${privateRoot}`,
@@ -196,7 +196,7 @@ function stage(workRoot: string, privateRoot: string, consumerRoot: string): voi
     createdAt: now(),
     status: "staged_awaiting_external_approval",
     candidateTree: hashTree(candidate),
-    archiveTarget: relative(workRoot, archiveTarget(workRoot)),
+    activeTarget: relative(workRoot, activeTarget(workRoot)),
     deleteActive: removeSlugs,
     preserveTrees: ["openspec/changes/archive (existing entries)", "openspec/specs"],
     privateRoot,
@@ -251,20 +251,18 @@ function activate(workRoot: string, privateRoot: string, consumerRoot: string): 
     mkdirSync(join(rollback, "changes"), { recursive: true });
     for (const slug of [changeSlug, ...removeSlugs]) renameSync(join(workRoot, "openspec/changes", slug), join(rollback, "changes", slug));
     let projectionBackup: ForbiddenProjectionBackup | undefined;
-    const target = archiveTarget(workRoot);
+    const target = activeTarget(workRoot);
     try {
-      if (existsSync(target)) fail(`归档目标已存在: ${target}`);
-      mkdirSync(dirname(target), { recursive: true });
+      if (existsSync(target)) fail(`迁移后的active目标已存在: ${target}`);
       renameSync(join(root, "candidate-change"), target);
       projectionBackup = removeForbiddenProjection(forbiddenContract, consumerRoot);
-      atomicWriteJson(join(rollback, "activation-record.json"), { schemaVersion: 1, stageId: currentStageId, archiveTarget: relative(workRoot, target), activatedAt: now() });
+      atomicWriteJson(join(rollback, "activation-record.json"), { schemaVersion: 1, stageId: currentStageId, activeTarget: relative(workRoot, target), activatedAt: now() });
       const committedState = { schemaVersion: 1, stageId: currentStageId, status: "committed", updatedAt: now(), planSha256: sha256File(planPath), rollbackRoot: relative(workRoot, rollback), privateRoot };
       atomicWriteJson(join(target, "bootstrap/bootstrap-state.json"), committedState);
       atomicWriteJson(join(workRoot, "openspec/bootstrap-state.json"), committedState);
     } catch (error) {
       if (projectionBackup) restoreForbiddenProjection(projectionBackup);
       if (existsSync(target)) {
-        mkdirSync(dirname(join(root, "candidate-change")), { recursive: true });
         renameSync(target, join(root, "candidate-change"));
       }
       for (const slug of [changeSlug, ...removeSlugs]) {
@@ -275,7 +273,7 @@ function activate(workRoot: string, privateRoot: string, consumerRoot: string): 
       throw error;
     }
   });
-  console.log(JSON.stringify({ status: "committed", archive: archiveTarget(workRoot), deletedActive: removeSlugs }, null, 2));
+  console.log(JSON.stringify({ status: "committed", active: activeTarget(workRoot), deletedActive: removeSlugs }, null, 2));
 }
 
 function rollbackActivation(workRoot: string): void {
@@ -287,7 +285,7 @@ function rollbackActivation(workRoot: string): void {
   const currentStageId = candidates[0];
   const rollback = join(rollbackRoot, currentStageId);
   withFileLock(join(workRoot, "openspec/.bootstrap.lock"), () => {
-    rmSync(archiveTarget(workRoot), { recursive: true, force: true });
+    rmSync(activeTarget(workRoot), { recursive: true, force: true });
     for (const slug of [changeSlug, ...removeSlugs]) {
       const saved = join(rollback, "changes", slug);
       if (!existsSync(saved) || existsSync(join(workRoot, "openspec/changes", slug))) fail(`无法恢复 active Change: ${slug}`);
