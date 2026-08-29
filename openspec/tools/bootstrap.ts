@@ -208,7 +208,6 @@ function stage(workRoot: string, privateRoot: string, consumerRoot: string): voi
   const state = { schemaVersion: 1, stageId: stageId(workRoot), status: "in_progress", updatedAt: now(), planSha256: sha256File(join(root, "activation-plan.json")), rollbackRoot: plan.rollbackRoot };
   atomicWriteJson(join(workRoot, "openspec/bootstrap-state.json"), state);
   atomicWriteJson(join(bootstrapDir(workRoot), "bootstrap-state.json"), state);
-  atomicWriteJson(join(candidate, "bootstrap/bootstrap-state.json"), state);
   console.log(JSON.stringify(plan, null, 2));
 }
 type ForbiddenProjectionBackup = { linksPath: string; links: string; excludePath: string; exclude: string; projected: string; symlinkTarget?: string };

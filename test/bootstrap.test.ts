@@ -47,6 +47,8 @@ test("bootstrap stage必须外部批准，activation可恢复且保持受保护�
     const archivesBefore = tree(join(f.work, "openspec/changes/archive")).digest; const specsBefore = tree(join(f.work, "openspec/specs")).digest;
     let result = bootstrap(f, "dry-run"); assert.equal(result.status, 0, result.stderr); git(f.work, ["add", "."]); git(f.work, ["commit", "-qm", "dry-run"]);
     result = bootstrap(f, "stage"); assert.equal(result.status, 0, result.stderr);
+    const staged = JSON.parse(result.stdout); const stagedCandidate = join(f.work, "openspec/bootstrap-stage", staged.stageId, "candidate-change");
+    assert.deepEqual(tree(stagedCandidate), staged.candidateTree, "人工批准绑定的candidateTree必须覆盖stage最终字节");
     result = bootstrap(f, "activate"); assert.notEqual(result.status, 0); assert.match(result.stderr, /stage-approval/);
     const manifest = JSON.parse(readFileSync(join(f.work, "openspec/changes", slug, "bootstrap/baseline-manifest.json"), "utf8")); const stageId = `baseline-${manifest.workSpec.baselineCommit.slice(0, 12)}`; const plan = join(f.work, "openspec/bootstrap-stage", stageId, "activation-plan.json");
     put(join(f.work, "openspec/changes", slug, "bootstrap/stage-approval.json"), `${JSON.stringify({ schemaVersion: 1, stageId, approved: true, approvedBy: "bootstrap-test", approvedAt: new Date().toISOString(), planSha256: sha256File(plan) }, null, 2)}\n`);
