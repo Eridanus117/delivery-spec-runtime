@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Task State",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "changeSlug",
+    "revision",
+    "updatedAt",
+    "tasks"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "changeSlug": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "phase",
+          "title",
+          "status",
+          "dependsOn"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "in_progress",
+              "blocked_external",
+              "completed",
+              "abandoned"
+            ]
+          },
+          "dependsOn": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "verification": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Runtime Lock",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "runtimeRepository",
+    "runtimeCommit",
+    "runtimeManifestSha256",
+    "installedAt",
+    "projection"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "runtimeRepository": {
+      "const": "delivery-spec-runtime"
+    },
+    "runtimeCommit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "runtimeManifestSha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "installedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "projection": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      }
+    }
+  }
+}

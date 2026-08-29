@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Bootstrap State",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "stageId",
+    "status",
+    "updatedAt",
+    "planSha256",
+    "rollbackRoot"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "stageId": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "staged",
+        "activated",
+        "rolled_back"
+      ]
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "planSha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "rollbackRoot": {
+      "type": "string"
+    },
+    "privateRoot": {
+      "type": "string"
+    }
+  }
+}

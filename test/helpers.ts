@@ -1,0 +1,15 @@
+import { spawnSync, type SpawnSyncReturns } from "node:child_process";
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+
+export const runtimeRoot = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
+export function runTool(tool: string, args: string[], options: { cwd?: string; env?: NodeJS.ProcessEnv } = {}): SpawnSyncReturns<string> {
+  return spawnSync(process.execPath, ["--experimental-strip-types", join(runtimeRoot, "openspec/tools", tool), ...args], {
+    cwd: options.cwd ?? runtimeRoot,
+    env: { ...process.env, ...options.env },
+    encoding: "utf8",
+  });
+}
+export function createArtifactTree(changeRoot: string): void {
+  for (const path of ["02-需求理解", "05-改造方案", "06-测试方案", "07-实施任务"]) mkdirSync(join(changeRoot, path), { recursive: true });
+}

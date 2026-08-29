@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "paths": [
+    ".omp/commands/opsx-apply.md",
+    ".omp/commands/opsx-archive.md",
+    ".omp/commands/opsx-continue.md",
+    ".omp/commands/opsx-explore.md",
+    ".omp/commands/opsx-new.md",
+    ".omp/commands/opsx-propose.md",
+    ".omp/commands/opsx-sync.md",
+    ".omp/commands/opsx-update.md",
+    ".omp/commands/opsx-verify.md",
+    "README.md",
+    "openspec/contracts/artifact-approvals.schema.json",
+    "openspec/contracts/bootstrap-state.schema.json",
+    "openspec/contracts/change-info.schema.json",
+    "openspec/contracts/runtime-lock.schema.json",
+    "openspec/contracts/sources.schema.json",
+    "openspec/contracts/task-state.schema.json",
+    "openspec/schemas/delivery-change/schema.yaml",
+    "openspec/schemas/delivery-change/templates/acceptance.md",
+    "openspec/schemas/delivery-change/templates/business-current.md",
+    "openspec/schemas/delivery-change/templates/change-plan.md",
+    "openspec/schemas/delivery-change/templates/raw-requirements.md",
+    "openspec/schemas/delivery-change/templates/release-plan.md",
+    "openspec/schemas/delivery-change/templates/spec.md",
+    "openspec/schemas/delivery-change/templates/tasks.md",
+    "openspec/schemas/delivery-change/templates/technical-current.md",
+    "openspec/schemas/delivery-change/templates/test-plan.md",
+    "openspec/tools/delivery-control.ts",
+    "openspec/tools/public-candidate.ts",
+    "openspec/tools/runtime-entry.ts",
+    "openspec/tools/runtime-install.ts",
+    "openspec/tools/runtime-lib.ts",
+    "runtime-manifest.json"
+  ],
+  "forbiddenPathSegments": [
+    ".specify",
+    ".speckit",
+    "speckit"
+  ]
+}

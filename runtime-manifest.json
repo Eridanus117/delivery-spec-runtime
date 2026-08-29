@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "schemaName": "delivery-change",
+  "node": {
+    "minimum": "20.19.0"
+  },
+  "openspec": {
+    "required": "1.10.0"
+  },
+  "projection": [
+    {
+      "source": "openspec/schemas/delivery-change/schema.yaml",
+      "target": "openspec/schemas/delivery-change/schema.yaml",
+      "sha256": "sha256:fcaede2272b23ea657002c88e60a0ec73258a26a8805233f970768dd16d28a2a"
+    },
+    {
+      "source": "openspec/schemas/delivery-change/templates/acceptance.md",
+      "target": "openspec/schemas/delivery-change/templates/acceptance.md",
+      "sha256": "sha256:e955b0dd1cc1dc7cfe3c4b5fc58833d9a4fbb9a1ccb5dfaf256a8b6690f4d6ed"
+    },
+    {
+      "source": "openspec/schemas/delivery-change/templates/business-current.md",
+      "target": "openspec/schemas/delivery-change/templates/business-current.md",
+      "sha256": "sha256:1bca84d7f2411eb46f7dd7a2316d230c47411004d91ec3d447eb86f73e3e2efa"
+    },
+    {
+      "source": "openspec/schemas/delivery-change/templates/change-plan.md",
+      "target": "openspec/schemas/delivery-change/templates/change-plan.md",
+      "sha256": "sha256:e888969f3fbb000b5aaad360b863f99130a9c57cea4bd2c7c1a40589de05e262"
+    },
+    {
+      "source": "openspec/schemas/delivery-change/templates/raw-requirements.md",
+      "target": "openspec/schemas/delivery-change/templates/raw-requirements.md",
+      "sha256": "sha256:b1b8cac834e10c86bf6d686da2756121306fa7635a73b8578853e53a6b7a4bf6"
+    },
+    {
+      "source": "openspec/schemas/delivery-change/templates/release-plan.md",
+      "target": "openspec/schemas/delivery-change/templates/release-plan.md",
+      "sha256": "sha256:89da57f953f89e2a5515974a7b0332bba2771741ec8bbd46e3692366eed66653"
+    },
+    {
+      "source": "openspec/schemas/delivery-change/templates/spec.md",
+      "target": "openspec/schemas/delivery-change/templates/spec.md",
+      "sha256": "sha256:60101f77ccff120903ccf92d74573f3f23fa13a8ffb75f09dcf3b9341ed7f17c"
+    },
+    {
+      "source": "openspec/schemas/delivery-change/templates/tasks.md",
+      "target": "openspec/schemas/delivery-change/templates/tasks.md",
+      "sha256": "sha256:3054fc25efa47f0eeef59ee9f8dbcadcbca89decb666f77e088de297a530ad85"
+    },
+    {
+      "source": "openspec/schemas/delivery-change/templates/technical-current.md",
+      "target": "openspec/schemas/delivery-change/templates/technical-current.md",
+      "sha256": "sha256:1ab26a1c6e4adfd223e5581f52cf7c108d7f914a326fe6c8667c67d23e2091d7"
+    },
+    {
+      "source": "openspec/schemas/delivery-change/templates/test-plan.md",
+      "target": "openspec/schemas/delivery-change/templates/test-plan.md",
+      "sha256": "sha256:615fecad37d1c3532dcd9ef4472f7f6c5ccfc93df54d553b434a7789e202cf62"
+    },
+    {
+      "source": ".omp/commands/opsx-apply.md",
+      "target": ".omp/commands/opsx-apply.md",
+      "sha256": "sha256:c5b640dd3e188033830f641bd90f6a9a0544435c187d1bdefca3bd0436b11890"
+    },
+    {
+      "source": ".omp/commands/opsx-archive.md",
+      "target": ".omp/commands/opsx-archive.md",
+      "sha256": "sha256:a11867dde508675f22e967ca01cb7ecde81c1f1b33a65bf5ca3471d7deceff21"
+    },
+    {
+      "source": ".omp/commands/opsx-continue.md",
+      "target": ".omp/commands/opsx-continue.md",
+      "sha256": "sha256:84bf46e70ea7a0cb8a3320b98e15af29fbd81016e1c4cc072439f7643ab0fc2a"
+    },
+    {
+      "source": ".omp/commands/opsx-explore.md",
+      "target": ".omp/commands/opsx-explore.md",
+      "sha256": "sha256:9a2a4f887a7befc7ff6dbc3b3b943f193da72de7fc8c01178eb5ddfad1cde245"
+    },
+    {
+      "source": ".omp/commands/opsx-new.md",
+      "target": ".omp/commands/opsx-new.md",
+      "sha256": "sha256:bbfe29cd35339a7bbe96be71512ec57dd8f67a236b10dc51dd9589e3a537e926"
+    },
+    {
+      "source": ".omp/commands/opsx-propose.md",
+      "target": ".omp/commands/opsx-propose.md",
+      "sha256": "sha256:7c597d3407247d4b9f2bf448ef73f2e2813ede8b74b35ac07441bcc847ead8ed"
+    },
+    {
+      "source": ".omp/commands/opsx-sync.md",
+      "target": ".omp/commands/opsx-sync.md",
+      "sha256": "sha256:0951d2af2712d59276cdbfc42cc774bc4bbdfb4df0010928d45e2022e140a4f4"
+    },
+    {
+      "source": ".omp/commands/opsx-update.md",
+      "target": ".omp/commands/opsx-update.md",
+      "sha256": "sha256:34a9260e3cd0e6b670b83f6868c032f239aa4a5c844a64da9b3e6e3936a3d201"
+    },
+    {
+      "source": ".omp/commands/opsx-verify.md",
+      "target": ".omp/commands/opsx-verify.md",
+      "sha256": "sha256:aafdc9f25dd175e8a562aab19b958912932c7892b46992e68704d48a90c8e5ac"
+    },
+    {
+      "source": "openspec/tools/runtime-entry.ts",
+      "target": "openspec/tools/runtime-entry.ts",
+      "sha256": "sha256:0f26e4dd24cb6788dd014567d02946539f8898509e04e8561fb3eac7ce8629e0"
+    }
+  ],
+  "forbiddenPathSegments": [
+    ".specify",
+    ".speckit",
+    "speckit"
+  ]
+}

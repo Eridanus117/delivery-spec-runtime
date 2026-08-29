@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Artifact Approvals",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "changeSlug",
+    "revision",
+    "approvals"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "changeSlug": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "approvals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirements",
+        "changePlan",
+        "testPlan",
+        "stage",
+        "release",
+        "archive"
+      ],
+      "properties": {
+        "requirements": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "updatedAt"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "pending",
+                "approved",
+                "rejected"
+              ]
+            },
+            "updatedAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "actor": {
+              "type": "string"
+            },
+            "evidence": {
+              "type": "string"
+            },
+            "artifactSha256": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        },
+        "changePlan": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "updatedAt"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "pending",
+                "approved",
+                "rejected"
+              ]
+            },
+            "updatedAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "actor": {
+              "type": "string"
+            },
+            "evidence": {
+              "type": "string"
+            },
+            "artifactSha256": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        },
+        "testPlan": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "updatedAt"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "pending",
+                "approved",
+                "rejected"
+              ]
+            },
+            "updatedAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "actor": {
+              "type": "string"
+            },
+            "evidence": {
+              "type": "string"
+            },
+            "artifactSha256": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        },
+        "stage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "updatedAt"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "pending",
+                "approved",
+                "rejected"
+              ]
+            },
+            "updatedAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "actor": {
+              "type": "string"
+            },
+            "evidence": {
+              "type": "string"
+            },
+            "artifactSha256": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        },
+        "release": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "updatedAt"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "pending",
+                "approved",
+                "rejected"
+              ]
+            },
+            "updatedAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "actor": {
+              "type": "string"
+            },
+            "evidence": {
+              "type": "string"
+            },
+            "artifactSha256": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        },
+        "archive": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "updatedAt"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "pending",
+                "approved",
+                "rejected"
+              ]
+            },
+            "updatedAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "actor": {
+              "type": "string"
+            },
+            "evidence": {
+              "type": "string"
+            },
+            "artifactSha256": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        }
+      }
+    }
+  }
+}

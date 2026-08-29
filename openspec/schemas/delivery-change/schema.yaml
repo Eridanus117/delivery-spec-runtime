@@ -1,0 +1,127 @@
+name: delivery-change
+version: 4
+description: 面向工作与私人资产仓真实交付及流程演练的九层需求、实现、验证和发布工作流
+
+artifacts:
+  - id: raw-requirements
+    generates: 01-原始需求/index.md
+    description: 不改写原意的需求原始材料索引
+    template: raw-requirements.md
+    instruction: |
+      建立本次 change 的原始需求资产索引，并同步维护 `.delivery/sources.json` 机器合同。
+      记录来源、时间、原始位置、介质、完整性和关联材料；原始附件可以放在同目录 attachments/。
+      不要把归一化解释写成原文，也不要静默修正冲突。
+    requires: []
+
+  - id: specs
+    generates: "specs/**/*.md"
+    description: 归一化、可验收并可归档的正式需求增量
+    template: spec.md
+    instruction: |
+      基于原始材料形成正式需求增量，定义 WHAT 和 WHY，不写实现步骤。
+      每个 capability 使用 OpenSpec 标准路径 specs/<capability>/spec.md；
+      02-需求理解/specs 是指向该目录的单一真源入口，不复制文件。
+      新能力使用 ## Purpose 和 ## ADDED Requirements；修改能力使用 ## MODIFIED Requirements；
+      删除和重命名分别使用 ## REMOVED Requirements、## RENAMED Requirements。
+      Requirement 使用 SHALL/MUST；每项 Requirement 至少包含一个四级标题 Scenario，使用 WHEN/THEN。
+      02-需求理解/index.md 可记录术语、范围、非范围、澄清结论、冲突和待确认事项；
+      只有 specs/**/*.md 参与长期需求同步。
+    requires:
+      - raw-requirements
+
+  - id: business-current
+    generates: 03-业务现状/business-current.md
+    description: 当前业务事实、角色、状态和业务时序
+    template: business-current.md
+    instruction: |
+      描述改造前业务如何运行。覆盖角色、触发、业务对象、状态、主路径、失败分支和上下游责任。
+      使用 Mermaid 表达关键业务时序或状态转换。不得把目标方案写成当前事实。
+    requires:
+      - raw-requirements
+      - specs
+
+  - id: technical-current
+    generates: 04-技术现状/technical-current.md
+    description: 当前代码、接口、数据和运行态技术流程
+    template: technical-current.md
+    instruction: |
+      描述改造前技术实现。引用实际仓库、分支、模块、类、接口、数据、事务、缓存、通知、部署和运行态证据。
+      先锁定入口和关键边界；细节随调查补充。区分源码事实、运行态事实和推断。
+    requires:
+      - business-current
+
+  - id: change-plan
+    generates: 05-改造方案/change-plan.md
+    description: 目标状态、改造切片、影响、决策和迁移回滚计划
+    template: change-plan.md
+    instruction: |
+      定义从当前状态到目标状态的改造方案。覆盖目标/非目标、目标流程、影响面、仓库切片、兼容策略、迁移顺序、风险和回滚。
+      把关键决策及替代方案记录在本文件的决策日志中；不要把工作时间线混入决策日志。
+    requires:
+      - specs
+      - business-current
+      - technical-current
+
+  - id: test-plan
+    generates: 06-测试方案/test-plan.md
+    description: 实现前的测试策略、场景、fixture、断言、运行配置和清理计划
+    template: test-plan.md
+    instruction: |
+      设计如何证明 Requirement 和改造正确。覆盖测试层级、场景、输入、断言、失败停止条件、数据准备、运行环境和清理。
+      fixtures/、scenarios/、runtime/ 和 runner/*.ts 与本文件同目录；runs/ 不属于这里。
+      本层只定义验收依据，不写实际运行结论；完整本地字段按原值保存且每类资产只保留一份。
+    requires:
+      - change-plan
+
+  - id: tasks
+    generates: 07-实施任务/tasks.md
+    description: 基于改造计划和测试计划形成的实现任务拆分
+    template: tasks.md
+    instruction: |
+      同时读取 05 的实施切片和 06 的验证依据，拆成可执行实现任务。
+      任务的唯一状态真源是 `.delivery/task-state.json`；初始化后由 runtime-entry 的 task 命令按 revision 更新，
+      `07-实施任务/tasks.md` 只能从机器状态渲染，禁止从复选框反向解析状态。
+      任务覆盖代码、配置、自动化测试、runner、迁移和验收前置，但不执行 08 验收或 09 发布。
+    requires:
+      - change-plan
+      - test-plan
+
+  - id: acceptance
+    generates: 08-验收/acceptance.md
+    description: 实现完成后的严格验收、run-id 原始证据和结论
+    template: acceptance.md
+    instruction: |
+      先使用 openspec/tools/runtime-entry.ts guard acceptance 校验 Change 模式和 `.delivery/task-state.json` 门禁。
+      delivery 模式存在任意非 completed 任务时停止，不创建本文件，并提示先执行 /opsx-apply。
+      rehearsal 模式允许保留未完成任务进入 08，但必须逐项记录实际执行、跳过、阻塞和偏差，
+      结论只能是 PARTIAL、FAIL 或 BLOCKED，禁止 PASS。
+      每次实际尝试使用独立 runs/<run-id>/，保存 commit、环境、输入、输出、trace、Requirement 覆盖和清理；
+      没有实际运行时不得伪造 run-id。失败和阻塞记录不得覆盖。
+    requires:
+      - test-plan
+      - tasks
+
+  - id: release
+    generates: 09-发布/release-plan.md
+    description: 发布计划、现场快速资产和外部发布 release-id 记录
+    template: release-plan.md
+    instruction: |
+      先使用 openspec/tools/runtime-entry.ts guard release 校验 Change 模式、批准状态和 08 结论。
+      delivery 模式只有至少一个严格 PASS run-id 且 release 已批准时才能生成本文件，并按发布范围、依赖、日志、
+      dashboard、告警、开关、Smoke、停止、回滚和观察窗口形成真实发布计划。
+      rehearsal 模式只允许在 08 为 PARTIAL、FAIL 或 BLOCKED 时生成 NO-GO 记录；不得创建现场执行资产、
+      releases/<release-id>/、修改配置、发布、同步 specs 或归档。
+      delivery 的外部平台或人工发布每次使用独立 release-id，失败记录不得覆盖；无需发布时显式记录 release-not-required。
+    requires:
+      - acceptance
+
+apply:
+  requires:
+    - tasks
+  tracks: 07-实施任务/tasks.md
+  instruction: |
+    先使用 openspec/tools/runtime-entry.ts guard apply 校验模式、批准状态和运行时锁；rehearsal 模式禁止执行实现。
+    delivery 模式只读取 01～07 实现前产物，按 `.delivery/task-state.json` 的依赖顺序实施，
+    通过 runtime-entry 的 task set 原子更新 revision，再用 task render 更新人工审阅视图。
+    本操作不生成 08 验收或 09 发布资产；全部任务完成后停止，并提示调用 /opsx-continue 进入严格验收。
+    遇到需求、架构或高风险环境门禁未解决时写入 blocked_external 并停止，不通过默认值掩盖问题。
