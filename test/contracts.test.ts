@@ -9,7 +9,7 @@ function digest(path: string): string { return `sha256:${createHash("sha256").up
 
 test("runtime manifest、九层schema与九个Commands一致", () => {
   const manifest = JSON.parse(readFileSync(join(runtimeRoot, "runtime-manifest.json"), "utf8"));
-  assert.equal(manifest.node.minimum, "20.19.0");
+  assert.equal(manifest.node.minimum, "22.6.0");
   assert.equal(manifest.openspec.required, "1.10.0");
   assert.equal(manifest.projection.length, 20);
   for (const item of manifest.projection) assert.equal(digest(join(runtimeRoot, item.source)), item.sha256, item.source);

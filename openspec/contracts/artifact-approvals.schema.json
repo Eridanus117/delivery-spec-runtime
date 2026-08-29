@@ -1,223 +1,36 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Artifact Approvals",
+  "$id": "delivery-change/artifact-approvals.schema.json",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "schemaVersion",
-    "changeSlug",
-    "revision",
-    "approvals"
-  ],
+  "required": ["schemaVersion", "artifacts"],
   "properties": {
-    "schemaVersion": {
-      "const": 1
-    },
-    "changeSlug": {
-      "type": "string"
-    },
-    "revision": {
-      "type": "integer",
-      "minimum": 0
-    },
-    "approvals": {
+    "schemaVersion": { "const": 1 },
+    "artifacts": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "requirements",
-        "changePlan",
-        "testPlan",
-        "stage",
-        "release",
-        "archive"
-      ],
       "properties": {
-        "requirements": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "status",
-            "updatedAt"
-          ],
-          "properties": {
-            "status": {
-              "enum": [
-                "pending",
-                "approved",
-                "rejected"
-              ]
-            },
-            "updatedAt": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "actor": {
-              "type": "string"
-            },
-            "evidence": {
-              "type": "string"
-            },
-            "artifactSha256": {
-              "type": "string",
-              "pattern": "^sha256:[0-9a-f]{64}$"
-            }
-          }
-        },
-        "changePlan": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "status",
-            "updatedAt"
-          ],
-          "properties": {
-            "status": {
-              "enum": [
-                "pending",
-                "approved",
-                "rejected"
-              ]
-            },
-            "updatedAt": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "actor": {
-              "type": "string"
-            },
-            "evidence": {
-              "type": "string"
-            },
-            "artifactSha256": {
-              "type": "string",
-              "pattern": "^sha256:[0-9a-f]{64}$"
-            }
-          }
-        },
-        "testPlan": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "status",
-            "updatedAt"
-          ],
-          "properties": {
-            "status": {
-              "enum": [
-                "pending",
-                "approved",
-                "rejected"
-              ]
-            },
-            "updatedAt": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "actor": {
-              "type": "string"
-            },
-            "evidence": {
-              "type": "string"
-            },
-            "artifactSha256": {
-              "type": "string",
-              "pattern": "^sha256:[0-9a-f]{64}$"
-            }
-          }
-        },
-        "stage": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "status",
-            "updatedAt"
-          ],
-          "properties": {
-            "status": {
-              "enum": [
-                "pending",
-                "approved",
-                "rejected"
-              ]
-            },
-            "updatedAt": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "actor": {
-              "type": "string"
-            },
-            "evidence": {
-              "type": "string"
-            },
-            "artifactSha256": {
-              "type": "string",
-              "pattern": "^sha256:[0-9a-f]{64}$"
-            }
-          }
-        },
-        "release": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "status",
-            "updatedAt"
-          ],
-          "properties": {
-            "status": {
-              "enum": [
-                "pending",
-                "approved",
-                "rejected"
-              ]
-            },
-            "updatedAt": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "actor": {
-              "type": "string"
-            },
-            "evidence": {
-              "type": "string"
-            },
-            "artifactSha256": {
-              "type": "string",
-              "pattern": "^sha256:[0-9a-f]{64}$"
-            }
-          }
-        },
-        "archive": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "status",
-            "updatedAt"
-          ],
-          "properties": {
-            "status": {
-              "enum": [
-                "pending",
-                "approved",
-                "rejected"
-              ]
-            },
-            "updatedAt": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "actor": {
-              "type": "string"
-            },
-            "evidence": {
-              "type": "string"
-            },
-            "artifactSha256": {
-              "type": "string",
-              "pattern": "^sha256:[0-9a-f]{64}$"
-            }
-          }
-        }
+        "raw-requirements": { "$ref": "#/$defs/approval" },
+        "specs": { "$ref": "#/$defs/approval" },
+        "business-current": { "$ref": "#/$defs/approval" },
+        "technical-current": { "$ref": "#/$defs/approval" },
+        "change-plan": { "$ref": "#/$defs/approval" },
+        "test-plan": { "$ref": "#/$defs/approval" },
+        "tasks": { "$ref": "#/$defs/approval" }
+      }
+    }
+  },
+  "$defs": {
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["digest", "decision", "approvedBy", "approvedAt", "migrationSource"],
+      "properties": {
+        "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "decision": { "enum": ["approved", "rejected"] },
+        "approvedBy": { "type": "string", "minLength": 1 },
+        "approvedAt": { "type": "string", "minLength": 1 },
+        "migrationSource": { "type": ["string", "null"] }
       }
     }
   }

@@ -63,6 +63,18 @@ node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entr
      ```bash
      node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" inspect --change-root "<changeRoot>"
      ```
+   - 对 `delivery-change`，先运行：
+     ```bash
+     node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" approval inspect \
+       --change-root "<changeRoot>"
+     ```
+     01～07 已生成依赖的有效状态必须为 `approved`，`pending`、`rejected` 或 `stale` 时停止并展示内容请求人工审阅。
+     只有用户明确批准当前摘要时才记录决定；“继续”或文件存在不等于批准：
+     ```bash
+     node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" approval set \
+       --change-root "<changeRoot>" --artifact "<artifact-id>" --decision approved \
+       --approved-by "<批准人>" [--migration-source "<可审阅的旧决定来源>"]
+     ```
    - 如果下一个制品是 `acceptance` 或 `release`，则在执行 `openspec instructions` 之前运行匹配的硬性守卫：
      ```bash
      node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" guard \

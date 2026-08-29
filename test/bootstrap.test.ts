@@ -53,6 +53,9 @@ test("bootstrap stage必须外部批准，activation可恢复且保持受保护�
     result = bootstrap(f, "activate"); assert.equal(result.status, 0, result.stderr);
     const archive = join(f.work, "openspec/changes/archive", `2026-08-30-${slug}`);
     assert.equal(existsSync(join(archive, "change-info.json")), true); assert.equal(existsSync(join(archive, ".delivery")), false); assert.equal(existsSync(join(archive, "06-测试方案/测试方案.md")), true);
+    assert.deepEqual(JSON.parse(readFileSync(join(archive, "artifact-approvals.json"), "utf8")), { schemaVersion: 1, artifacts: {} });
+    const sources = JSON.parse(readFileSync(join(archive, "change-sources.json"), "utf8")); assert.deepEqual(sources.sources.map((item: { authority: number }) => item.authority), [1, 2]);
+    const task = JSON.parse(readFileSync(join(archive, "task-state.json"), "utf8")).tasks[0]; assert.deepEqual(Object.keys(task).sort(), ["blocker", "deliverables", "evidence", "id", "state", "verification"]);
     for (const name of removed) assert.equal(existsSync(join(f.work, "openspec/changes", name)), false);
     assert.equal(tree(join(f.work, "openspec/specs")).digest, specsBefore); assert.notEqual(tree(join(f.work, "openspec/changes/archive")).digest, archivesBefore);
     assert.equal(existsSync(join(f.consumer, ".specify")), false); assert.doesNotMatch(readFileSync(f.links, "utf8"), /\.specify/); assert.doesNotMatch(readFileSync(f.exclude, "utf8"), /\.specify/);

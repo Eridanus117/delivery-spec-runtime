@@ -54,7 +54,7 @@ node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entr
    node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" task inspect \
      --change-root "<changeRoot>"
    ```
-   使用返回的 `revision`、任务依赖和状态计算进度；不得从 Markdown 复选框反向解析状态。
+   使用返回的任务状态计算进度；不得从 Markdown 复选框反向解析状态。
    - 可选的 `context`：来自选定根目录的当前必需项目指令输入
    - 可选的 `operationGuidance`：当前关于应用操作的建议指导
 
@@ -79,19 +79,19 @@ node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entr
 
 5. **显示当前进度**
 
-   显示机器状态中的模式、revision、各状态计数、可执行任务和 `blocked_external` blocker。
+   显示机器状态中的模式、各状态计数、可执行任务和 `blocked_external` blocker。
 
 6. **实施任务（循环执行，直到完成或外部门禁阻塞）**
 
-   对于每个依赖已验证的 `planned` 或 `implemented_unverified` 任务：
-   - 进行所需的代码变更；源码完成后以当前 revision 标记为 `implemented_unverified`
-   - 执行任务声明的验证；成功后以新 revision 标记为 `verified` 并传入可读取的 `--evidence`
+   按 07 人工视图中的批准顺序处理每个 `planned` 或 `implemented_unverified` 任务：
+   - 进行所需的代码变更；源码完成后标记为 `implemented_unverified`
+   - 执行任务声明的验证；成功后标记为 `verified` 并传入可读取的 `--evidence`
    - 外部输入缺失时标记为 `blocked_external` 并传入具体 `--blocker`
    - 每次状态写入后运行 `task render` 更新 `07-实施任务/实施任务.md` 人工视图
    ```bash
    node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" task set \
-     --change-root "<changeRoot>" --id "<task-id>" --status "<state>" \
-     --expected-revision "<revision>" [--evidence "<path>"] [--blocker "<reason>"]
+     --change-root "<changeRoot>" --id "<task-id>" --state "<state>" \
+     [--evidence "<path>"] [--blocker "<reason>"]
    node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" task render \
      --change-root "<changeRoot>"
    ```
@@ -105,7 +105,7 @@ node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entr
 
 7. **完成或暂停时显示状态**
 
-   显示本次完成任务、机器 revision、总体进度和阻塞原因。全部完成时提示 `/opsx-continue` 进入 08；
+   显示本次完成任务、各状态计数、总体进度和阻塞原因。全部完成时提示 `/opsx-continue` 进入 08；
    `rehearsal` 在 apply guard 已停止；外部门禁使用 `blocked_external`，不得伪装成完成。
 
 **实施期间的输出**

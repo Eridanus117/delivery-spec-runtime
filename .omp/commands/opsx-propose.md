@@ -127,6 +127,8 @@ node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entr
 - 变更名称和位置
 - 已创建构件的列表及简短描述，以及任何跳过的条件构件和跳过原因
 - 已准备就绪："实现所需的所有构件均已准备就绪。"
+- 对 `delivery-change`，01～07 只是已生成，`artifact-approvals.json` 仍保持未批准；明确提示逐项审阅。
+- 不得从本次 propose 请求、文件存在或会话记忆自动写入批准。用户后续明确批准当前摘要时，才通过 `runtime-entry.ts approval set --artifact "<artifact-id>" --decision approved --approved-by "<批准人>"` 记录。
 - 提示："构件已准备好供审阅。准备好后，请运行 `/opsx-apply`。"
 
 **构件创建指南**

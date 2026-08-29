@@ -128,19 +128,16 @@ function dryRun(workRoot: string, privateRoot: string, consumerRoot: string): vo
 
 function parseLegacyTasks(path: string): Array<Record<string, unknown>> {
   const lines = readFileSync(path, "utf8").split(/\r?\n/);
-  const tasks: Array<Record<string, unknown>> = []; let phase = "未分组";
+  const tasks: Array<Record<string, unknown>> = [];
   for (const line of lines) {
-    const heading = /^##\s+(.+)$/.exec(line); if (heading) { phase = heading[1]; continue; }
     const match = /^- \[([ xX])\]\s+(\d+\.\d+)\s+(?:\[([^\]]+)\]\s+)?(.+)$/.exec(line); if (!match) continue;
-    const marker = match[3] ?? "planned";
-    const parts = match[4].split("；");
-    const title = parts[0];
+    const marker = match[3] ?? "planned"; const parts = match[4].split("；");
     const deliverable = parts.find((part) => part.startsWith("交付物："))?.slice("交付物：".length) ?? `旧任务 ${match[2]} 的声明交付物`;
     const verification = parts.find((part) => part.startsWith("验证："))?.slice("验证：".length) ?? `按旧任务 ${match[2]} 的验证说明复核`;
-    const status = marker === "verified" && match[1].toLowerCase() === "x" ? "verified" : marker === "blocked_external" ? "blocked_external" : match[1].toLowerCase() === "x" ? "implemented_unverified" : "planned";
-    const task: Record<string, unknown> = { id: match[2], phase, title, status, dependsOn: [], deliverable, verification, note: `由改造前 07 一次性导入；原状态 ${marker}` };
-    if (status === "verified") task.evidence = "bootstrap/baseline-manifest.json#workSpec.baselineCommit";
-    if (status === "blocked_external") task.blocker = "等待维护者审阅并批准当前stage迁移映射";
+    const state = marker === "verified" && match[1].toLowerCase() === "x" ? "verified" : marker === "blocked_external" ? "blocked_external" : match[1].toLowerCase() === "x" ? "implemented_unverified" : "planned";
+    const task: Record<string, unknown> = { id: match[2], state, deliverables: [deliverable], verification: [verification], evidence: [], blocker: null };
+    if (state === "verified") task.evidence = ["bootstrap/baseline-manifest.json"];
+    if (state === "blocked_external") task.blocker = "等待维护者审阅并批准当前stage迁移映射";
     tasks.push(task);
   }
   if (tasks.length === 0) fail("未从旧 07 解析到任务");
@@ -172,18 +169,18 @@ function buildCandidate(workRoot: string, candidate: string): void {
   const oldSpecsLink = join(candidate, "02-需求理解/specs");
   if (pathExists(oldSpecsLink)) rmSync(oldSpecsLink, { recursive: true, force: true });
   symlinkSync("../specs", oldSpecsLink);
-  const createdAt = now();
   // 控制 JSON 全部位于 Change 根目录；不得重新引入历史 `.delivery` 容器。
   atomicWriteJson(join(candidate, "change-info.json"), { schemaVersion: 1, displayName: "优化物流 Change 审阅工作流" });
-  const artifactPaths: Record<string, string> = { requirements: "02-需求理解/需求理解.md", changePlan: "05-改造方案/改造方案.md", testPlan: "06-测试方案/测试方案.md" };
-  const approvals: Record<string, unknown> = {};
-  for (const gate of ["requirements", "changePlan", "testPlan", "stage", "release", "archive"]) {
-    const artifact = artifactPaths[gate];
-    approvals[gate] = artifact ? { status: "approved", updatedAt: createdAt, actor: "user", evidence: "approved implementation baseline", artifactSha256: sha256File(join(candidate, artifact)) } : { status: "pending", updatedAt: createdAt };
-  }
-  atomicWriteJson(join(candidate, "artifact-approvals.json"), { schemaVersion: 1, changeSlug, revision: 0, approvals });
-  atomicWriteJson(join(candidate, "task-state.json"), { schemaVersion: 1, changeSlug, revision: 0, updatedAt: createdAt, tasks: parseLegacyTasks(join(source, "07-implementation-tasks/tasks.md")) });
-  atomicWriteJson(join(candidate, "change-sources.json"), { schemaVersion: 1, changeSlug, sources: [{ id: "baseline-manifest", kind: "local-git-baseline", location: "bootstrap/baseline-manifest.json", observedAt: createdAt, completeness: "complete", sha256: sha256File(join(source, "bootstrap/baseline-manifest.json")) }] });
+  // 旧流程没有持久化摘要批准；不得从文件存在或会话记忆伪造 migrationSource。
+  atomicWriteJson(join(candidate, "artifact-approvals.json"), { schemaVersion: 1, artifacts: {} });
+  atomicWriteJson(join(candidate, "task-state.json"), { schemaVersion: 1, tasks: parseLegacyTasks(join(source, "07-implementation-tasks/tasks.md")) });
+  atomicWriteJson(join(candidate, "change-sources.json"), {
+    schemaVersion: 1,
+    sources: [
+      { id: "user-session", kind: "user", authority: 1, locator: "current-session", adapter: "builtin:user" },
+      { id: "baseline-manifest", kind: "file", authority: 2, locator: "bootstrap/baseline-manifest.json", adapter: "builtin:file" },
+    ],
+  });
 }
 
 
