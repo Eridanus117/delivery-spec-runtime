@@ -110,7 +110,9 @@ function install(runtimeRoot: string, assetRoot: string, expectedCommit?: string
       atomicWriteJson(oldLockPath, lock);
       console.log(JSON.stringify(lock, null, 2));
     } catch (error) {
-      for (const item of manifest.projection) rmSync(join(assetReal, item.target), { force: true });
+      for (const item of manifest.projection) {
+        try { rmSync(join(assetReal, item.target), { force: true }); } catch { /* 父路径冲突时目标从未成功安装，无需删除。 */ }
+      }
       for (const target of moved) {
         const saved = join(backup, target);
         if (existsSync(saved)) {
