@@ -53,6 +53,8 @@ function main(): void {
     : join(findUp(assetRoot, "_org/workspace.json"), "delivery-spec-runtime");
   const actualCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: runtimeRoot, encoding: "utf8" }).trim();
   if (actualCommit !== lock.runtimeCommit) fail(`运行时 commit 漂移: lock=${lock.runtimeCommit} actual=${actualCommit}`);
+  const dirty = execFileSync("git", ["status", "--porcelain", "--untracked-files=no"], { cwd: runtimeRoot, encoding: "utf8" }).trim();
+  if (dirty) fail("运行时工作树包含未提交修改，拒绝执行");
   const manifest = JSON.parse(readFileSync(join(runtimeRoot, "runtime-manifest.json"), "utf8")) as Record<string, unknown>;
   const nodeContract = manifest.node as Record<string, unknown>;
   const openspecContract = manifest.openspec as Record<string, unknown>;

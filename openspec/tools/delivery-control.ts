@@ -219,7 +219,7 @@ function taskSet(changeRoot: string, options: Map<string, string>): void {
 
 function renderTasks(changeRoot: string): void {
   const state = parseTasks(tasksPath(changeRoot));
-  const lines = ["# 实施任务", "", `> 机器真源：\`.delivery/task-state.json\`，revision ${state.revision}。本文件只用于人工审阅。", ""];
+  const lines = ["# 实施任务", "", `> 机器真源：\`.delivery/task-state.json\`，revision ${state.revision}。本文件只用于人工审阅。`, ""];
   let phase = "";
   for (const task of state.tasks) {
     if (task.phase !== phase) {

@@ -106,7 +106,7 @@
     {
       "source": "openspec/tools/runtime-entry.ts",
       "target": "openspec/tools/runtime-entry.ts",
-      "sha256": "sha256:0f26e4dd24cb6788dd014567d02946539f8898509e04e8561fb3eac7ce8629e0"
+      "sha256": "sha256:1d9baa52b36f6cdd99793fe656e63e7d4a1abc25044949e7adc480930e6ea003"
     }
   ],
   "forbiddenPathSegments": [
