@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "tasks": [
+    {
+      "id": "1.1",
+      "state": "verified",
+      "deliverables": [
+        "openspec/config.yaml",
+        "openspec/changes/prevent-live-runtime-update-mutation",
+        "AGENTS.md"
+      ],
+      "verification": [
+        "openspec status --change prevent-live-runtime-update-mutation --json 返回 delivery-change 九层 DAG"
+      ],
+      "evidence": [
+        "openspec validate prevent-live-runtime-update-mutation --strict PASS；delivery-control guard apply allowed"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.1",
+      "state": "verified",
+      "deliverables": [
+        "test/submodule.test.ts 中 runtime-update 无写入回归场景"
+      ],
+      "verification": [
+        "旧实现下测试可观测到 submodule Commands 被修改；新实现下摘要、父仓 status、submodule status 和软链目标均不变"
+      ],
+      "evidence": [
+        "新增测试在旧实现 status=0 时失败；修复后验证九个 Commands 摘要、父仓/submodule status 与三条软链目标不变"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.2",
+      "state": "verified",
+      "deliverables": [
+        "openspec/tools/runtime-entry.ts 的 runtime-update fail-closed 行为"
+      ],
+      "verification": [
+        "runtime-update 在启动 openspec update 前非零退出，其他 delivery-control 分派保持通过"
+      ],
+      "evidence": [
+        "聚焦 node:test：实时资产仓拒绝runtime-update且不修改Runtime PASS"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.3",
+      "state": "verified",
+      "deliverables": [
+        ".omp/commands/opsx-update.md",
+        "README.md"
+      ],
+      "verification": [
+        "文档不再包含实时 runtime-update wrapper 或软链恢复承诺，并指向后续受控升级 Change"
+      ],
+      "evidence": [
+        "聚焦 node:test：OpenSpec升级只允许通过Runtime仓受控Change PASS"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "3.1",
+      "state": "verified",
+      "deliverables": [
+        "Runtime 完整合同测试结果"
+      ],
+      "verification": [
+        "node --experimental-strip-types --test test/*.test.ts 全部通过"
+      ],
+      "evidence": [
+        "node --experimental-strip-types --test test/*.test.ts：15/15 PASS"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "4.1",
+      "state": "verified",
+      "deliverables": [
+        "agent-system、webcoding-spec、work-spec 只读 smoke 结果",
+        "功能分支与 PR"
+      ],
+      "verification": [
+        "三个消费仓 runtime-check 无新增失败；功能分支推送并创建中文 PR，默认分支无直接 push"
+      ],
+      "evidence": [
+        "agent-system、webcoding-spec、work-spec runtime-check 均 allowed=true；功能分支已推送并创建 PR #1：https://github.com/Eridanus117/delivery-spec-runtime/pull/1"
+      ],
+      "blocker": null
+    }
+  ]
+}

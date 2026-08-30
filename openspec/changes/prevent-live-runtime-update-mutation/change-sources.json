@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "maintainer-session",
+      "kind": "user",
+      "authority": 1,
+      "locator": "current-session:2026-08-30",
+      "adapter": "builtin:user"
+    },
+    {
+      "id": "runtime-repository",
+      "kind": "repository",
+      "authority": 2,
+      "locator": "delivery-spec-runtime@4896699085a35713b8221a1c878d60c725a47014",
+      "adapter": "builtin:repository"
+    },
+    {
+      "id": "openspec-upstream",
+      "kind": "url",
+      "authority": 3,
+      "locator": "https://github.com/Fission-AI/OpenSpec",
+      "adapter": "builtin:url"
+    }
+  ]
+}

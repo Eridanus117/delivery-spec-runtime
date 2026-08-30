@@ -1,0 +1,21 @@
+✔ bootstrap stage必须外部批准，activation可恢复且保持受保护树 (904.171625ms)
+✔ bootstrap拒绝脏工作树和受保护目录漂移 (416.17425ms)
+✔ 公开候选只复制允许清单且不产生外部副作用 (159.729125ms)
+✔ 公开候选拒绝秘密与禁用路径 (168.384167ms)
+✔ 公开候选示例必须有合规provenance (187.787916ms)
+✔ runtime manifest、九层schema与九个Commands一致 (4.441708ms)
+✔ OpenSpec升级只允许通过Runtime仓受控Change (1.081875ms)
+✔ runtime树不含禁用资产路径段 (1.439667ms)
+✔ 严格来源、批准失效、任务状态和投影合同 (1993.851916ms)
+✔ gitlink、相对软链与递归克隆形成唯一运行时绑定 (1965.228875ms)
+✔ 实时资产仓拒绝runtime-update且不修改Runtime (696.290542ms)
+✔ 未初始化、gitlink漂移与dirty submodule均fail closed (892.889041ms)
+✔ 软链漂移必须显式修复且只替换manifest托管路径 (799.562709ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4474.944458

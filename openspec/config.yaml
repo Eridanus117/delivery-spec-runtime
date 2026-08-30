@@ -1,0 +1,29 @@
+schema: delivery-change
+
+context: |
+  本仓维护公共 OpenSpec delivery 生命周期运行时：delivery-change schema、九个 OMP Commands、
+  TypeScript 治理工具、机器合同和合同测试。Runtime 使用仓内 OpenSpec Change 与长期 specs
+  治理自身演进；不得保存工作、私人或其他项目的真实需求、环境、凭据和交付证据。
+  上游 OpenSpec 是受评审的升级输入，不是自动覆盖本地 Runtime 的权威。版本升级必须在隔离
+  临时目录生成候选结果，经合同测试、消费仓 smoke 和 PR 审阅后才能进入默认分支。
+  人工审阅产物使用中文；机器 slug、JSON 字段、命令、路径和配置键保持稳定英文标识。
+
+rules:
+  raw-requirements:
+    - 记录问题复现、用户决定、上游版本和可重放证据，不把推断写成事实
+  specs:
+    - 每项 Requirement 至少包含一个可观测 Scenario，并覆盖禁止写入实时仓的负向场景
+  business-current:
+    - 说明维护者、项目仓与资产仓的升级职责、触发条件和失败处置
+  technical-current:
+    - 记录软链、gitlink、版本 pin、CLI/JSON 合同和实际写入路径
+  change-plan:
+    - 区分安全修复、升级框架与候选版本评估，不把多个 Change 静默合并
+  test-plan:
+    - 必须包含真实 CLI 行为探针、submodule dirty 断言和消费仓无写入验证
+  tasks:
+    - task-state.json 是状态真源，07-实施任务/实施任务.md 只作为人工阅读视图
+  acceptance:
+    - delivery 模式必须全部任务 verified，且保存实际测试输出后才能 PASS
+  release:
+    - 只通过功能分支和 PR 发布；不得直接推默认分支

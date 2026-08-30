@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "runId": "20260830T1114Z-runtime-safety",
+  "repository": "Eridanus117/delivery-spec-runtime",
+  "commit": "ae18b997c8eccbc7e4cf5bc3744ba9b49893f63c",
+  "branch": "change/prevent-live-runtime-update-mutation",
+  "environment": {
+    "os": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+    "host": "U-13V4VDJF-2137.local",
+    "node": "v26.7.0",
+    "openspec": "1.10.0"
+  },
+  "startedAt": "2026-08-30T11:13:50.125019+00:00",
+  "endedAt": "2026-08-30T11:13:55.763577+00:00",
+  "commands": {
+    "runtime-tests": {
+      "cwd": "/Users/a123/work/delivery-spec-runtime",
+      "argv": [
+        "node",
+        "--experimental-strip-types",
+        "--test",
+        "test/bootstrap.test.ts",
+        "test/candidate.test.ts",
+        "test/contracts.test.ts",
+        "test/control.test.ts",
+        "test/digest.test.ts",
+        "test/submodule.test.ts"
+      ],
+      "status": 0,
+      "startedAt": "2026-08-30T11:13:50.125748+00:00",
+      "endedAt": "2026-08-30T11:13:54.640388+00:00"
+    },
+    "agent-system-runtime-check": {
+      "cwd": "/Users/a123/work/agent-system",
+      "argv": [
+        "node",
+        "--experimental-strip-types",
+        ".delivery-spec-runtime/openspec/tools/runtime-entry.ts",
+        "runtime-check",
+        "--change-root",
+        "."
+      ],
+      "status": 0,
+      "startedAt": "2026-08-30T11:13:54.640459+00:00",
+      "endedAt": "2026-08-30T11:13:55.045562+00:00"
+    },
+    "webcoding-spec-runtime-check": {
+      "cwd": "/Users/a123/work/webcoding-spec",
+      "argv": [
+        "node",
+        "--experimental-strip-types",
+        ".delivery-spec-runtime/openspec/tools/runtime-entry.ts",
+        "runtime-check",
+        "--change-root",
+        "."
+      ],
+      "status": 0,
+      "startedAt": "2026-08-30T11:13:55.045650+00:00",
+      "endedAt": "2026-08-30T11:13:55.407777+00:00"
+    },
+    "work-spec-runtime-check": {
+      "cwd": "/Users/a123/work/work-spec",
+      "argv": [
+        "node",
+        "--experimental-strip-types",
+        ".delivery-spec-runtime/openspec/tools/runtime-entry.ts",
+        "runtime-check",
+        "--change-root",
+        "."
+      ],
+      "status": 0,
+      "startedAt": "2026-08-30T11:13:55.407835+00:00",
+      "endedAt": "2026-08-30T11:13:55.763528+00:00"
+    }
+  }
+}
