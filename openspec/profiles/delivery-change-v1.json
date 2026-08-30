@@ -3,13 +3,17 @@
   "profileId": "delivery-change",
   "profileVersion": "v1.0.0",
   "displayName": "Delivery Change",
+  "purpose": "在正式决定实施后，完成可审计的方案、实现、验收、同步和归档。",
+  "recommendedFor": ["已决定交付且需要完整审计链的需求", "需要长期 spec 同步和归档证据的变更"],
+  "notRecommendedFor": ["尚未决定是否实施的模糊问题", "只需快速登记和验证的小改动"],
+  "handoff": "archive 完成后将长期 spec、验收结果和归档证据交给项目维护者。",
   "stages": [
-    { "id": "proposal", "displayName": "方案提案", "requiredInputs": ["proposal"], "humanJudgment": false },
-    { "id": "decision", "displayName": "方案决策", "requiredInputs": ["decision"], "humanJudgment": true },
-    { "id": "implementation", "displayName": "实施任务", "requiredInputs": ["tasks"], "humanJudgment": false },
-    { "id": "review", "displayName": "实现审查", "requiredInputs": ["review"], "humanJudgment": false },
-    { "id": "acceptance", "displayName": "验收", "requiredInputs": ["acceptance"], "humanJudgment": true },
-    { "id": "sync", "displayName": "规格同步", "requiredInputs": ["specSync"], "humanJudgment": false },
-    { "id": "archive", "displayName": "归档", "requiredInputs": ["archive"], "humanJudgment": true }
+    { "id": "proposal", "displayName": "方案提案", "description": "记录问题、候选方案和实施边界。", "exitCondition": "候选方案及其影响已可审阅。", "requiredInputs": ["proposal"], "humanJudgment": false },
+    { "id": "decision", "displayName": "方案决策", "description": "由维护者选择方案并确认取舍。", "exitCondition": "维护者已明确批准一个方案。", "requiredInputs": ["decision"], "humanJudgment": true },
+    { "id": "implementation", "displayName": "实施任务", "description": "把批准方案拆成可执行任务。", "exitCondition": "任务边界、交付物和验证方式已明确。", "requiredInputs": ["tasks"], "humanJudgment": false },
+    { "id": "review", "displayName": "实现审查", "description": "审查实现是否覆盖批准的 Change。", "exitCondition": "新鲜 Review 无未解决 critical finding。", "requiredInputs": ["review"], "humanJudgment": false },
+    { "id": "acceptance", "displayName": "验收", "description": "依据测试和场景确认交付结果。", "exitCondition": "维护者接受验收结果。", "requiredInputs": ["acceptance"], "humanJudgment": true },
+    { "id": "sync", "displayName": "规格同步", "description": "将批准的 delta 合并到长期 spec。", "exitCondition": "长期 spec 已更新且严格校验通过。", "requiredInputs": ["specSync"], "humanJudgment": false },
+    { "id": "archive", "displayName": "归档", "description": "保存完整证据并关闭 Change。", "exitCondition": "归档门禁通过且 Change 已移动到 archive。", "requiredInputs": ["archive"], "humanJudgment": true }
   ]
 }

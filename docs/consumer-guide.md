@@ -137,6 +137,13 @@ node --experimental-strip-types \
   workflow list-profiles
 node --experimental-strip-types \
   .delivery-spec-runtime/openspec/tools/runtime-entry.ts \
+  workflow catalog
+node --experimental-strip-types \
+  .delivery-spec-runtime/openspec/tools/runtime-entry.ts \
+  workflow describe --profile-id requirement-analysis \
+  --profile-version v1.0.0
+node --experimental-strip-types \
+  .delivery-spec-runtime/openspec/tools/runtime-entry.ts \
   workflow bind --change-root openspec/changes/<change> \
   --profile-id light-change --profile-version v1.0.0
 node --experimental-strip-types \
@@ -145,9 +152,9 @@ node --experimental-strip-types \
   --request-file request.json
 ```
 
-`list-profiles` 返回阶段的 `id`、展示名、必需输入和人工判断标志；`bind` 只允许建立一次固定绑定。`run` 会读取 Change 根的 `workflow-binding.json`，校验 request 中的 profile 身份与版本完全一致，并只接受已完成阶段的连续前缀。未绑定、绑定冲突、请求不匹配、阶段越序或伪造阶段完成都会返回机器可读的 `rejected`；缺少当前阶段输入或人工判断分别返回 `blocked` 或 `waiting_human_judgment`。
+`list-profiles` 返回机器 JSON；`catalog` 展示所有 Profile 的用途、适用范围、阶段说明、退出条件和交接；`describe` 只展示一个精确版本。它们都读取同一份 registry/Profile 真源。`bind` 只允许建立一次固定绑定；`run` 会读取 Change 根的 `workflow-binding.json`，校验 request 中的 profile 身份与版本完全一致，并只接受已完成阶段的连续前缀。未绑定、绑定冲突、请求不匹配、阶段越序或伪造阶段完成都会返回机器可读的 `rejected`；缺少当前阶段输入返回 `blocked`，输入结构违反 Profile 合同返回 `rejected`，缺少人工判断返回 `waiting_human_judgment`。
 
-没有完整外部需求分析输入时，调用方可绑定 `requirement-analysis@v1.0.0`。该 profile 的阶段为 `capture → clarify ↺ → discover ↺ → evaluate ↺ → decision`：调用方分别提交 `problemFrame`、`capabilityReport` 和 `optionReport`，在每个阶段使用 `judgments.<stage>=continue-analysis` 继续补证据，使用 `sufficient` 进入下一阶段。决策结果由 `outputs.publishedInputs` 返回，Runtime 不自动创建 Change，也不读取或写回 Desk。
+没有完整外部需求分析输入时，调用方可绑定 `requirement-analysis@v1.0.0`。该 profile 的阶段为 `capture → clarify ↺ → discover ↺ → evaluate ↺ → decision`：调用方分别提交结构完整的 `problemFrame`、`capabilityReport`、`optionReport` 和 `decisionReport`，并在决策阶段提交至少一项 `analysisRounds`。每项轮次记录 `round`、`stage`、`known`、`unknown`、`evidence`、`confidence`、`judgment` 和 `decision`。决策处置只能是 `build`、`use-existing`、`defer` 或 `reject`；Runtime 检查结构并通过 `outputs.publishedInputs` 返回，不自动创建 Change，也不读取或写回 Desk。
 
 ## 禁止操作
 

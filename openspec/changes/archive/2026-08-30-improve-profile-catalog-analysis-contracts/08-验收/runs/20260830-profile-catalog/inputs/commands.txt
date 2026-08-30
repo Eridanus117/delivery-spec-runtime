@@ -1,0 +1,4 @@
+node --experimental-strip-types --test test/workflow.test.ts
+node --experimental-strip-types --test test/contracts.test.ts
+node --experimental-strip-types openspec/tools/render-commands.ts check --runtime-root .
+openspec validate --all --strict

@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "tasks": [
+    {
+      "id": "1.1",
+      "state": "verified",
+      "deliverables": [
+        "workflow profile schema and parser"
+      ],
+      "verification": [
+        "profile contract tests"
+      ],
+      "evidence": [
+        "openspec/contracts/workflow-profile.schema.json"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "1.2",
+      "state": "verified",
+      "deliverables": [
+        "three profile metadata and stage descriptions"
+      ],
+      "verification": [
+        "catalog output tests"
+      ],
+      "evidence": [
+        "openspec/profiles/registry.json"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "1.3",
+      "state": "verified",
+      "deliverables": [
+        "requirement analysis input contracts and rounds"
+      ],
+      "verification": [
+        "analysis contract tests"
+      ],
+      "evidence": [
+        "openspec/profiles/requirement-analysis-v1.json"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.1",
+      "state": "verified",
+      "deliverables": [
+        "workflow catalog and describe commands"
+      ],
+      "verification": [
+        "CLI behavior tests"
+      ],
+      "evidence": [
+        "openspec/tools/workflow-control.ts"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.2",
+      "state": "verified",
+      "deliverables": [
+        "compatible list-profiles JSON"
+      ],
+      "verification": [
+        "existing workflow tests"
+      ],
+      "evidence": [
+        "test/workflow.test.ts"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.3",
+      "state": "verified",
+      "deliverables": [
+        "declarative input contract execution"
+      ],
+      "verification": [
+        "invalid structure rejection tests"
+      ],
+      "evidence": [
+        "openspec/tools/workflow-core.ts"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.4",
+      "state": "verified",
+      "deliverables": [
+        "cumulative analysis round results"
+      ],
+      "verification": [
+        "continue-analysis result tests"
+      ],
+      "evidence": [
+        "test/workflow.test.ts"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "3.1",
+      "state": "verified",
+      "deliverables": [
+        "catalog and identity drift tests"
+      ],
+      "verification": [
+        "node test workflow"
+      ],
+      "evidence": [
+        "test/workflow.test.ts"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "3.2",
+      "state": "verified",
+      "deliverables": [
+        "report round and disposition tests"
+      ],
+      "verification": [
+        "node test workflow"
+      ],
+      "evidence": [
+        "test/workflow.test.ts"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "3.3",
+      "state": "verified",
+      "deliverables": [
+        "updated runtime documentation"
+      ],
+      "verification": [
+        "strict validation and link tests"
+      ],
+      "evidence": [
+        "docs/workflow-guide.md"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "3.4",
+      "state": "verified",
+      "deliverables": [
+        "synced long-term spec and lifecycle evidence"
+      ],
+      "verification": [
+        "strict validation and lifecycle guards"
+      ],
+      "evidence": [
+        "openspec/specs/workflow-profiles/spec.md"
+      ],
+      "blocker": null
+    }
+  ]
+}

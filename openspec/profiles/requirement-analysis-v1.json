@@ -3,10 +3,26 @@
   "profileId": "requirement-analysis",
   "profileVersion": "v1.0.0",
   "displayName": "Requirement Analysis",
+  "purpose": "在承诺实施前，把原始需求变成可判断的问题、能力、方案和处置报告。",
+  "recommendedFor": ["需求陈述不完整或来源不清的事项", "需要比较建造、复用、暂缓或拒绝的事项"],
+  "notRecommendedFor": ["已经批准且进入实现的 Change", "只需登记并快速验证的明确小改动"],
+  "handoff": "decision 完成后将报告和处置交给 Desk 或项目维护者，由调用方决定是否创建后续 Change。",
+  "inputContracts": {
+    "request": { "type": "string" },
+    "problemFrame": { "type": "object", "requiredFields": ["problem", "goals", "scope", "constraints"] },
+    "capabilityReport": { "type": "object", "requiredFields": ["known", "unknown", "evidence", "confidence"] },
+    "optionReport": { "type": "object", "requiredFields": ["options", "tradeoffs", "investment", "risk", "reversible"] },
+    "decisionReport": { "type": "object", "requiredFields": ["decision", "rationale", "risks", "nextStep"] },
+    "disposition": { "type": "enum", "enum": ["build", "use-existing", "defer", "reject"] },
+    "candidateProfileId": { "type": "string" },
+    "analysisRounds": { "type": "array", "minItems": 1, "itemRequiredFields": ["round", "stage", "known", "unknown", "evidence", "confidence", "judgment", "decision"] }
+  },
   "stages": [
     {
       "id": "capture",
       "displayName": "捕获需求陈述",
+      "description": "保存未经归一化的原始需求陈述。",
+      "exitCondition": "原始陈述可追溯且不被静默改写。",
       "requiredInputs": ["request"],
       "humanJudgment": false,
       "outputInputs": ["request"]
@@ -14,37 +30,45 @@
     {
       "id": "clarify",
       "displayName": "澄清问题与边界",
+      "description": "明确真实问题、目标、范围和约束。",
+      "exitCondition": "问题框架完整，且人工判断为 sufficient。",
       "requiredInputs": ["problemFrame"],
       "humanJudgment": true,
       "judgmentOptions": ["continue-analysis", "sufficient"],
       "repeatOnJudgments": ["continue-analysis"],
-      "outputInputs": ["problemFrame"]
+      "outputInputs": ["problemFrame", "analysisRounds"]
     },
     {
       "id": "discover",
       "displayName": "核验现有能力",
+      "description": "区分已知能力、未知信息、证据和置信度。",
+      "exitCondition": "能力报告完整，且人工判断为 sufficient。",
       "requiredInputs": ["capabilityReport"],
       "humanJudgment": true,
       "judgmentOptions": ["continue-analysis", "sufficient"],
       "repeatOnJudgments": ["continue-analysis"],
-      "outputInputs": ["capabilityReport"]
+      "outputInputs": ["capabilityReport", "analysisRounds"]
     },
     {
       "id": "evaluate",
       "displayName": "比较方案与投入",
+      "description": "比较候选方案、投入、风险和可逆性。",
+      "exitCondition": "方案报告完整，且人工判断为 sufficient。",
       "requiredInputs": ["optionReport"],
       "humanJudgment": true,
       "judgmentOptions": ["continue-analysis", "sufficient"],
       "repeatOnJudgments": ["continue-analysis"],
-      "outputInputs": ["optionReport"]
+      "outputInputs": ["optionReport", "analysisRounds"]
     },
     {
       "id": "decision",
       "displayName": "门 B 决策",
-      "requiredInputs": ["decisionReport", "disposition"],
+      "description": "根据完整分析链决定建、用现成、暂缓或不建。",
+      "exitCondition": "决策报告、轮次历史和处置均完整，且人工判断已确认。",
+      "requiredInputs": ["decisionReport", "disposition", "analysisRounds"],
       "humanJudgment": true,
       "judgmentOptions": ["build", "use-existing", "defer", "reject"],
-      "outputInputs": ["problemFrame", "capabilityReport", "optionReport", "decisionReport", "disposition", "candidateProfileId"]
+      "outputInputs": ["problemFrame", "capabilityReport", "optionReport", "decisionReport", "disposition", "candidateProfileId", "analysisRounds"]
     }
   ]
 }
