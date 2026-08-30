@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "maintainer-session",
+      "kind": "user",
+      "authority": 1,
+      "locator": "current-session:2026-08-30",
+      "adapter": "builtin:user"
+    },
+    {
+      "id": "runtime-repository",
+      "kind": "repository",
+      "authority": 2,
+      "locator": "delivery-spec-runtime@42d6f1e93e361d6c45646526999a9f2352455d47",
+      "adapter": "builtin:repository"
+    }
+  ]
+}
