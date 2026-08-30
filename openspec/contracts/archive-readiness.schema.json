@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://delivery-spec-runtime.local/contracts/archive-readiness.schema.json",
+  "title": "Archive Readiness",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "implementationCommit", "acceptanceDigest", "releasePlanDigest", "specSync", "strictValidation", "cleanupEvidence", "prStarted", "migrationSource", "historicalPr", "attestedBy", "attestedAt", "result"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "implementationCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "acceptanceDigest": { "$ref": "#/$defs/sha256" },
+    "releasePlanDigest": { "$ref": "#/$defs/sha256" },
+    "specSync": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["deltaPath", "deltaSha256", "mainPath", "mainSha256"],
+        "properties": {
+          "deltaPath": { "type": "string", "minLength": 1 },
+          "deltaSha256": { "$ref": "#/$defs/sha256" },
+          "mainPath": { "type": "string", "pattern": "^openspec/specs/" },
+          "mainSha256": { "$ref": "#/$defs/sha256" }
+        }
+      }
+    },
+    "strictValidation": { "const": "PASS" },
+    "cleanupEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "prStarted": { "type": "boolean" },
+    "migrationSource": { "anyOf": [{ "const": "pre-v5-merged-change" }, { "type": "null" }] },
+    "historicalPr": { "anyOf": [{ "type": "string", "format": "uri" }, { "type": "null" }] },
+    "attestedBy": { "type": "string", "minLength": 1 },
+    "attestedAt": { "type": "string", "format": "date-time" },
+    "result": { "enum": ["READY", "BLOCKED"] }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  }
+}

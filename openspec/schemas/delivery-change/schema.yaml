@@ -1,6 +1,6 @@
 name: delivery-change
-version: 4
-description: 面向工作与私人资产仓真实交付及流程演练的九层需求、实现、验证和发布工作流
+version: 5
+description: 面向真实交付的提案、决策、实现审查、验收、先归档后PR九层工作流
 
 artifacts:
   - id: raw-requirements
@@ -50,17 +50,37 @@ artifacts:
     requires:
       - business-current
 
-  - id: change-plan
-    generates: 05-改造方案/改造方案.md
-    description: 目标状态、改造切片、影响、决策和迁移回滚计划
-    template: change-plan.md
+  - id: solution-proposal
+    generates: 05-改造方案/方案提案.md
+    description: 候选方案、约束、Trade-off、推荐和未决问题
+    template: solution-proposal.md
     instruction: |
-      定义从当前状态到目标状态的改造方案。覆盖目标/非目标、目标流程、影响面、仓库切片、兼容策略、迁移顺序、风险和回滚。
-      把关键决策及替代方案记录在本文件的决策日志中；不要把工作时间线混入决策日志。
+      至少提出两个真实候选，记录约束、优缺点、成本、风险、可逆性和结构化 Trade-off。
+      可以给出推荐，但不得把推荐写成最终决策；保留需要维护者决定的未决问题。
     requires:
       - specs
       - business-current
       - technical-current
+
+  - id: solution-decision
+    generates: 05-改造方案/方案决策.md
+    description: 维护者对提案候选作出的权威选择
+    template: solution-decision.md
+    instruction: |
+      只有维护者明确选择后才能记录 APPROVED。保存选择、决策人、时间、依据、拒绝方案、
+      接受的后果和重新决策触发条件；不得由提案作者自动代替维护者决定。
+    requires:
+      - solution-proposal
+
+  - id: change-plan
+    generates: 05-改造方案/改造方案.md
+    description: 将已批准决策转化为目标状态、实施切片、迁移和回滚计划
+    template: change-plan.md
+    instruction: |
+      只实现方案决策中已批准的候选。覆盖目标/非目标、目标流程、影响面、仓库切片、
+      兼容策略、迁移顺序、风险和回滚；不得重新引入已拒绝方案或在本文件替代决策。
+    requires:
+      - solution-decision
 
   - id: test-plan
     generates: 06-测试方案/测试方案.md
@@ -91,27 +111,25 @@ artifacts:
     description: 实现完成后的严格验收、run-id 原始证据和结论
     template: acceptance.md
     instruction: |
-      先使用 openspec/tools/runtime-entry.ts guard acceptance 校验 Change 模式和 `task-state.json` 门禁。
-      delivery 模式存在任意非 verified 任务时停止，不创建本文件，并提示先执行 /opsx-apply。
-      rehearsal 模式允许保留未完成任务进入 08，但必须逐项记录实际执行、跳过、阻塞和偏差，
-      结论只能是 PARTIAL、FAIL 或 BLOCKED，禁止 PASS。
-      每次实际尝试使用独立 runs/<run-id>/，保存 commit、环境、输入、输出、trace、Requirement 覆盖和清理；
-      没有实际运行时不得伪造 run-id。失败和阻塞记录不得覆盖。
+      先使用 runtime-entry 的 guard acceptance 校验批准、任务投影和当前 implementation-review。
+      delivery 模式存在任意非 verified 任务、Review 非 PASS、存在 OPEN finding 或 Review stale 时停止。
+      保存实际 run 后生成验收正文，再通过 delivery-lifecycle acceptance write 生成内容寻址
+      `acceptance-state.json`；正文或 Review 后续变化必须使状态 stale。
+      rehearsal 模式逐项记录未完成、跳过和阻塞，结论只能是 PARTIAL、FAIL 或 BLOCKED。
     requires:
       - test-plan
       - tasks
 
   - id: release
     generates: 09-发布/发布计划.md
-    description: 发布计划、现场快速资产和外部发布 release-id 记录
+    description: 归档前发布计划、回滚和最终PR交付准备
     template: release-plan.md
     instruction: |
-      先使用 openspec/tools/runtime-entry.ts guard release 校验 Change 模式、01～07批准状态、任务状态和 08 结论。
-      delivery 模式只有至少一个严格 PASS run-id 且用户明确授权发布计划时才能生成本文件，并按发布范围、依赖、日志、
-      dashboard、告警、开关、Smoke、停止、回滚和观察窗口形成真实发布计划。
-      rehearsal 模式只允许在 08 为 PARTIAL、FAIL 或 BLOCKED 时生成 NO-GO 记录；不得创建现场执行资产、
-      releases/<release-id>/、修改配置、发布、同步 specs 或归档。
-      delivery 的外部平台或人工发布每次使用独立 release-id，失败记录不得覆盖；无需发布时显式记录 release-not-required。
+      delivery 模式先要求当前 acceptance-state PASS，再形成发布范围、依赖、观察、停止和回滚计划。
+      本文件只规划归档后创建的最终 PR，不保存尚未发生的 PR URL、合并 commit 或 release-id。
+      Spec Sync、strict validation 和清理完成后，通过 delivery-lifecycle readiness write 绑定本文件摘要、
+      spec 输入输出摘要、cleanup 证据和 `prStarted=false`，再执行 archive guard。
+      rehearsal 模式只允许 NO-GO，禁止同步 specs、归档和创建 PR。
     requires:
       - acceptance
 

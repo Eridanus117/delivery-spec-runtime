@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "maintainer-session",
+      "kind": "user",
+      "authority": 1,
+      "locator": "current-session:2026-08-30",
+      "adapter": "builtin:user"
+    },
+    {
+      "id": "runtime-repository",
+      "kind": "repository",
+      "authority": 2,
+      "locator": "delivery-spec-runtime@b3fc3d9389c7fd7ca1cb60cadc1d017b5a61543b",
+      "adapter": "builtin:repository"
+    },
+    {
+      "id": "merged-pr-1",
+      "kind": "url",
+      "authority": 3,
+      "locator": "https://github.com/Eridanus117/delivery-spec-runtime/pull/1",
+      "adapter": "builtin:url"
+    },
+    {
+      "id": "merged-pr-2",
+      "kind": "url",
+      "authority": 4,
+      "locator": "https://github.com/Eridanus117/delivery-spec-runtime/pull/2",
+      "adapter": "builtin:url"
+    }
+  ]
+}

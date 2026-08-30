@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "tasks": [
+    {
+      "id": "1.1",
+      "state": "verified",
+      "deliverables": [
+        "01-07 规划、独立方案提案、方案决策和增量规格"
+      ],
+      "verification": [
+        "维护者决策可追溯；OpenSpec strict validate；guard apply allowed"
+      ],
+      "evidence": [
+        "schema v5规划、Proposal、Decision和strict validate PASS"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.1",
+      "state": "verified",
+      "deliverables": [
+        "delivery-change schema v5",
+        "Proposal/Decision 模板和独立批准门禁"
+      ],
+      "verification": [
+        "Artifact DAG、内容质量、批准失效和下游阻断合同测试"
+      ],
+      "evidence": [
+        "Proposal→Decision→Plan DAG、独立批准和质量门禁合同通过"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.2",
+      "state": "verified",
+      "deliverables": [
+        "implementation-review JSON schema",
+        "review write/inspect 与 stale 检测"
+      ],
+      "verification": [
+        "baseline→reviewed 实现路径精确覆盖；finding 和内容漂移 fail closed"
+      ],
+      "evidence": [
+        "Review路径完整覆盖、finding与stale回归PASS"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.3",
+      "state": "verified",
+      "deliverables": [
+        "acceptance-state 与 archive-readiness schemas",
+        "内容寻址 acceptance/archive guards"
+      ],
+      "verification": [
+        "旧 Markdown regex 绕过失败；Review、spec、cleanup、PR attestation 漂移拒绝"
+      ],
+      "evidence": [
+        "Acceptance与Readiness内容寻址及旧regex绕过回归PASS"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.4",
+      "state": "verified",
+      "deliverables": [
+        "受控 reopen 命令与 lifecycle-history"
+      ],
+      "verification": [
+        "归档证据不覆盖；PASS 状态失效；任务重新进入未验证状态"
+      ],
+      "evidence": [
+        "Reopen保留lifecycle-history并失效旧PASS状态回归PASS"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.5",
+      "state": "verified",
+      "deliverables": [
+        "propose/verify/archive Commands",
+        "README 和 public allowlist"
+      ],
+      "verification": [
+        "Commands 与 README 明确 Review→Sync→Archive→PR；renderer 0 drift；公开候选通过"
+      ],
+      "evidence": [
+        "三Commands渲染0 drift、README与public candidate审计PASS"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "3.1",
+      "state": "verified",
+      "deliverables": [
+        "control/contracts/reopen 全链路 node:test 回归"
+      ],
+      "verification": [
+        "永久合同测试、完整 Runtime 测试和 OpenSpec strict validate 全部通过"
+      ],
+      "evidence": [
+        "Runtime完整合同23/23 PASS；OpenSpec strict validate 3/3 PASS"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "4.1",
+      "state": "planned",
+      "deliverables": [
+        "本 Change implementation-review、acceptance-state 和验收证据"
+      ],
+      "verification": [
+        "Review 绑定实现 commit 且 PASS；无 unresolved critical；Acceptance 当前且 PASS"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "4.2",
+      "state": "planned",
+      "deliverables": [
+        "同步后的长期 spec、archive-readiness、归档 Change 和 final validation"
+      ],
+      "verification": [
+        "PR 尚未创建；READY 当前；Change 在功能分支归档；归档后 strict validate 全部通过"
+      ],
+      "evidence": [],
+      "blocker": null
+    }
+  ]
+}

@@ -8,10 +8,10 @@
 
 ## 前置门禁
 
-- [ ] delivery：`07-实施任务/实施任务.md` 无未完成复选框。
-- [ ] delivery：实际 commit、依赖版本和目标环境已锁定，06 必需场景、runner、输入和清理规则可执行。
-- [ ] rehearsal：逐项列出未完成、跳过和阻塞，不把既有源码或 artifact 文件存在写成已完成。
-- [ ] rehearsal：未伪造 run-id、环境、输入、输出、trace 或清理结果。
+- [ ] delivery：`task-state.json` 全部 verified，07 投影一致。
+- [ ] delivery：`implementation-review.json` 为当前、PASS，且没有 OPEN finding。
+- [ ] delivery：实际 implementation commit、依赖版本和目标环境已锁定，06 必需场景可执行。
+- [ ] rehearsal：逐项列出未完成、跳过和阻塞，不伪造 run-id、输入、输出或清理结果。
 
 ## 验收对象
 
@@ -48,3 +48,8 @@
 - 依据：
 - delivery 只有必需场景有证据、无 critical 且清理成功时才能填写 PASS。
 - rehearsal 只能填写 PARTIAL、FAIL 或 BLOCKED，禁止 PASS；它只验证流程和失败门禁。
+
+## Acceptance State
+
+正文和证据完成后执行 `delivery-lifecycle.ts acceptance write`。只有生成的
+`acceptance-state.json` 仍绑定当前 Review、implementation commit 和本文件摘要时，09 才能继续。

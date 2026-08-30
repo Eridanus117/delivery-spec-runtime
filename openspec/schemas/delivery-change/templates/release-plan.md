@@ -1,14 +1,15 @@
 # 发布计划与快速资产
 
-## Change 模式与发布结论
+## Change 模式与交付结论
 
 - 模式：delivery / rehearsal
 - 结论：GO / NO-GO
-- rehearsal 必须为 NO-GO，禁止现场执行资产、release-id、配置修改、发布、spec sync 和 archive。
+- delivery 的 GO 表示 Change 已准备在功能分支完成 Spec Sync 和 Archive；不表示 PR 已创建或合并。
+- rehearsal 必须为 NO-GO，禁止 Spec Sync、Archive 和 PR。
 
 ## 08 验收门禁
 
-- [ ] delivery：`08-验收/验收记录.md` 结论为严格 PASS。
+- [ ] delivery：当前 `acceptance-state.json` 为 PASS。
 - [ ] delivery：至少一个 PASS run-id 覆盖必需 Requirement 和清理结果。
 - [ ] rehearsal：08 结论为 PARTIAL、FAIL 或 BLOCKED，09 仅记录 NO-GO 原因。
 
@@ -54,27 +55,28 @@
 - 回滚顺序：
 - 回滚后验证：
 
-## 外部发布记录
+## Spec Sync 与归档准备
 
-delivery 模式使用：
+| Delta Spec | Main Spec | Strict Validation | 结果 |
+|---|---|---|---|
 
-```text
-09-发布/releases/<release-id>/
-├── metadata.json
-├── steps.md
-├── observations.md
-├── config-state.json
-├── rollback.md
-└── conclusion.md
-```
+- [ ] 所有 delta specs 已同步到 `openspec/specs`，没有待应用差异。
+- [ ] Change 与主 specs strict validate 全部通过。
+- [ ] cleanup 证据存在且结论 PASS。
+- [ ] 最终 PR 尚未创建；维护者将通过 `archive-readiness.json` 作 `prStarted=false` 声明。
 
-delivery 的失败或阻塞发布不得覆盖；重试使用新 release-id。无需发布时记录 `release-not-required` 及依据。
-rehearsal 不得创建 `releases/` 或 release-id。
+## Archive Readiness
 
-## 归档门禁
+使用 `delivery-lifecycle.ts readiness write` 绑定 Acceptance、本文件、Spec Sync 输入输出和 cleanup
+摘要。只有 `guard archive` 返回 allowed 才能移动 Change；不得再以 `release-id`、
+`release-not-required`、任意关键词或人工复选框替代机器状态。
 
-- [ ] delivery：至少一个 release-id 成功，或已明确记录 `release-not-required`。
-- [ ] delivery：观察窗口完成，日志、指标、开关和回滚状态完整，且 `/opsx-verify` 无 critical。
-- [ ] rehearsal：始终禁止 spec sync 和 archive；NO-GO 是流程演练的终态。
+## 归档后 PR
 
-决策依据留在 `05-改造方案/改造方案.md`；跨项目工作时间线留在 `work-knowledge`。
+1. 在功能分支归档 Change。
+2. 对归档后的仓库执行 final strict validation 和完整测试。
+3. final validation 通过后才创建 PR。
+4. PR 反馈若要求改变实现或规格，停止合并并受控 reopen，重新 Review→Acceptance→Sync→Archive。
+5. 消费仓 gitlink 更新由各消费仓独立 Change 管理，不阻塞 Runtime Archive。
+
+决策依据分别保存在 `05-改造方案/方案提案.md` 和 `05-改造方案/方案决策.md`。
