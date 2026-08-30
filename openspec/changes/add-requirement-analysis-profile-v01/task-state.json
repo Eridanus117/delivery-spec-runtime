@@ -101,14 +101,16 @@
     },
     {
       "id": "4.1",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
         "全量合同、测试和 strict validation 证据"
       ],
       "verification": [
         "node --experimental-strip-types --test test/*.test.ts 与 openspec validate --all --strict"
       ],
-      "evidence": [],
+      "evidence": [
+        "openspec/changes/add-requirement-analysis-profile-v01/07-实施任务/full-tests.txt"
+      ],
       "blocker": null
     }
   ]

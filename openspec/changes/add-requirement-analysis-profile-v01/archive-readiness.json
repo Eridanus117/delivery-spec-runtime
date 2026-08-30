@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "implementationCommit": "b23841b581a9f4441d1f61fedc09b24c5718b5ec",
+  "acceptanceDigest": "sha256:339e8563622dcd42a5eb67b08d7b41373ccc6c77b0393af31419a20675fabe15",
+  "releasePlanDigest": "sha256:9e9b7de98069e25e8970ff299537398582e5d78d93bfbbba7ef23d38cbef0fdf",
+  "specSync": [
+    {
+      "deltaPath": "openspec/changes/add-requirement-analysis-profile-v01/specs/requirement-analysis/spec.md",
+      "deltaSha256": "sha256:d5a574a6510cb18c38b81874692be885e6181dc92b26df3251e68dbab335da4e",
+      "mainPath": "openspec/specs/requirement-analysis/spec.md",
+      "mainSha256": "sha256:d2e1214dcfe2cd3b38e62567bded9ee60c3e0f4b752a84a1b4cebb246f420a25"
+    }
+  ],
+  "strictValidation": "PASS",
+  "cleanupEvidence": {
+    "path": "openspec/changes/add-requirement-analysis-profile-v01/08-验收/清理结论.md",
+    "sha256": "sha256:d9378121991c6289e283e2eebe5f80f5d0163940fc718cfac8f5dfc87a17fac4"
+  },
+  "prStarted": false,
+  "migrationSource": null,
+  "historicalPr": null,
+  "attestedBy": "Runtime 维护者",
+  "attestedAt": "2026-08-30T20:42:13.082Z",
+  "result": "READY"
+}

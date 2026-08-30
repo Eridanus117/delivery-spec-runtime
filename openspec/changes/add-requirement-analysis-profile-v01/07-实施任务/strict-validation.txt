@@ -1,0 +1,7 @@
+✓ change/add-requirement-analysis-profile-v01
+✓ spec/controlled-openspec-upgrades
+✓ spec/delivery-lifecycle-governance
+✓ change/establish-workflow-v01-contract
+✓ spec/runtime-upgrade-safety
+✓ spec/workflow-profiles
+Totals: 6 passed, 0 failed (6 items)
