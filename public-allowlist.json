@@ -26,6 +26,7 @@
     "docs/governance.md",
     "docs/maintainer-guide.md",
     "docs/openspec-upgrade.md",
+    "docs/workflow-guide.md",
     "README.md",
     "openspec/contracts/acceptance-state.schema.json",
     "openspec/contracts/archive-readiness.schema.json",

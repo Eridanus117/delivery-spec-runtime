@@ -85,6 +85,7 @@ node --experimental-strip-types \
 
 | 任务 | 文档 |
 |---|---|
+| 了解每条 `/opsx-*` 会做什么以及最终得到什么 | [从需求到归档](docs/workflow-guide.md) |
 | 理解 gitlink、软链和 fail-closed 边界 | [架构与安全边界](docs/architecture.md) |
 | 克隆、更新或修复项目仓 Runtime | [消费仓使用指南](docs/consumer-guide.md) |
 | 修改 Commands、schema、contracts 或 Runtime 源码 | [Runtime 维护指南](docs/maintainer-guide.md) |

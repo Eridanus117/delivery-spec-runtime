@@ -93,12 +93,33 @@ test("README引导首次采用者完成接入并开始Change", () => {
     "docs/maintainer-guide.md": ["render-commands.ts", "changed: []"],
     "docs/openspec-upgrade.md": ["currentVersion", "candidateVersion", "upstream、current-local、candidate-local"],
     "docs/governance.md": ["方案提案", "Trade-off", "implementation-review.json", "acceptance-state.json", "archive-readiness.json"],
+    "docs/workflow-guide.md": ["/opsx-explore", "/opsx-new", "/opsx-apply", "/opsx-verify", "/opsx-sync", "/opsx-archive", "Runtime 不会替你做什么"],
   };
   for (const [path, contracts] of Object.entries(guides)) {
     assert.equal(linkedPaths.includes(path), true, `README任务导航缺少链接: ${path}`);
     const guide = readFileSync(join(runtimeRoot, path), "utf8");
     for (const contract of contracts) assert.match(guide, new RegExp(contract.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
+});
+
+test("工作流指南说明从需求到长期spec和归档的可观察效果", () => {
+  const guide = readFileSync(join(runtimeRoot, "docs/workflow-guide.md"), "utf8");
+  const journey = [
+    "/opsx-explore 订单导出的现状、调用方和风险",
+    "/opsx-new add-order-export",
+    "/opsx-continue add-order-export",
+    "/opsx-apply add-order-export",
+    "/opsx-verify add-order-export",
+    "/opsx-sync add-order-export",
+    "/opsx-archive add-order-export",
+  ];
+  for (let index = 1; index < journey.length; index += 1) {
+    assert.ok(guide.indexOf(journey[index - 1]) < guide.indexOf(journey[index]), `${journey[index - 1]} 应先于 ${journey[index]}`);
+  }
+  assert.match(guide, /openspec\/specs\/<capability>\/spec\.md/);
+  assert.match(guide, /openspec\/changes\/archive\/<date>-add-order-export/);
+  assert.match(guide, /## Runtime 不会替你做什么/);
+  assert.match(guide, /自动合并 PR、推送远程分支或部署应用/);
 });
 
 test("README与专题文档的仓库内链接全部有效", () => {
