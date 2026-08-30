@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "RAW-001",
+      "kind": "session-decision",
+      "location": "current-maintainer-session",
+      "capturedAt": "2026-08-30",
+      "integrity": "complete"
+    },
+    {
+      "id": "RAW-002",
+      "kind": "runtime-architecture",
+      "location": "archived-change/establish-workflow-multi-profile-v01",
+      "capturedAt": "2026-08-30",
+      "integrity": "complete"
+    }
+  ]
+}

@@ -49,6 +49,7 @@
     "openspec/contracts/workflow-result.schema.json",
     "openspec/profiles/delivery-change-v1.json",
     "openspec/profiles/light-change-v1.json",
+    "openspec/profiles/requirement-analysis-v1.json",
     "openspec/profiles/registry.json",
     "openspec/schemas/delivery-change/schema.yaml",
     "openspec/schemas/delivery-change/templates/acceptance.md",

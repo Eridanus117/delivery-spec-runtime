@@ -3,10 +3,13 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { exactKeys, fail, object, readJson, stringArray, text } from "./runtime-lib.ts";
 
 export type WorkflowStage = {
-  id: string;
-  displayName: string;
-  requiredInputs: string[];
-  humanJudgment: boolean;
+ id: string;
+ displayName: string;
+ requiredInputs: string[];
+ humanJudgment: boolean;
+ judgmentOptions?: string[];
+ repeatOnJudgments?: string[];
+ outputInputs?: string[];
 };
 
 export type WorkflowProfile = {
@@ -105,18 +108,29 @@ export function parseWorkflowRequest(value: unknown): WorkflowRequest {
 }
 
 function parseStage(value: unknown, index: number): WorkflowStage {
-  const stage = object(value, `profile.stages[${index}]`);
-  exactKeys(stage, ["id", "displayName", "requiredInputs", "humanJudgment"], ["id", "displayName", "requiredInputs", "humanJudgment"], `profile.stages[${index}]`);
-  const requiredInputs = stringArray(stage.requiredInputs, `profile.stages[${index}].requiredInputs`);
-  if (requiredInputs.some((key) => key.length === 0)) fail(`profile.stages[${index}].requiredInputs 不得为空`);
-  if (new Set(requiredInputs).size !== requiredInputs.length) fail(`profile.stages[${index}].requiredInputs 不得重复`);
-  if (typeof stage.humanJudgment !== "boolean") fail(`profile.stages[${index}].humanJudgment 必须是布尔值`);
-  return {
-    id: assertId(stage.id, `profile.stages[${index}].id`),
-    displayName: text(stage.displayName, `profile.stages[${index}].displayName`),
-    requiredInputs,
-    humanJudgment: stage.humanJudgment,
-  };
+ const stage = object(value, `profile.stages[${index}]`);
+ exactKeys(stage, ["id", "displayName", "requiredInputs", "humanJudgment", "judgmentOptions", "repeatOnJudgments", "outputInputs"], ["id", "displayName", "requiredInputs", "humanJudgment"], `profile.stages[${index}]`);
+ const requiredInputs = stringArray(stage.requiredInputs, `profile.stages[${index}].requiredInputs`);
+ const judgmentOptions = stage.judgmentOptions === undefined ? [] : stringArray(stage.judgmentOptions, `profile.stages[${index}].judgmentOptions`);
+ const repeatOnJudgments = stage.repeatOnJudgments === undefined ? [] : stringArray(stage.repeatOnJudgments, `profile.stages[${index}].repeatOnJudgments`);
+ const outputInputs = stage.outputInputs === undefined ? [] : stringArray(stage.outputInputs, `profile.stages[${index}].outputInputs`);
+ if (requiredInputs.some((key) => key.length === 0)) fail(`profile.stages[${index}].requiredInputs 不得为空`);
+ if (new Set(requiredInputs).size !== requiredInputs.length) fail(`profile.stages[${index}].requiredInputs 不得重复`);
+if (new Set(judgmentOptions).size !== judgmentOptions.length) fail(`profile.stages[${index}].judgmentOptions 不得重复`);
+if (new Set(repeatOnJudgments).size !== repeatOnJudgments.length) fail(`profile.stages[${index}].repeatOnJudgments 不得重复`);
+if (repeatOnJudgments.some((value) => !judgmentOptions.includes(value))) fail(`profile.stages[${index}].repeatOnJudgments 必须属于 judgmentOptions`);
+if (new Set(outputInputs).size !== outputInputs.length) fail(`profile.stages[${index}].outputInputs 不得重复`);
+if (typeof stage.humanJudgment !== "boolean") fail(`profile.stages[${index}].humanJudgment 必须是布尔值`);
+ const parsed: WorkflowStage = {
+   id: assertId(stage.id, `profile.stages[${index}].id`),
+   displayName: text(stage.displayName, `profile.stages[${index}].displayName`),
+   requiredInputs,
+   humanJudgment: stage.humanJudgment,
+ };
+ if (stage.judgmentOptions !== undefined) parsed.judgmentOptions = judgmentOptions;
+ if (stage.repeatOnJudgments !== undefined) parsed.repeatOnJudgments = repeatOnJudgments;
+ if (stage.outputInputs !== undefined) parsed.outputInputs = outputInputs;
+ return parsed;
 }
 
 export function parseWorkflowProfile(value: unknown): WorkflowProfile {
@@ -186,19 +200,41 @@ export function listWorkflowProfiles(runtimeRoot: string, registryPath = default
   const registry = parseRegistry(readJson(registryPath));
   return registry.profiles.map((entry) => loadWorkflowProfile(runtimeRoot, { schemaVersion: 1, profileId: entry.profileId, profileVersion: entry.profileVersion }, registryPath));
 }
-
 function resultBase(request: WorkflowRequest, profile: WorkflowProfile, status: WorkflowResult["status"], currentStageId: string | null, nextStageId: string | null, reason: string | null, outputs: Record<string, unknown> = {}): WorkflowResult {
-  return {
-    schemaVersion: 1,
-    matterId: request.matterId,
-    profileId: profile.profileId,
-    profileVersion: profile.profileVersion,
-    status,
-    currentStageId,
-    nextStageId,
-    outputs,
-    reason,
-  };
+ return {
+   schemaVersion: 1,
+   matterId: request.matterId,
+   profileId: profile.profileId,
+   profileVersion: profile.profileVersion,
+   status,
+   currentStageId,
+   nextStageId,
+   outputs,
+   reason,
+ };
+}
+
+function publishedInputs(request: WorkflowRequest, stage: WorkflowStage): Record<string, unknown> {
+ const values: Record<string, unknown> = {};
+ for (const key of stage.outputInputs ?? []) {
+   if (Object.hasOwn(request.inputs, key)) values[key] = request.inputs[key];
+ }
+ return values;
+}
+
+function stageOutputs(request: WorkflowRequest, stage: WorkflowStage, completedStages: string[]): Record<string, unknown> {
+ return {
+   completedStages,
+   publishedInputs: publishedInputs(request, stage),
+ };
+}
+
+function judgmentError(stage: WorkflowStage, request: WorkflowRequest): string | null {
+ if (!stage.humanJudgment) return null;
+ const judgment = request.judgments[stage.id];
+ if (!judgment) return `阶段 ${stage.id} 需要人工判断`;
+ if (stage.judgmentOptions && !stage.judgmentOptions.includes(judgment)) return `阶段 ${stage.id} 人工判断非法: ${judgment}`;
+ return null;
 }
 
 export function executeWorkflow(profile: WorkflowProfile, request: WorkflowRequest): WorkflowResult {
@@ -213,9 +249,8 @@ export function executeWorkflow(profile: WorkflowProfile, request: WorkflowReque
     if (missing.length > 0) {
       return resultBase(request, profile, "rejected", null, null, `已完成阶段 ${stage.id} 缺少输入: ${missing.join(", ")}`);
     }
-    if (stage.humanJudgment && (!Object.hasOwn(request.judgments, stage.id) || !request.judgments[stage.id])) {
-      return resultBase(request, profile, "rejected", null, null, `已完成阶段 ${stage.id} 缺少人工判断`);
-    }
+    const error = judgmentError(stage, request);
+    if (error) return resultBase(request, profile, "rejected", null, null, `已完成阶段 ${error}`);
   }
   const currentIndex = completed.length;
   if (currentIndex >= profile.stages.length) {
@@ -225,9 +260,18 @@ export function executeWorkflow(profile: WorkflowProfile, request: WorkflowReque
   const missing = current.requiredInputs.filter((key) => !Object.hasOwn(request.inputs, key));
   const next = profile.stages[currentIndex + 1]?.id ?? null;
   if (missing.length > 0) return resultBase(request, profile, "blocked", current.id, null, `阶段 ${current.id} 缺少输入: ${missing.join(", ")}`, { missingInputs: missing, completedStages: completed });
-  if (current.humanJudgment && (!Object.hasOwn(request.judgments, current.id) || !request.judgments[current.id])) return resultBase(request, profile, "waiting_human_judgment", current.id, null, `阶段 ${current.id} 需要人工判断`, { completedStages: completed });
+  const error = judgmentError(current, request);
+  if (error) {
+    const judgment = request.judgments[current.id];
+    const invalid = Boolean(judgment && current.judgmentOptions && !current.judgmentOptions.includes(judgment));
+    return resultBase(request, profile, invalid ? "rejected" : "waiting_human_judgment", current.id, null, error, stageOutputs(request, current, completed));
+  }
+  const judgment = request.judgments[current.id];
+  if (current.repeatOnJudgments?.includes(judgment)) {
+    return resultBase(request, profile, "in_progress", current.id, current.id, null, { ...stageOutputs(request, current, completed), repeated: true });
+  }
   const advanced = [...completed, current.id];
-  return resultBase(request, profile, next ? "in_progress" : "completed", current.id, next, null, { completedStages: advanced, completedStage: current.id });
+  return resultBase(request, profile, next ? "in_progress" : "completed", current.id, next, null, { ...stageOutputs(request, current, advanced), completedStage: current.id });
 }
 
 export function readWorkflowRequest(path: string): WorkflowRequest {

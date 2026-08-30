@@ -6,13 +6,78 @@ import { tmpdir } from "node:os";
 import { executeWorkflow, loadWorkflowProfile, parseWorkflowProfile, parseWorkflowRequest } from "../openspec/tools/workflow-core.ts";
 import { runTool, runtimeRoot } from "./helpers.ts";
 
-test("registry 提供两个 profile 且 profile 版本必须精确匹配", () => {
+test("registry 提供三个 profile 且 profile 版本必须精确匹配", () => {
   const result = runTool("workflow-control.ts", ["list-profiles", "--runtime-root", runtimeRoot]);
   assert.equal(result.status, 0, result.stderr);
   const profiles = JSON.parse(result.stdout) as Array<{ profileId: string; profileVersion: string; stages: unknown[] }>;
-  assert.deepEqual(profiles.map((profile) => `${profile.profileId}@${profile.profileVersion}`), ["delivery-change@v1.0.0", "light-change@v1.0.0"]);
-  assert.deepEqual(profiles[1].stages[2], { id: "verification", displayName: "快速验证", requiredInputs: ["verification"], humanJudgment: true });
+  assert.deepEqual(profiles.map((profile) => `${profile.profileId}@${profile.profileVersion}`), ["delivery-change@v1.0.0", "light-change@v1.0.0", "requirement-analysis@v1.0.0"]);
+  assert.deepEqual(profiles[2].stages[1], {
+    id: "clarify",
+    displayName: "澄清问题与边界",
+    requiredInputs: ["problemFrame"],
+    humanJudgment: true,
+    judgmentOptions: ["continue-analysis", "sufficient"],
+    repeatOnJudgments: ["continue-analysis"],
+    outputInputs: ["problemFrame"],
+  });
   assert.throws(() => loadWorkflowProfile(runtimeRoot, { schemaVersion: 1, profileId: "delivery-change", profileVersion: "v9.0.0" }), /未注册 workflow profile/);
+});
+
+test("需求分析 profile 按澄清、核验、比较和决策阶段推进", () => {
+  const profile = loadWorkflowProfile(runtimeRoot, { schemaVersion: 1, profileId: "requirement-analysis", profileVersion: "v1.0.0" });
+  assert.deepEqual(profile.stages.map((stage) => stage.id), ["capture", "clarify", "discover", "evaluate", "decision"]);
+  const request = parseWorkflowRequest({
+    schemaVersion: 1,
+    matterId: "analysis-matter",
+    binding: { schemaVersion: 1, profileId: "requirement-analysis", profileVersion: "v1.0.0" },
+    inputs: {},
+    judgments: {},
+  });
+  let result = executeWorkflow(profile, request);
+  assert.equal(result.status, "blocked");
+  result = executeWorkflow(profile, { ...request, inputs: { request: "need" } });
+  assert.equal(result.nextStageId, "clarify");
+  assert.deepEqual(result.outputs.publishedInputs, { request: "need" });
+
+  const captured = { ...request, inputs: { request: "need" }, completedStages: ["capture"] };
+  result = executeWorkflow(profile, captured);
+  assert.equal(result.status, "blocked");
+  assert.deepEqual(result.outputs.missingInputs, ["problemFrame"]);
+
+  const framed = { ...captured, inputs: { ...captured.inputs, problemFrame: { problem: "slow delivery", goals: ["reduce delay"], scope: ["workflow"], constraints: ["no Desk coupling"] } } };
+  result = executeWorkflow(profile, { ...framed, judgments: { clarify: "continue-analysis" } });
+  assert.equal(result.status, "in_progress");
+  assert.equal(result.currentStageId, "clarify");
+  assert.equal(result.nextStageId, "clarify");
+  assert.deepEqual(result.outputs.completedStages, ["capture"]);
+
+  const discovered = { ...framed, judgments: { clarify: "sufficient" }, completedStages: ["capture", "clarify"], inputs: { ...framed.inputs, capabilityReport: { known: ["workflow core"], unknown: ["consumer adoption"], evidence: ["repository inspection"], confidence: "medium" } } };
+  result = executeWorkflow(profile, discovered);
+  assert.equal(result.status, "waiting_human_judgment");
+  result = executeWorkflow(profile, { ...discovered, judgments: { clarify: "sufficient", discover: "continue-analysis" } });
+  assert.equal(result.nextStageId, "discover");
+  assert.deepEqual(result.outputs.completedStages, ["capture", "clarify"]);
+
+  const evaluated = { ...discovered, judgments: { clarify: "sufficient", discover: "sufficient" }, completedStages: ["capture", "clarify", "discover"], inputs: { ...discovered.inputs, optionReport: { options: ["extend profile", "standalone script"], tradeoffs: ["reuse", "maintenance"], investment: "bounded", risk: "low", reversible: true } } };
+  result = executeWorkflow(profile, evaluated);
+  assert.equal(result.status, "waiting_human_judgment");
+  assert.equal(result.currentStageId, "evaluate");
+  result = executeWorkflow(profile, { ...evaluated, judgments: { clarify: "sufficient", discover: "sufficient", evaluate: "sufficient" } });
+  assert.equal(result.nextStageId, "decision");
+  assert.deepEqual(result.outputs.completedStages, ["capture", "clarify", "discover", "evaluate"]);
+
+  const decided = {
+    ...evaluated,
+    inputs: { ...evaluated.inputs, decisionReport: "build bounded profile", disposition: "build", candidateProfileId: "light-change" },
+    judgments: { clarify: "sufficient", discover: "sufficient", evaluate: "sufficient", decision: "build" },
+    completedStages: ["capture", "clarify", "discover", "evaluate"],
+  };
+  result = executeWorkflow(profile, decided);
+  assert.equal(result.status, "completed");
+  assert.deepEqual(result.outputs.publishedInputs, { problemFrame: decided.inputs.problemFrame, capabilityReport: decided.inputs.capabilityReport, optionReport: decided.inputs.optionReport, decisionReport: "build bounded profile", disposition: "build", candidateProfileId: "light-change" });
+
+  result = executeWorkflow(profile, { ...decided, judgments: { ...decided.judgments, decision: "unknown" } });
+  assert.equal(result.status, "rejected");
 });
 
 test("workflow core 按阶段返回 blocked、waiting、in_progress 和 completed", () => {

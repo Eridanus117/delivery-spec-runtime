@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "tasks": [
+    {
+      "id": "1.1",
+      "state": "verified",
+      "deliverables": [
+        "WorkflowStage 合同字段与解析校验"
+      ],
+      "verification": [
+        "workflow.test.ts 合同断言"
+      ],
+      "evidence": [
+        "test/workflow.test.ts"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "1.2",
+      "state": "verified",
+      "deliverables": [
+        "重复判断保持当前阶段的执行逻辑"
+      ],
+      "verification": [
+        "workflow.test.ts 循环判断场景"
+      ],
+      "evidence": [
+        "test/workflow.test.ts"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "1.3",
+      "state": "verified",
+      "deliverables": [
+        "阶段输入发布到 workflow result"
+      ],
+      "verification": [
+        "workflow.test.ts 输出断言"
+      ],
+      "evidence": [
+        "test/workflow.test.ts"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.1",
+      "state": "verified",
+      "deliverables": [
+        "requirement-analysis-v1.0.0 profile 与 registry 注册"
+      ],
+      "verification": [
+        "workflow list-profiles CLI"
+      ],
+      "evidence": [
+        "test/workflow.test.ts"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.2",
+      "state": "verified",
+      "deliverables": [
+        "workflow profile schema 与 public allowlist 更新"
+      ],
+      "verification": [
+        "contracts.test.ts 与 strict validation"
+      ],
+      "evidence": [
+        "test/contracts.test.ts"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "3.1",
+      "state": "verified",
+      "deliverables": [
+        "profile、循环、决策和拒绝场景测试"
+      ],
+      "verification": [
+        "node --experimental-strip-types --test test/workflow.test.ts"
+      ],
+      "evidence": [
+        "test/workflow.test.ts"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "3.2",
+      "state": "verified",
+      "deliverables": [
+        "Workflow 使用文档"
+      ],
+      "verification": [
+        "docs 文件存在且 strict validation 通过"
+      ],
+      "evidence": [
+        "docs/workflow-guide.md"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "4.1",
+      "state": "planned",
+      "deliverables": [
+        "全量合同、测试和 strict validation 证据"
+      ],
+      "verification": [
+        "node --experimental-strip-types --test test/*.test.ts 与 openspec validate --all --strict"
+      ],
+      "evidence": [],
+      "blocker": null
+    }
+  ]
+}

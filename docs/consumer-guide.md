@@ -147,6 +147,8 @@ node --experimental-strip-types \
 
 `list-profiles` 返回阶段的 `id`、展示名、必需输入和人工判断标志；`bind` 只允许建立一次固定绑定。`run` 会读取 Change 根的 `workflow-binding.json`，校验 request 中的 profile 身份与版本完全一致，并只接受已完成阶段的连续前缀。未绑定、绑定冲突、请求不匹配、阶段越序或伪造阶段完成都会返回机器可读的 `rejected`；缺少当前阶段输入或人工判断分别返回 `blocked` 或 `waiting_human_judgment`。
 
+没有完整外部需求分析输入时，调用方可绑定 `requirement-analysis@v1.0.0`。该 profile 的阶段为 `capture → clarify ↺ → discover ↺ → evaluate ↺ → decision`：调用方分别提交 `problemFrame`、`capabilityReport` 和 `optionReport`，在每个阶段使用 `judgments.<stage>=continue-analysis` 继续补证据，使用 `sufficient` 进入下一阶段。决策结果由 `outputs.publishedInputs` 返回，Runtime 不自动创建 Change，也不读取或写回 Desk。
+
 ## 禁止操作
 
 ```text
