@@ -83,6 +83,8 @@ Change 是正式交付的审计对象，不是聊天记录的替代品，也不�
 
 Workflow System 支持同一仓库的多套 profile。先执行 `runtime-entry.ts workflow list-profiles` 查看完整阶段合同，再在 Change 根执行 `workflow bind --profile-id <id> --profile-version <version>`；`workflow run` 必须同时指定该 Change 根和 request 文件，并校验 request 中的绑定与 Change 持久绑定一致。未绑定、版本不存在、请求不匹配、阶段越序、缺少阶段输入或缺少人工判断时，Runtime 返回机器可读的拒绝或阻塞结果，不自动回退到其他 profile。
 
+没有完整外部需求分析输入的事项可使用 `requirement-analysis@v1.0.0`：`capture → clarify ↺ → discover ↺ → evaluate ↺ → decision`。它分别要求问题框架、现有能力核验和候选方案比较，并允许每个分析阶段通过 `continue-analysis` / `sufficient` 循环或推进；门 B 输出 `build`、`use-existing`、`defer` 或 `reject`。`build` 不会自动创建 Change，Desk 仍负责个人分析策略和事项归属。
+
 ## 三条安全边界
 
 1. **不要在项目仓运行 `openspec update` 或 `runtime-update`。** OpenSpec 升级只能在 Runtime 仓的独立 Change 中评估。

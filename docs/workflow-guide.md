@@ -75,6 +75,22 @@ node --experimental-strip-types \
 
 `workflow bind` 会把不可静默替换的 `workflow-binding.json` 写入 Change 根；`workflow run` 必须读取该持久绑定，并要求 request 中的 profile 身份和版本逐字段一致。重复绑定不同 profile 或版本、未绑定、绑定不存在或请求不匹配都会被拒绝。request 的 `completedStages` 只能是 profile 阶段的连续前缀，不能跳过输入或人工判断；缺少当前阶段输入返回 `blocked`，缺少当前阶段人工判断返回 `waiting_human_judgment`。
 
+### 需求分析 Profile
+
+没有完整外部需求分析输入的事项可以绑定 `requirement-analysis@v1.0.0`：
+
+```text
+capture → clarify ↺ → discover ↺ → evaluate ↺ → decision
+```
+
+- `capture`：保存原始需求陈述。
+- `clarify`：提交 `problemFrame`，明确真实问题、目标、范围和约束。
+- `discover`：提交 `capabilityReport`，核验现有能力并区分已知、未知、证据状态和置信度。
+- `evaluate`：提交 `optionReport`，比较候选方案、投入、风险和可逆性。
+- `decision`：提交 `decisionReport` 和 `disposition`，人工判断只能是 `build`、`use-existing`、`defer` 或 `reject`。
+
+`clarify`、`discover` 和 `evaluate` 都可在人工判断 `continue-analysis` 时保持当前阶段；判断 `sufficient` 才能进入下一阶段。决策完成时，`outputs.publishedInputs` 返回完整分析链与处置结果。`build` 只表示“可以由调用方创建后续 Change”，不会自动创建 Change、读取 Desk 或写回 Desk。Desk 负责个人分析策略和事项归属；Runtime 负责阶段合同和结果状态。
+
 ## 一个完整例子
 
 假设需求是“增加订单导出”。

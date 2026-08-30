@@ -10,6 +10,11 @@
       "profileId": "light-change",
       "profileVersion": "v1.0.0",
       "path": "light-change-v1.json"
+    },
+    {
+      "profileId": "requirement-analysis",
+      "profileVersion": "v1.0.0",
+      "path": "requirement-analysis-v1.json"
     }
   ]
 }

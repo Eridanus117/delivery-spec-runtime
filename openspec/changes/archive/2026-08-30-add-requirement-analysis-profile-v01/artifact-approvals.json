@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "artifacts": {
+    "raw-requirements": {
+      "digest": "sha256:926203f529df7c9ccae87645570289b81fdc04d46f2736ffea8ce5a1272865bb",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者",
+      "approvedAt": "2026-08-30T20:25:06.325Z",
+      "migrationSource": null
+    },
+    "specs": {
+      "digest": "sha256:536a691717328308568b90ac68ddf496af12ae69e89c38e0d777b8a3aafc54df",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者",
+      "approvedAt": "2026-08-30T20:25:06.493Z",
+      "migrationSource": null
+    },
+    "business-current": {
+      "digest": "sha256:987a2a82a2398911fd13570c8797a623a9dee18c491e3a7d4d8f674fceba5f7e",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者",
+      "approvedAt": "2026-08-30T20:25:06.667Z",
+      "migrationSource": null
+    },
+    "technical-current": {
+      "digest": "sha256:cd74424cccb20d737e2058da865809ecab67f887ce2c8098092839e3b019070b",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者",
+      "approvedAt": "2026-08-30T20:25:06.838Z",
+      "migrationSource": null
+    },
+    "solution-proposal": {
+      "digest": "sha256:356b291ec947f90ce4d442f9051062f47ba07deea92685bea1fa18dfed85d0e5",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者",
+      "approvedAt": "2026-08-30T20:33:21.464Z",
+      "migrationSource": null
+    },
+    "solution-decision": {
+      "digest": "sha256:1252ffe3784f546ee5846582cb4d1c613abb2cf4d33373aadebfc516e4af73b1",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者",
+      "approvedAt": "2026-08-30T20:33:47.786Z",
+      "migrationSource": null
+    },
+    "change-plan": {
+      "digest": "sha256:fdb991e8819e457c872d22460ac32e2ca5d7adea8d098393a0f7620040e03bc7",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者",
+      "approvedAt": "2026-08-30T20:25:07.383Z",
+      "migrationSource": null
+    },
+    "test-plan": {
+      "digest": "sha256:1818ad5e006ce17b5e9defe6236ba8289b67c3d0487dead163d412a572606755",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者",
+      "approvedAt": "2026-08-30T20:25:07.579Z",
+      "migrationSource": null
+    },
+    "tasks": {
+      "digest": "sha256:ed31a2daacf63101fa5bedf9a69ba3a4479cb4a39663e5164ff105ff7ac2c069",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者",
+      "approvedAt": "2026-08-30T20:38:43.679Z",
+      "migrationSource": null
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "profileId": "requirement-analysis",
+  "profileVersion": "v1.0.0",
+  "displayName": "Requirement Analysis",
+  "stages": [
+    {
+      "id": "capture",
+      "displayName": "捕获需求陈述",
+      "requiredInputs": ["request"],
+      "humanJudgment": false,
+      "outputInputs": ["request"]
+    },
+    {
+      "id": "clarify",
+      "displayName": "澄清问题与边界",
+      "requiredInputs": ["problemFrame"],
+      "humanJudgment": true,
+      "judgmentOptions": ["continue-analysis", "sufficient"],
+      "repeatOnJudgments": ["continue-analysis"],
+      "outputInputs": ["problemFrame"]
+    },
+    {
+      "id": "discover",
+      "displayName": "核验现有能力",
+      "requiredInputs": ["capabilityReport"],
+      "humanJudgment": true,
+      "judgmentOptions": ["continue-analysis", "sufficient"],
+      "repeatOnJudgments": ["continue-analysis"],
+      "outputInputs": ["capabilityReport"]
+    },
+    {
+      "id": "evaluate",
+      "displayName": "比较方案与投入",
+      "requiredInputs": ["optionReport"],
+      "humanJudgment": true,
+      "judgmentOptions": ["continue-analysis", "sufficient"],
+      "repeatOnJudgments": ["continue-analysis"],
+      "outputInputs": ["optionReport"]
+    },
+    {
+      "id": "decision",
+      "displayName": "门 B 决策",
+      "requiredInputs": ["decisionReport", "disposition"],
+      "humanJudgment": true,
+      "judgmentOptions": ["build", "use-existing", "defer", "reject"],
+      "outputInputs": ["problemFrame", "capabilityReport", "optionReport", "decisionReport", "disposition", "candidateProfileId"]
+    }
+  ]
+}

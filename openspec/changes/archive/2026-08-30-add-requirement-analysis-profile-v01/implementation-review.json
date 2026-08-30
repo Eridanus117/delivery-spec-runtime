@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "5daf1bdf45af264fa8d73298f559d22190c3297e",
+  "reviewedCommit": "b23841b581a9f4441d1f61fedc09b24c5718b5ec",
+  "reviewedPaths": [
+    {
+      "path": "README.md",
+      "exists": true,
+      "sha256": "sha256:3b173de11700397a4b910b1ec6929e737772b5958729f107ab76ed516fabd4c0"
+    },
+    {
+      "path": "docs/architecture.md",
+      "exists": true,
+      "sha256": "sha256:445aa1c07daa6aa7cb309b84e22c3ff1045b6f493fb2d9d474d149281580d2b2"
+    },
+    {
+      "path": "docs/consumer-guide.md",
+      "exists": true,
+      "sha256": "sha256:ff2e466a4d24b07b6c049af2a0bef4ddbf0df17764e6bbb812fa68c3dff3299e"
+    },
+    {
+      "path": "docs/workflow-guide.md",
+      "exists": true,
+      "sha256": "sha256:06ed8f941ea92bb4e90dc31c41ea353d10012470527f396d8379076b0ba42de6"
+    },
+    {
+      "path": "openspec/contracts/workflow-profile.schema.json",
+      "exists": true,
+      "sha256": "sha256:cbe595b1d615f1e83fa8cd4ae09e54ad23478c92416194989f72e0971afd7ed1"
+    },
+    {
+      "path": "openspec/profiles/registry.json",
+      "exists": true,
+      "sha256": "sha256:fc84ca91cba4f67aaaab068ecb94750dad2e6f92f2d5d7df8601e880e7dd3f8f"
+    },
+    {
+      "path": "openspec/profiles/requirement-analysis-v1.json",
+      "exists": true,
+      "sha256": "sha256:096542c1c71ec0bea4388bc4c307330ffced93b267f873ea9c7149649535352b"
+    },
+    {
+      "path": "openspec/tools/workflow-core.ts",
+      "exists": true,
+      "sha256": "sha256:17ca989eb4b5dbe49ead3b5f100fef260f95931e540625003c47df055680d87a"
+    },
+    {
+      "path": "public-allowlist.json",
+      "exists": true,
+      "sha256": "sha256:6e564b0da2c69f0205a786b751f35175cf426c6c9544dae88142e243b5518e78"
+    },
+    {
+      "path": "test/workflow.test.ts",
+      "exists": true,
+      "sha256": "sha256:3446f7a9574d32d646a4ab380c44b2d4a6cc085c1fad5c17a8113d1a040c25f0"
+    }
+  ],
+  "reviewedDigest": "sha256:87e83d3a43ea552a06ad247647c5fbe2d9ae819e715631d93475c2aafc452353",
+  "reviewer": "FreshWorkflowReview",
+  "reviewedAt": "2026-08-30T20:31:07.521Z",
+  "findings": [],
+  "result": "PASS"
+}

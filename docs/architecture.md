@@ -41,6 +41,8 @@ Runtime 源仓也使用同一入口：在源仓根执行 `openspec/tools/runtime
 
 Profile core 只负责阶段合同、输入检查、人工判断和稳定结果；现有 `delivery-control.ts`、`delivery-lifecycle.ts` 与 `delivery-change` schema 仍负责重型交付的 artifact、task 和生命周期门禁。两者通过明确的 binding/request/result 合同连接，不把旧 `delivery-change` 入口隐式改造成默认 profile。
 
+`requirement-analysis@v1.0.0` 是一个前置分析 profile：`capture → clarify ↺ → discover ↺ → evaluate ↺ → decision`。三个分析阶段分别承担问题澄清、现有能力核验和方案比较，均可循环补证据；它在门 B 返回完整分析链与处置，不创建后续 Change。分析报告、事项归属和 Desk 策略由调用方保存与决定。
+
 ## 需求、Change 与 Runtime 的边界
 
 需求分析分为两个阶段。尚未承诺实施时，业务或项目团队在消费仓自己的 Intake、Issue 或分析记录中保留问题、来源、影响、边界和候选方向；`/opsx-explore` 可以帮助调查，但不修改项目实现。决定实施后，才在消费仓建立 Change，并将原始需求、正式 Requirement、现状、方案、测试和任务纳入同一条交付链。
