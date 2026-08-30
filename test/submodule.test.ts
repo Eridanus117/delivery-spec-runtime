@@ -18,7 +18,7 @@ function must(root: string, executable: string, args: string[]): string {
 }
 
 function git(root: string, args: string[]): string {
-  return must(root, "git", ["-c", "protocol.file.allow=always", ...args]);
+  return must(root, "git", ["-c", "protocol.file.allow=always", "-c", "core.symlinks=true", ...args]);
 }
 
 function node(root: string, script: string, args: string[], env?: NodeJS.ProcessEnv): SpawnSyncReturns<string> {
@@ -54,11 +54,14 @@ function prepareFixture(): { root: string; runtime: string; asset: string } {
 function runtimeCommand(asset: string, args: string[]): SpawnSyncReturns<string> {
   const manifest = JSON.parse(readFileSync(join(asset, ".delivery-spec-runtime/runtime-manifest.json"), "utf8"));
   const bin = join(dirname(asset), "runtime-test-bin");
-  const openspec = join(bin, "openspec");
+  const openspec = join(bin, process.platform === "win32" ? "openspec.cmd" : "openspec");
   mkdirSync(bin, { recursive: true });
-  writeFileSync(openspec, `#!/usr/bin/env node\nconsole.log(${JSON.stringify(manifest.openspec.required)});\n`, "utf8");
-  chmodSync(openspec, 0o755);
-  const env = { ...process.env, PATH: `${bin}:${process.env.PATH ?? ""}` };
+  if (process.platform === "win32") writeFileSync(openspec, `@echo off\r\necho ${manifest.openspec.required}\r\n`);
+  else {
+    writeFileSync(openspec, `#!/usr/bin/env node\nconsole.log(${JSON.stringify(manifest.openspec.required)});\n`, "utf8");
+    chmodSync(openspec, 0o755);
+  }
+  const env = { ...process.env, PATH: `${bin}${process.platform === "win32" ? ";" : ":"}${process.env.PATH ?? ""}` };
   return node(asset, join(asset, ".delivery-spec-runtime/openspec/tools/runtime-entry.ts"), args, env);
 }
 function check(asset: string): SpawnSyncReturns<string> {
@@ -98,7 +101,12 @@ test("gitlink、相对软链与递归克隆形成唯一运行时绑定", () => {
     }
 
     const clone = join(root, "recursive-clone");
-    git(root, ["clone", "-q", "--recurse-submodules", asset, clone]);
+    git(root, ["clone", "-q", "--no-checkout", asset, clone]);
+    git(clone, ["config", "core.symlinks", "true"]);
+    git(clone, ["checkout", "-q", "--force", "HEAD"]);
+    git(clone, ["submodule", "update", "--init", "--recursive"]);
+    result = node(clone, join(clone, ".delivery-spec-runtime/openspec/tools/runtime-link.ts"), ["apply", "--asset-root", clone]);
+    assert.equal(result.status, 0, result.stderr);
     result = check(clone);
     assert.equal(result.status, 0, result.stderr);
   } finally {

@@ -1,8 +1,9 @@
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-export const runtimeRoot = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
+export const runtimeRoot = fileURLToPath(new URL("..", import.meta.url));
 export function runTool(tool: string, args: string[], options: { cwd?: string; env?: NodeJS.ProcessEnv } = {}): SpawnSyncReturns<string> {
   return spawnSync(process.execPath, ["--experimental-strip-types", join(runtimeRoot, "openspec/tools", tool), ...args], {
     cwd: options.cwd ?? runtimeRoot,
