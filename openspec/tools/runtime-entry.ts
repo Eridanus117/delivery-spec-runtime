@@ -77,9 +77,11 @@ function verifyLinks(assetRoot: string, runtimeRoot: string, links: LinkContract
   for (const contract of links) {
     const link = inside(assetRoot, contract.link, "link");
     const source = inside(runtimeRoot, contract.source, "source");
-    const expected = relative(dirname(link), source) || ".";
-    if (!existsSync(source)) fail(`运行时 source 不存在: ${contract.source}`);
-    if (!existsSync(link) || !lstatSync(link).isSymbolicLink() || readlinkSync(link) !== expected) fail(`运行时相对软链漂移: ${contract.link}`);
+    const expected = (relative(dirname(link), source) || ".").split(sep).join("/");
+    let linkIsSymlink = false;
+    try { linkIsSymlink = lstatSync(link).isSymbolicLink(); } catch {}
+    const actual = linkIsSymlink ? readlinkSync(link).split(/[\\/]/).join("/") : "";
+    if (!existsSync(source) || !linkIsSymlink || actual !== expected) fail(`运行时相对软链漂移: ${contract.link} expected=${expected} actual=${actual || "-"}`);
     if (realpathSync(link) !== realpathSync(source)) fail(`运行时软链目标漂移: ${contract.link}`);
   }
 }
@@ -105,7 +107,8 @@ function main(): void {
   const expectedCommit = expectedGitlink(assetRoot, manifest.submodule.path);
   const actualCommit = git(runtimeRoot, ["rev-parse", "HEAD"]);
   if (actualCommit !== expectedCommit) fail(`运行时 gitlink 漂移: expected=${expectedCommit} actual=${actualCommit}`);
-  if (git(runtimeRoot, ["status", "--porcelain"])) fail("运行时 submodule 包含未提交修改，拒绝执行");
+  const runtimeStatus = git(runtimeRoot, ["status", "--porcelain"]);
+  if (runtimeStatus) fail(`运行时 submodule 包含未提交修改，拒绝执行: ${runtimeStatus}`);
   if (git(assetRoot, ["status", "--porcelain", "--", manifest.submodule.path])) fail("父仓记录的 runtime submodule 状态漂移，拒绝执行");
   verifyLinks(assetRoot, runtimeRoot, manifest.submodule.links);
   verifyBootstrapState(assetRoot);
@@ -113,7 +116,7 @@ function main(): void {
   if (argv[0] === "runtime-update") {
     fail("实时资产仓禁止执行 runtime-update；请在 delivery-spec-runtime 仓内建立受控升级 Change，隔离生成并验证后再交付");
   }
-  const openspecVersion = execFileSync("openspec", ["--version"], { encoding: "utf8" }).trim().replace(/^v/, "");
+  const openspecVersion = execFileSync(process.platform === "win32" ? "openspec.cmd" : "openspec", ["--version"], { encoding: "utf8", shell: process.platform === "win32" }).trim().replace(/^v/, "");
   if (openspecVersion !== manifest.openspec.required) fail(`OpenSpec版本不满足运行时合同: ${openspecVersion}`);
   const lifecycle = argv[0] === "lifecycle";
   const tool = lifecycle ? "delivery-lifecycle.ts" : "delivery-control.ts";

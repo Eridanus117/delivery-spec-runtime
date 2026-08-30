@@ -23,18 +23,19 @@ const commandPattern = /^opsx-[a-z0-9-]+\.md$/;
 const semverPattern = /^\d+\.\d+\.\d+$/;
 
 function git(root: string, args: string[]): string {
-  try { return execFileSync("git", ["-c", "protocol.file.allow=always", ...args], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim(); }
+  const gitArgs = process.platform === "win32" ? ["-c", "core.longpaths=true", ...args] : args;
+  try { return execFileSync("git", ["-c", "protocol.file.allow=always", ...gitArgs], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim(); }
   catch (error) { fail(`Git执行失败 ${args.join(" ")}: ${error instanceof Error ? error.message : String(error)}`); }
 }
 
-function run(executable: string, args: string[], cwd: string, env?: NodeJS.ProcessEnv): ProcessResult {
-  const result: SpawnSyncReturns<string> = spawnSync(executable, args, { cwd, encoding: "utf8", env: env ?? process.env });
+function run(executable: string, args: string[], cwd: string, env?: NodeJS.ProcessEnv, shell = false): ProcessResult {
+  const result: SpawnSyncReturns<string> = spawnSync(executable, args, { cwd, encoding: "utf8", env: env ?? process.env, shell });
   if (result.error) throw result.error;
   return { status: result.status ?? 1, stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
 }
 
-function runRequired(executable: string, args: string[], cwd: string, label: string, env?: NodeJS.ProcessEnv): ProcessResult {
-  const result = run(executable, args, cwd, env);
+function runRequired(executable: string, args: string[], cwd: string, label: string, env?: NodeJS.ProcessEnv, shell = false): ProcessResult {
+  const result = run(executable, args, cwd, env, shell);
   if (result.status !== 0) fail(`${label}失败(status=${result.status}): ${result.stderr || result.stdout}`);
   return result;
 }
@@ -44,11 +45,11 @@ function packageArgs(version: string, argv: string[]): string[] {
 }
 
 function runOpenSpec(version: string, cwd: string, argv: string[]): ProcessResult {
-  return run("npm", packageArgs(version, argv), cwd);
+  return run(process.platform === "win32" ? "npm.cmd" : "npm", packageArgs(version, argv), cwd, undefined, process.platform === "win32");
 }
 
 function runOpenSpecRequired(version: string, cwd: string, argv: string[], label: string): ProcessResult {
-  return runRequired("npm", packageArgs(version, argv), cwd, label);
+  return runRequired(process.platform === "win32" ? "npm.cmd" : "npm", packageArgs(version, argv), cwd, label, undefined, process.platform === "win32");
 }
 
 function parseRequest(path: string): UpgradeRequest {
@@ -240,20 +241,27 @@ function copyCandidateRuntime(request: UpgradeRequest, destination: string): str
   (manifest.openspec as Record<string, unknown>).required = request.candidateVersion;
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   renderCommands(destination, "check");
-  git(destination, ["init", "-q"]); configureGit(destination); git(destination, ["add", "."]); git(destination, ["commit", "-qm", "candidate runtime"]);
+  git(destination, ["init", "-q"]); configureGit(destination); git(destination, ["config", "core.autocrlf", "false"]); git(destination, ["add", "."]); git(destination, ["commit", "-qm", "candidate runtime"]);
   return git(destination, ["rev-parse", "HEAD"]);
 }
 
 function candidatePath(root: string, version: string): { bin: string; env: NodeJS.ProcessEnv } {
   const bin = join(root, "candidate-bin"); mkdirSync(bin, { recursive: true });
-  const script = join(bin, "openspec");
-  writeFileSync(script, `#!/usr/bin/env node\nif (process.argv[2] === "--version") { console.log(${JSON.stringify(version)}); process.exit(0); }\nconsole.error("candidate shim only supports --version"); process.exit(2);\n`, { encoding: "utf8", mode: 0o755 });
+  if (process.platform === "win32") {
+    writeFileSync(join(bin, "openspec.cmd"), `@echo off\r\nif "%1"=="--version" echo ${version}\r\n`);
+  } else {
+    const script = join(bin, "openspec");
+    writeFileSync(script, `#!/usr/bin/env node\nif (process.argv[2] === "--version") { console.log(${JSON.stringify(version)}); process.exit(0); }\nconsole.error("candidate shim only supports --version"); process.exit(2);\n`, { encoding: "utf8", mode: 0o755 });
+  }
   return { bin, env: { ...process.env, PATH: `${bin}${process.platform === "win32" ? ";" : ":"}${process.env.PATH ?? ""}` } };
 }
 
 function blankFixture(tempRoot: string, candidateRuntime: string, candidateVersion: string): { status: number; result: "PASS" | "FAIL" } {
-  const asset = join(tempRoot, "blank-asset"); mkdirSync(asset, { recursive: true }); git(asset, ["init", "-q"]); configureGit(asset);
+  const asset = join(tempRoot, "blank-asset"); mkdirSync(asset, { recursive: true }); git(asset, ["init", "-q"]); configureGit(asset); git(asset, ["config", "core.autocrlf", "false"]);
   git(asset, ["submodule", "add", "-q", candidateRuntime, ".delivery-spec-runtime"]);
+  git(join(asset, ".delivery-spec-runtime"), ["config", "core.autocrlf", "false"]);
+  git(join(asset, ".delivery-spec-runtime"), ["reset", "--hard", "HEAD"]);
+  git(join(asset, ".delivery-spec-runtime"), ["checkout", "--force", "HEAD"]);
   const link = run(process.execPath, ["--experimental-strip-types", join(asset, ".delivery-spec-runtime/openspec/tools/runtime-link.ts"), "apply", "--asset-root", asset], asset);
   if (link.status !== 0) return { status: link.status, result: "FAIL" };
   git(asset, ["add", "."]); git(asset, ["commit", "-qm", "candidate asset"]);
@@ -272,14 +280,20 @@ function submoduleName(asset: string): string {
 
 function consumerSmoke(request: UpgradeRequest, consumer: ConsumerRequest, tempRoot: string, candidateRuntime: string, candidateCommit: string): { name: string; head: string; beforeDigest: string; afterDigest: string; runtimeStatus: number; probeStatus: number; result: "PASS" | "FAIL" } {
   const before = fingerprint(consumer.path); const clone = join(tempRoot, `consumer-${consumer.name}`);
-  runRequired("git", ["clone", "-q", "--no-hardlinks", consumer.path, clone], tempRoot, `clone ${consumer.name}`); configureGit(clone);
+  runRequired("git", ["-c", "core.symlinks=true", "-c", "core.autocrlf=false", "clone", "-q", "--no-hardlinks", "--no-checkout", consumer.path, clone], tempRoot, `clone ${consumer.name}`); git(clone, ["checkout", "-q", "--force", "HEAD"]); configureGit(clone);
   const name = submoduleName(clone);
   git(clone, ["config", "-f", ".gitmodules", `submodule.${name}.url`, candidateRuntime]);
   git(clone, ["add", ".gitmodules"]);
   git(clone, ["update-index", "--add", "--cacheinfo", `160000,${candidateCommit},.delivery-spec-runtime`]);
   git(clone, ["commit", "-qm", "inject candidate runtime"]);
   git(clone, ["submodule", "sync", "--", ".delivery-spec-runtime"]);
-  git(clone, ["submodule", "update", "--init", "--force", "--", ".delivery-spec-runtime"]);
+  git(clone, ["-c", "core.autocrlf=false", "submodule", "update", "--init", "--force", "--", ".delivery-spec-runtime"]);
+  git(join(clone, ".delivery-spec-runtime"), ["config", "core.autocrlf", "false"]);
+  git(join(clone, ".delivery-spec-runtime"), ["reset", "--hard", "HEAD"]);
+  git(join(clone, ".delivery-spec-runtime"), ["checkout", "--force", "HEAD"]);
+  const link = run(process.execPath, ["--experimental-strip-types", join(clone, ".delivery-spec-runtime/openspec/tools/runtime-link.ts"), "apply", "--asset-root", clone], clone);
+  if (link.status !== 0) return { name: consumer.name, head: before.head, beforeDigest: fingerprintDigest(before), afterDigest: fingerprintDigest(fingerprint(consumer.path)), runtimeStatus: link.status, probeStatus: 1, result: "FAIL" };
+  const afterLinkStatus = git(join(clone, ".delivery-spec-runtime"), ["status", "--porcelain"]);
   const shim = candidatePath(join(tempRoot, `shim-${consumer.name}`), request.candidateVersion);
   const runtimeCheck = run(process.execPath, ["--experimental-strip-types", join(clone, ".delivery-spec-runtime/openspec/tools/runtime-entry.ts"), "runtime-check", "--change-root", clone], clone, shim.env);
   const probe = runOpenSpec(request.candidateVersion, clone, ["list", "--json"]); let probeValid = probe.status === 0;

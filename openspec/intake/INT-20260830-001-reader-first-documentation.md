@@ -1,6 +1,6 @@
 ---
 id: INT-20260830-001
-status: captured
+status: closed
 area: documentation
 source: current-user-session
 capturedAt: 2026-08-30
@@ -31,8 +31,14 @@ README 虽然完成结构拆分、链接检查和机器合同验证，但第一�
 
 ## 当前处置
 
-- README 改为首次采用者入口。
-- 文档合同改为验证“理解、接入、开始第一个 Change”的顺序。
+- README 已改为首次采用者入口；
+- Quickstart 已形成可顺序复制的接入、提交、校验步骤；
+- 接入校验通过后已明确第一个 `/opsx-new` 动作；
+- `test/contracts.test.ts` 已覆盖 README 的读者旅程顺序。
+
+## 关闭原因
+
+原始问题已由现有文档改造和合同测试解决；后续候选属于新的系统性改进，不作为本 intake 的未完成事项。
 
 ## 后续候选
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env -S node --experimental-strip-types
 import { createHash } from "node:crypto";
 import {
-  cpSync, existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync,
+  copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync,
 } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -68,6 +68,17 @@ function reviewPath(root: string): string { return join(root, implementationRevi
 function acceptancePath(root: string): string { return join(root, acceptanceStateName); }
 function readinessPath(root: string): string { return join(root, readinessName); }
 function lockPath(root: string): string { return join(root, ".delivery-lifecycle.lock"); }
+function copyTree(source: string, target: string): void {
+  const stat = lstatSync(source);
+  if (stat.isSymbolicLink()) {
+    symlinkSync(readlinkSync(source), target);
+  } else if (stat.isDirectory()) {
+    mkdirSync(target, { recursive: true });
+    for (const name of readdirSync(source)) copyTree(join(source, name), join(target, name));
+  } else {
+    copyFileSync(source, target);
+  }
+}
 function hashBytes(value: Buffer | string): string { return `sha256:${createHash("sha256").update(value).digest("hex")}`; }
 function digest(value: unknown): string { return hashBytes(`${JSON.stringify(value)}\n`); }
 function commit(value: unknown, label: string): string {
@@ -304,8 +315,8 @@ function reopen(changeRoot: string, options: Map<string, string>): void {
   if (git(repo, ["status", "--porcelain"]).toString("utf8").trim()) fail("reopen要求clean worktree");
   parseReadiness(readJson(readinessPath(source)));
   const stamp = requiredOption(options, "reopened-at").replace(/[^0-9A-Za-z_-]/g, "-"); const history = join(source, "lifecycle-history", stamp); mkdirSync(history, { recursive: true });
-  for (const name of [implementationReviewName, acceptanceStateName, readinessName]) cpSync(join(source, name), join(history, name));
-  for (const name of ["08-验收", "09-发布"]) if (existsSync(join(source, name))) cpSync(join(source, name), join(history, name), { recursive: true });
+  for (const name of [implementationReviewName, acceptanceStateName, readinessName]) copyFileSync(join(source, name), join(history, name));
+  for (const name of ["08-验收", "09-发布"]) if (existsSync(join(source, name))) copyTree(join(source, name), join(history, name));
   renameSync(source, target);
   for (const name of [implementationReviewName, acceptanceStateName, readinessName, "08-验收", "09-发布"]) rmSync(join(target, name), { recursive: true, force: true });
   atomicWriteJson(join(target, "reopen-state.json"), { schemaVersion: 1, archivedName: basename(source), reason: requiredOption(options, "reason"), reopenedBy: requiredOption(options, "reopened-by"), reopenedAt: requiredOption(options, "reopened-at"), historyPath: relative(repo, join(target, "lifecycle-history", stamp)).split(sep).join("/") });

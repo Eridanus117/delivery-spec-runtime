@@ -56,6 +56,13 @@ git clone --recurse-submodules <consumer-repository>
 git submodule update --init --recursive
 ```
 
+Windows 与 Git 配置可能将目录软链还原为不可用的链接目标；克隆或初始化后，先重新应用受管软链：
+
+```bash
+node --experimental-strip-types \
+  .delivery-spec-runtime/openspec/tools/runtime-link.ts apply --asset-root .
+```
+
 随后运行 `runtime-check`。只有检查通过后才能执行 `/opsx-*` 生命周期命令。
 
 ## 更新 Runtime gitlink

@@ -48,12 +48,18 @@ function apply(assetRoot: string, replaceManaged: boolean): void {
     const source = inside(runtimeRoot, contract.source, "source");
     if (!existsSync(source)) fail(`运行时 source 不存在: ${contract.source}`);
     const link = inside(assetRoot, contract.link, "link");
-    const target = relative(dirname(link), source) || ".";
+    const target = (relative(dirname(link), source) || ".").split(sep).join("/");
     return { ...contract, source, link, target, type: linkType(source) };
   });
   for (const item of prepared) {
-    if (pathExists(item.link) && lstatSync(item.link).isSymbolicLink() && readlinkSync(item.link) === item.target) continue;
-    if (pathExists(item.link) && !replaceManaged) fail(`受管路径不是预期相对软链: ${item.link}`);
+    const current = pathExists(item.link);
+    if (current && lstatSync(item.link).isSymbolicLink()) {
+      const currentTarget = readlinkSync(item.link);
+      if (currentTarget === item.target) continue;
+      if (currentTarget.split(/[\\/]/).join("/") !== item.target && !replaceManaged) fail(`受管路径不是预期相对软链: ${item.link}`);
+    } else if (current && !replaceManaged) {
+      fail(`受管路径不是预期相对软链: ${item.link}`);
+    }
     mkdirSync(dirname(item.link), { recursive: true });
     const staged = `${item.link}.runtime-link-${process.pid}`;
     rmSync(staged, { recursive: true, force: true });

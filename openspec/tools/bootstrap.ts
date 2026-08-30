@@ -2,7 +2,7 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
-import { basename, join, relative } from "node:path";
+import { basename, join, relative, sep } from "node:path";
 import { atomicWriteJson, fail, now, object, parseArgs, readJson, requiredOption, sha256Buffer, sha256File, text, withFileLock } from "./runtime-lib.ts";
 
 const changeSlug = "optimize-logistics-change-review-workflow";
@@ -25,7 +25,7 @@ function hashTree(root: string, excluded: ReadonlySet<string> = new Set()): { di
   function walk(path: string): void {
     for (const entry of readdirSync(path, { withFileTypes: true })) {
       const full = join(path, entry.name);
-      const relativePath = relative(root, full).split("\\").join("/");
+      const relativePath = relative(root, full).split(sep).join("/");
       if (excluded.has(relativePath)) continue;
       if (entry.isSymbolicLink()) files.push({ relativePath, path: full, symlink: true });
       else if (entry.isDirectory()) walk(full);
@@ -196,7 +196,7 @@ function stage(workRoot: string, privateRoot: string, consumerRoot: string): voi
     createdAt: now(),
     status: "staged_awaiting_external_approval",
     candidateTree: hashTree(candidate),
-    activeTarget: relative(workRoot, activeTarget(workRoot)),
+    activeTarget: relative(workRoot, activeTarget(workRoot)).split(sep).join("/"),
     deleteActive: removeSlugs,
     preserveTrees: ["openspec/changes/archive (existing entries)", "openspec/specs"],
     privateRoot,
@@ -256,8 +256,8 @@ function activate(workRoot: string, privateRoot: string, consumerRoot: string): 
       if (existsSync(target)) fail(`迁移后的active目标已存在: ${target}`);
       renameSync(join(root, "candidate-change"), target);
       projectionBackup = removeForbiddenProjection(forbiddenContract, consumerRoot);
-      atomicWriteJson(join(rollback, "activation-record.json"), { schemaVersion: 1, stageId: currentStageId, activeTarget: relative(workRoot, target), activatedAt: now() });
-      const committedState = { schemaVersion: 1, stageId: currentStageId, status: "committed", updatedAt: now(), planSha256: sha256File(planPath), rollbackRoot: relative(workRoot, rollback), privateRoot };
+      atomicWriteJson(join(rollback, "activation-record.json"), { schemaVersion: 1, stageId: currentStageId, activeTarget: relative(workRoot, target).split(sep).join("/"), activatedAt: now() });
+      const committedState = { schemaVersion: 1, stageId: currentStageId, status: "committed", updatedAt: now(), planSha256: sha256File(planPath), rollbackRoot: relative(workRoot, rollback).split(sep).join("/"), privateRoot };
       atomicWriteJson(join(target, "bootstrap/bootstrap-state.json"), committedState);
       atomicWriteJson(join(workRoot, "openspec/bootstrap-state.json"), committedState);
     } catch (error) {
@@ -291,7 +291,7 @@ function rollbackActivation(workRoot: string): void {
       if (!existsSync(saved) || existsSync(join(workRoot, "openspec/changes", slug))) fail(`无法恢复 active Change: ${slug}`);
       renameSync(saved, join(workRoot, "openspec/changes", slug));
     }
-    const rolledBackState = { schemaVersion: 1, stageId: currentStageId, status: "rolled_back", updatedAt: now(), planSha256: sha256File(join(workRoot, "openspec/bootstrap-stage", currentStageId, "activation-plan.json")), rollbackRoot: relative(workRoot, rollback) };
+    const rolledBackState = { schemaVersion: 1, stageId: currentStageId, status: "rolled_back", updatedAt: now(), planSha256: sha256File(join(workRoot, "openspec/bootstrap-stage", currentStageId, "activation-plan.json")), rollbackRoot: relative(workRoot, rollback).split(sep).join("/") };
     atomicWriteJson(join(bootstrapDir(workRoot), "bootstrap-state.json"), rolledBackState);
     atomicWriteJson(join(workRoot, "openspec/bootstrap-state.json"), rolledBackState);
   });

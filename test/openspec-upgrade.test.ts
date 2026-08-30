@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { appendFileSync, chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { runtimeRoot } from "./helpers.ts";
 
@@ -17,7 +17,7 @@ function must(root: string, executable: string, args: string[], env?: NodeJS.Pro
 }
 
 function git(root: string, args: string[]): string {
-  return must(root, "git", ["-c", "protocol.file.allow=always", ...args]);
+  return must(root, "git", ["-c", "protocol.file.allow=always", "-c", "core.longpaths=true", "-c", "core.symlinks=true", ...args]);
 }
 
 function configureGit(root: string): void {
@@ -29,7 +29,7 @@ function fakeNpm(root: string): { env: NodeJS.ProcessEnv; log: string } {
   const bin = join(root, "fake-bin");
   const log = join(root, "npm-invocations.jsonl");
   mkdirSync(bin, { recursive: true });
-  const script = join(bin, "npm");
+  const script = join(bin, process.platform === "win32" ? "npm.js" : "npm");
   writeFileSync(script, `#!/usr/bin/env node
 const fs = require("node:fs");
 const path = require("node:path");
@@ -64,12 +64,13 @@ else if (cli[0] === "list") console.log(JSON.stringify({ changes: [] }));
 else { console.error("unexpected fake openspec argv", cli); process.exitCode = 2; }
 `);
   chmodSync(script, 0o755);
-  return { log, env: { ...process.env, PATH: `${bin}:${process.env.PATH ?? ""}`, FAKE_NPM_LOG: log } };
+  if (process.platform === "win32") writeFileSync(join(bin, "npm.cmd"), `@echo off\r\nnode "%~dp0npm.js" %*\r\n`);
+  return { log, env: { ...process.env, PATH: `${bin}${process.platform === "win32" ? ";" : ":"}${process.env.PATH ?? ""}`, FAKE_NPM_LOG: log } };
 }
 
 function runtimeFixture(root: string): string {
   const runtime = join(root, "runtime");
-  cpSync(runtimeRoot, runtime, { recursive: true, filter: (source) => !source.split("/").includes(".git") });
+  cpSync(runtimeRoot, runtime, { recursive: true, filter: (source) => !source.split(sep).includes(".git") });
   git(runtime, ["init", "-q"]);
   configureGit(runtime);
   git(runtime, ["add", "."]);
