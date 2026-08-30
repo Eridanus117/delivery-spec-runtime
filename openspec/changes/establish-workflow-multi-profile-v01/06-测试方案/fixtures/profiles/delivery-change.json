@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "profileId": "delivery-change",
+  "profileVersion": "v1.0.0",
+  "displayName": "Synthetic Delivery",
+  "stages": [
+    { "id": "proposal", "displayName": "Proposal", "requiredInputs": ["proposal"], "humanJudgment": false },
+    { "id": "decision", "displayName": "Decision", "requiredInputs": ["decision"], "humanJudgment": true }
+  ]
+}

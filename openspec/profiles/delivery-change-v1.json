@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "profileId": "delivery-change",
+  "profileVersion": "v1.0.0",
+  "displayName": "Delivery Change",
+  "stages": [
+    { "id": "proposal", "displayName": "方案提案", "requiredInputs": ["proposal"], "humanJudgment": false },
+    { "id": "decision", "displayName": "方案决策", "requiredInputs": ["decision"], "humanJudgment": true },
+    { "id": "implementation", "displayName": "实施任务", "requiredInputs": ["tasks"], "humanJudgment": false },
+    { "id": "review", "displayName": "实现审查", "requiredInputs": ["review"], "humanJudgment": false },
+    { "id": "acceptance", "displayName": "验收", "requiredInputs": ["acceptance"], "humanJudgment": true },
+    { "id": "sync", "displayName": "规格同步", "requiredInputs": ["specSync"], "humanJudgment": false },
+    { "id": "archive", "displayName": "归档", "requiredInputs": ["archive"], "humanJudgment": true }
+  ]
+}

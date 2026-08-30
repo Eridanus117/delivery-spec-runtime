@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "tasks": [
+    {
+      "id": "1.1",
+      "state": "planned",
+      "deliverables": [
+        "openspec/contracts/workflow-matter.schema.json",
+        "openspec/contracts/workflow-profile.schema.json",
+        "openspec/contracts/workflow-execution.schema.json",
+        "openspec/contracts/workflow-result.schema.json"
+      ],
+      "verification": [
+        "合法与非法 synthetic fixture 通过对应合同校验",
+        "openspec validate --all --strict"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "2.1",
+      "state": "planned",
+      "deliverables": [
+        "openspec/tools/workflow-core.ts：executeWorkflow(request) 及稳定 result 类型"
+      ],
+      "verification": [
+        "test/workflow.test.ts 覆盖成功推进、末阶段、缺输入、缺人工判断、非法阶段和 profile"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "2.2",
+      "state": "planned",
+      "deliverables": [
+        "workflow core 的事项身份回显、artifact 引用透传和显式失败/阻塞语义"
+      ],
+      "verification": [
+        "matterId 原样回显；blocked、waiting_human_judgment、rejected 不得成为 completed"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "3.1",
+      "state": "planned",
+      "deliverables": [
+        "openspec/tools/workflow-entry.ts：standalone run --input CLI"
+      ],
+      "verification": [
+        "以 process.execPath 和 --experimental-strip-types 执行真实 CLI，stdout 可解析为单个机器结果"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "3.2",
+      "state": "planned",
+      "deliverables": [
+        "CLI 的退出码、stderr 参数错误和显式输入边界处理"
+      ],
+      "verification": [
+        "成功请求为零退出码；阻塞/等待/拒绝为非零且结果仍可读；未指定输入不读取隐式路径"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "4.1",
+      "state": "planned",
+      "deliverables": [
+        "06-测试方案/fixtures 下的合成 workflow 请求与场景定义",
+        "test/workflow.test.ts 的 core 和合同行为测试"
+      ],
+      "verification": [
+        "node --experimental-strip-types --test test/workflow.test.ts"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "4.2",
+      "state": "planned",
+      "deliverables": [
+        "06-测试方案/runner/workflow-cli-probe.ts 或等价真实 CLI 探针"
+      ],
+      "verification": [
+        "覆盖成功、缺输入、人工等待、末阶段和非法请求；逐项断言 stdout、退出码和 result reason"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "4.3",
+      "state": "planned",
+      "deliverables": [
+        "consumer repo 无写入与 Runtime submodule dirty 回归断言"
+      ],
+      "verification": [
+        "临时 consumer 父仓和 .delivery-spec-runtime submodule 前后 git status --porcelain 均为空",
+        "现有 test/submodule.test.ts 与 workflow boundary scenario 通过"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "5.1",
+      "state": "planned",
+      "deliverables": [
+        "docs/workflow-guide.md 与 docs/architecture.md 的 standalone core 边界、CLI 和结果合同说明"
+      ],
+      "verification": [
+        "文档示例只使用 synthetic 数据；既有 delivery-change 入口与新 workflow 入口职责可区分"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "5.2",
+      "state": "planned",
+      "deliverables": [
+        "本 Change 的实现前置验证记录所需命令清单"
+      ],
+      "verification": [
+        "node --experimental-strip-types --test test/*.test.ts",
+        "node --experimental-strip-types openspec/tools/render-commands.ts check --runtime-root .",
+        "openspec validate --all --strict"
+      ],
+      "evidence": [],
+      "blocker": null
+    }
+  ]
+}

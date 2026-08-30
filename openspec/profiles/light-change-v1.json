@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "profileId": "light-change",
+  "profileVersion": "v1.0.0",
+  "displayName": "Lightweight Change",
+  "stages": [
+    { "id": "intake", "displayName": "需求登记", "requiredInputs": ["request"], "humanJudgment": false },
+    { "id": "implementation", "displayName": "直接实施", "requiredInputs": ["implementation"], "humanJudgment": false },
+    { "id": "verification", "displayName": "快速验证", "requiredInputs": ["verification"], "humanJudgment": true }
+  ]
+}

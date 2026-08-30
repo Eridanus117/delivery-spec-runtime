@@ -1,0 +1,7 @@
+{
+  "scenario": "PF-006",
+  "binding": "../fixtures/bindings/light-change.json",
+  "requestedVersion": "v1.0.0",
+  "newerVersion": "v2.0.0",
+  "expected": "remain-pinned"
+}

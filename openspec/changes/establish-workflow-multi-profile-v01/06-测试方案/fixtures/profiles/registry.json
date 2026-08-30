@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "profiles": [
+    { "profileId": "delivery-change", "profileVersion": "v1.0.0", "path": "delivery-change.json" },
+    { "profileId": "light-change", "profileVersion": "v1.0.0", "path": "light-change.json" }
+  ]
+}

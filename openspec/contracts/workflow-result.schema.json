@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "delivery-change/workflow-result.schema.json",
+  "title": "Workflow execution result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "matterId", "profileId", "profileVersion", "status", "currentStageId", "nextStageId", "outputs", "reason"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "matterId": { "type": "string", "minLength": 1 },
+    "profileId": { "type": "string", "minLength": 1 },
+    "profileVersion": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["in_progress", "completed", "blocked", "waiting_human_judgment", "rejected"] },
+    "currentStageId": { "type": ["string", "null"] },
+    "nextStageId": { "type": ["string", "null"] },
+    "outputs": { "type": "object", "additionalProperties": true },
+    "reason": { "type": ["string", "null"] }
+  }
+}

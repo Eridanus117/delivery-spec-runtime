@@ -33,6 +33,14 @@ flowchart LR
 
 父仓 `HEAD` 中的 gitlink 决定 Runtime commit。软链只暴露能力，不承担版本选择；因此不需要 `runtime-lock.json`、复制投影或第二份版本状态。
 
+Runtime 源仓也使用同一入口：在源仓根执行 `openspec/tools/runtime-entry.ts`。源仓模式以脚本位置识别自身根目录，校验自身 `runtime-manifest.json`、manifest 声明的源码路径、版本和 bootstrap 状态，不要求源仓伪造 `.delivery-spec-runtime` submodule 或父仓 gitlink。消费仓模式仍只接受 `.delivery-spec-runtime` submodule 绑定。
+
+## Profile 与 Change 绑定
+
+`openspec/profiles/registry.json` 是 Runtime 内唯一的 profile registry；每个条目通过相对路径加载一个带 `profileId`、`profileVersion` 和阶段合同的 profile 文件。`workflow-control.ts list-profiles` 只列出 registry 内容，`workflow bind` 将精确的 `workflow-binding.json` 写入 Change 根，`workflow run` 只按该绑定解析 profile。
+
+Profile core 只负责阶段合同、输入检查、人工判断和稳定结果；现有 `delivery-control.ts`、`delivery-lifecycle.ts` 与 `delivery-change` schema 仍负责重型交付的 artifact、task 和生命周期门禁。两者通过明确的 binding/request/result 合同连接，不把旧 `delivery-change` 入口隐式改造成默认 profile。
+
 ## 执行前校验
 
 `runtime-entry.ts` 在执行生命周期命令前依次确认：

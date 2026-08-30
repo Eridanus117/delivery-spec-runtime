@@ -1,0 +1,6 @@
+{
+  "scenario": "PF-002",
+  "registry": "../fixtures/profiles/registry.json",
+  "conflictingIdentity": "light-change@v1.0.0",
+  "expected": "reject"
+}

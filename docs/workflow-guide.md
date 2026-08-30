@@ -37,6 +37,24 @@ flowchart LR
 
 Runtime 不会只生成一份静态方案。它把“为什么改、决定怎么改、实际改了什么、如何证明正确”保存在同一条可审计链中。
 
+## 多 Profile Workflow System
+
+Runtime 同一仓库可以注册多套 workflow profile。Profile 是可版本化的阶段合同；它定义阶段顺序、必需输入和需要人工判断的节点。每个 Change 必须显式绑定 `profileId` 与 `profileVersion`，执行时只解析该精确版本，不自动选择最新版本，也不跨仓扫描其他 profile。
+
+```text
+node --experimental-strip-types \
+  openspec/tools/runtime-entry.ts workflow list-profiles
+node --experimental-strip-types \
+  openspec/tools/runtime-entry.ts workflow bind \
+  --change-root openspec/changes/add-order-export \
+  --profile-id delivery-change --profile-version v1.0.0
+node --experimental-strip-types \
+  openspec/tools/runtime-entry.ts workflow run \
+  --request-file request.json
+```
+
+`workflow-binding.json` 保存在 Change 根；重复绑定不同 profile 或版本会被拒绝。`workflow request` 必须携带同一绑定、事项身份、输入和人工判断；结果使用稳定的 `status`、当前/下一阶段和输出字段返回。缺少输入返回 `blocked`，缺少人工判断返回 `waiting_human_judgment`，不允许用默认 profile 或隐式迁移继续执行。
+
 ## 一个完整例子
 
 假设需求是“增加订单导出”。

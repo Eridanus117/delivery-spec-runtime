@@ -22,8 +22,18 @@
 | `.omp/commands/` | 确定性渲染结果 | 只由 renderer 写入 |
 | `openspec/schemas/delivery-change/` | 九层 schema 和模板 | 与生命周期合同同步修改 |
 | `openspec/contracts/` | JSON 机器合同 | 与解析、测试同步修改 |
+| `openspec/profiles/` | profile registry 和版本化阶段合同 | 与 binding、request、result 合同同步修改 |
 | `openspec/tools/` | Runtime 工具 | 保持 fail-closed 和确定性 |
 | `test/` | 合同和 Git fixture 测试 | 防守可观察行为 |
+
+源仓自用时直接执行源仓入口，不建立伪造的 submodule：
+
+```bash
+node --experimental-strip-types \
+  openspec/tools/runtime-entry.ts runtime-check --change-root .
+```
+
+消费仓仍通过 `.delivery-spec-runtime/openspec/tools/runtime-entry.ts` 执行；两种入口都必须先通过 `runtime-check`。
 
 ## 修改 Commands
 

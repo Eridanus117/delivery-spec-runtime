@@ -25,6 +25,23 @@ function node(root: string, script: string, args: string[], env?: NodeJS.Process
   return command(root, process.execPath, ["--experimental-strip-types", script, ...args], env);
 }
 
+function sourceRuntimeCommand(args: string[]): SpawnSyncReturns<string> {
+  const bin = mkdtempSync(join(tmpdir(), "delivery-source-bin-"));
+  const manifest = JSON.parse(readFileSync(join(runtimeRoot, "runtime-manifest.json"), "utf8")) as { openspec: { required: string } };
+  const openspec = join(bin, process.platform === "win32" ? "openspec.cmd" : "openspec");
+  try {
+    if (process.platform === "win32") writeFileSync(openspec, `@echo off\r\necho ${manifest.openspec.required}\r\n`);
+    else {
+      writeFileSync(openspec, `#!/usr/bin/env node\nconsole.log(${JSON.stringify(manifest.openspec.required)});\n`, "utf8");
+      chmodSync(openspec, 0o755);
+    }
+    const env = { ...process.env, PATH: `${bin}${process.platform === "win32" ? ";" : ":"}${process.env.PATH ?? ""}` };
+    return node(runtimeRoot, join(runtimeRoot, "openspec/tools/runtime-entry.ts"), args, env);
+  } finally {
+    rmSync(bin, { recursive: true, force: true });
+  }
+}
+
 function prepareFixture(): { root: string; runtime: string; asset: string } {
   const root = mkdtempSync(join(tmpdir(), "delivery-submodule-"));
   const runtime = join(root, "runtime");
@@ -64,9 +81,16 @@ function runtimeCommand(asset: string, args: string[]): SpawnSyncReturns<string>
   const env = { ...process.env, PATH: `${bin}${process.platform === "win32" ? ";" : ":"}${process.env.PATH ?? ""}` };
   return node(asset, join(asset, ".delivery-spec-runtime/openspec/tools/runtime-entry.ts"), args, env);
 }
+
 function check(asset: string): SpawnSyncReturns<string> {
   return runtimeCommand(asset, ["runtime-check", "--change-root", asset]);
 }
+
+test("Runtime源仓可以通过自身统一入口执行runtime-check", () => {
+  const result = sourceRuntimeCommand(["runtime-check", "--change-root", runtimeRoot]);
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  assert.match(result.stdout, /"allowed": true/);
+});
 
 function runtimeUpdate(asset: string): SpawnSyncReturns<string> {
   return node(asset, join(asset, ".delivery-spec-runtime/openspec/tools/runtime-entry.ts"), ["runtime-update", "--asset-root", asset]);

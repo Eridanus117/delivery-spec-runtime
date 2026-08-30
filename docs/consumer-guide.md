@@ -119,6 +119,25 @@ node --experimental-strip-types \
 | Node/OpenSpec 版本不符 | 本机工具版本漂移 | 安装 manifest 要求的 Node 最低版本和 OpenSpec 精确版本 | `runtime-check` |
 | `runtime-update` 被拒绝 | Runtime 的预期安全行为 | 在 Runtime 仓建立独立升级 Change | 不得绕过 |
 
+## 选择 Workflow Profile
+
+Runtime 只从固定 commit 的 `openspec/profiles/registry.json` 读取 profile。消费仓在 Change 根显式绑定 profile 后，才可以构造并执行 workflow request：
+
+```bash
+node --experimental-strip-types \
+  .delivery-spec-runtime/openspec/tools/runtime-entry.ts \
+  workflow list-profiles
+node --experimental-strip-types \
+  .delivery-spec-runtime/openspec/tools/runtime-entry.ts \
+  workflow bind --change-root openspec/changes/<change> \
+  --profile-id light-change --profile-version v1.0.0
+node --experimental-strip-types \
+  .delivery-spec-runtime/openspec/tools/runtime-entry.ts \
+  workflow run --request-file request.json
+```
+
+binding 会写入 Change 根的 `workflow-binding.json`，已有不同绑定时拒绝覆盖。request/result 是机器合同；缺少输入或人工判断只返回明确阻塞状态，不会隐式切换 profile。
+
 ## 禁止操作
 
 ```text

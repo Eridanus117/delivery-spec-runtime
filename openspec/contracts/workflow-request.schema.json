@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "delivery-change/workflow-request.schema.json",
+  "title": "Workflow execution request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "matterId", "binding", "inputs", "judgments"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "matterId": { "type": "string", "minLength": 1 },
+    "binding": { "$ref": "workflow-binding.schema.json" },
+    "inputs": { "type": "object", "additionalProperties": true },
+    "judgments": { "type": "object", "additionalProperties": { "type": "string", "minLength": 1 } },
+    "completedStages": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true }
+  }
+}

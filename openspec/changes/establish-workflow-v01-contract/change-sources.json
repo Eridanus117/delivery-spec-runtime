@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "RAW-001",
+      "kind": "maintainer-confirmation",
+      "authority": 1,
+      "locator": "current-change-session-2026-08-30",
+      "adapter": "manual"
+    }
+  ]
+}

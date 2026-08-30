@@ -75,6 +75,8 @@ node --experimental-strip-types \
 
 随后使用 `/opsx-continue` 生成下一项规划工件；方案批准后由 `/opsx-apply` 实施，完成后使用 `/opsx-verify` 验收，并由 `/opsx-archive` 同步长期 spec 和归档证据。
 
+Workflow System 支持同一仓库的多套 profile。可先执行 `runtime-entry.ts workflow list-profiles`，再在 Change 根执行 `workflow bind --profile-id <id> --profile-version <version>`；`workflow run --request-file <file>` 只使用 Change 请求中固定的 profile 版本。未绑定、版本不存在、缺少阶段输入或缺少人工判断时，Runtime 返回明确的阻塞结果，不自动回退到其他 profile。
+
 ## 三条安全边界
 
 1. **不要在项目仓运行 `openspec update` 或 `runtime-update`。** OpenSpec 升级只能在 Runtime 仓的独立 Change 中评估。
