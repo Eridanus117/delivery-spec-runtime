@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "implementationCommit": "059e485819907176d29af13d5456812adc12c834",
+  "acceptanceDigest": "sha256:b6628f637b1eb1ef70d68287b51560dafb7a6b72a6fd9892a1daf701a2ce8a68",
+  "releasePlanDigest": "sha256:6afb4b7823176d041df70eb58564172bae1d32fbeabd8b923fb5f673d2973282",
+  "specSync": [
+    {
+      "deltaPath": "openspec/changes/prevent-live-runtime-update-mutation/specs/runtime-upgrade-safety/spec.md",
+      "deltaSha256": "sha256:f63cd2cc330ff026879f6bfdbe68bb23c14ccdafcb5e333396a2877d12cf8e04",
+      "mainPath": "openspec/specs/runtime-upgrade-safety/spec.md",
+      "mainSha256": "sha256:fa774a19d59e3ab6f84bdba31a027c1a6e60d69efe54d4d4c0dde85ebb902e05"
+    }
+  ],
+  "strictValidation": "PASS",
+  "cleanupEvidence": {
+    "path": "openspec/changes/prevent-live-runtime-update-mutation/08-验收/cleanup/archive-migration.md",
+    "sha256": "sha256:58cdc983b00aa74674d683955f74812d446027c9d0e0a1b52186f03c9087d177"
+  },
+  "prStarted": true,
+  "migrationSource": "pre-v5-merged-change",
+  "historicalPr": "https://github.com/Eridanus117/delivery-spec-runtime/pull/1",
+  "attestedBy": "仓库维护者（历史迁移确认）",
+  "attestedAt": "2026-08-30T13:03:00Z",
+  "result": "READY"
+}
