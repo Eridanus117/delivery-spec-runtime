@@ -114,12 +114,15 @@ function parseStage(value: unknown, index: number): WorkflowStage {
  const judgmentOptions = stage.judgmentOptions === undefined ? [] : stringArray(stage.judgmentOptions, `profile.stages[${index}].judgmentOptions`);
  const repeatOnJudgments = stage.repeatOnJudgments === undefined ? [] : stringArray(stage.repeatOnJudgments, `profile.stages[${index}].repeatOnJudgments`);
  const outputInputs = stage.outputInputs === undefined ? [] : stringArray(stage.outputInputs, `profile.stages[${index}].outputInputs`);
- if (requiredInputs.some((key) => key.length === 0)) fail(`profile.stages[${index}].requiredInputs 不得为空`);
- if (new Set(requiredInputs).size !== requiredInputs.length) fail(`profile.stages[${index}].requiredInputs 不得重复`);
-if (new Set(judgmentOptions).size !== judgmentOptions.length) fail(`profile.stages[${index}].judgmentOptions 不得重复`);
-if (new Set(repeatOnJudgments).size !== repeatOnJudgments.length) fail(`profile.stages[${index}].repeatOnJudgments 不得重复`);
-if (repeatOnJudgments.some((value) => !judgmentOptions.includes(value))) fail(`profile.stages[${index}].repeatOnJudgments 必须属于 judgmentOptions`);
-if (new Set(outputInputs).size !== outputInputs.length) fail(`profile.stages[${index}].outputInputs 不得重复`);
+  if (requiredInputs.some((key) => key.length === 0)) fail(`profile.stages[${index}].requiredInputs 不得为空`);
+  if (judgmentOptions.some((value) => value.length === 0)) fail(`profile.stages[${index}].judgmentOptions 不得为空`);
+  if (repeatOnJudgments.some((value) => value.length === 0)) fail(`profile.stages[${index}].repeatOnJudgments 不得为空`);
+  if (outputInputs.some((value) => value.length === 0)) fail(`profile.stages[${index}].outputInputs 不得为空`);
+  if (new Set(requiredInputs).size !== requiredInputs.length) fail(`profile.stages[${index}].requiredInputs 不得重复`);
+  if (new Set(judgmentOptions).size !== judgmentOptions.length) fail(`profile.stages[${index}].judgmentOptions 不得重复`);
+  if (new Set(repeatOnJudgments).size !== repeatOnJudgments.length) fail(`profile.stages[${index}].repeatOnJudgments 不得重复`);
+  if (repeatOnJudgments.some((value) => !judgmentOptions.includes(value))) fail(`profile.stages[${index}].repeatOnJudgments 必须属于 judgmentOptions`);
+  if (new Set(outputInputs).size !== outputInputs.length) fail(`profile.stages[${index}].outputInputs 不得重复`);
 if (typeof stage.humanJudgment !== "boolean") fail(`profile.stages[${index}].humanJudgment 必须是布尔值`);
  const parsed: WorkflowStage = {
    id: assertId(stage.id, `profile.stages[${index}].id`),
@@ -231,6 +234,7 @@ function stageOutputs(request: WorkflowRequest, stage: WorkflowStage, completedS
 
 function judgmentError(stage: WorkflowStage, request: WorkflowRequest): string | null {
  if (!stage.humanJudgment) return null;
+ if (!Object.hasOwn(request.judgments, stage.id)) return `阶段 ${stage.id} 需要人工判断`;
  const judgment = request.judgments[stage.id];
  if (!judgment) return `阶段 ${stage.id} 需要人工判断`;
  if (stage.judgmentOptions && !stage.judgmentOptions.includes(judgment)) return `阶段 ${stage.id} 人工判断非法: ${judgment}`;
@@ -249,6 +253,8 @@ export function executeWorkflow(profile: WorkflowProfile, request: WorkflowReque
     if (missing.length > 0) {
       return resultBase(request, profile, "rejected", null, null, `已完成阶段 ${stage.id} 缺少输入: ${missing.join(", ")}`);
     }
+    const completedJudgment = request.judgments[stage.id];
+    if (stage.repeatOnJudgments?.includes(completedJudgment)) return resultBase(request, profile, "rejected", null, null, `已完成阶段 ${stage.id} 仍要求继续分析`);
     const error = judgmentError(stage, request);
     if (error) return resultBase(request, profile, "rejected", null, null, `已完成阶段 ${error}`);
   }
