@@ -51,7 +51,7 @@ function prepareFixture(): { root: string; runtime: string; asset: string } {
   return { root, runtime, asset };
 }
 
-function check(asset: string): SpawnSyncReturns<string> {
+function runtimeCommand(asset: string, args: string[]): SpawnSyncReturns<string> {
   const manifest = JSON.parse(readFileSync(join(asset, ".delivery-spec-runtime/runtime-manifest.json"), "utf8"));
   const bin = join(dirname(asset), "runtime-test-bin");
   const openspec = join(bin, "openspec");
@@ -59,7 +59,10 @@ function check(asset: string): SpawnSyncReturns<string> {
   writeFileSync(openspec, `#!/usr/bin/env node\nconsole.log(${JSON.stringify(manifest.openspec.required)});\n`, "utf8");
   chmodSync(openspec, 0o755);
   const env = { ...process.env, PATH: `${bin}:${process.env.PATH ?? ""}` };
-  return node(asset, join(asset, ".delivery-spec-runtime/openspec/tools/runtime-entry.ts"), ["runtime-check", "--change-root", asset], env);
+  return node(asset, join(asset, ".delivery-spec-runtime/openspec/tools/runtime-entry.ts"), args, env);
+}
+function check(asset: string): SpawnSyncReturns<string> {
+  return runtimeCommand(asset, ["runtime-check", "--change-root", asset]);
 }
 
 function runtimeUpdate(asset: string): SpawnSyncReturns<string> {
@@ -82,6 +85,11 @@ test("gitlink、相对软链与递归克隆形成唯一运行时绑定", () => {
     const { asset, root } = fixture;
     let result = check(asset);
     assert.equal(result.status, 0, result.stderr);
+    const missingReviewChange = join(asset, "openspec/changes/lifecycle-route-check");
+    mkdirSync(missingReviewChange, { recursive: true });
+    result = runtimeCommand(asset, ["lifecycle", "review", "inspect", "--change-root", missingReviewChange]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /implementation-review\.json/);
     assert.equal(existsSync(join(asset, "openspec/runtime-lock.json")), false);
     for (const link of [".omp/commands", "openspec/schemas/delivery-change", "openspec/tools/runtime-entry.ts"]) {
       const path = join(asset, link);

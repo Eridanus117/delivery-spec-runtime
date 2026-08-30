@@ -5,6 +5,7 @@ import {
   atomicWriteJson, exactKeys, fail, integer, now, object, parseArgs, readJson, requiredOption,
   sha256File, sha256Paths, stringArray, text, withFileLock, type JsonObject,
 } from "./runtime-lib.ts";
+import { requireAcceptance, requireReadiness, requireReview } from "./delivery-lifecycle.ts";
 
 type Mode = "delivery" | "rehearsal";
 type TaskStateName = "planned" | "implemented_unverified" | "blocked_external" | "verified";
@@ -19,11 +20,20 @@ const artifactPaths: Record<string, string[]> = {
   specs: ["specs"],
   "business-current": ["03-业务现状/业务现状.md"],
   "technical-current": ["04-技术现状/技术现状.md"],
+  "solution-proposal": ["05-改造方案/方案提案.md"],
+  "solution-decision": ["05-改造方案/方案决策.md"],
   "change-plan": ["05-改造方案/改造方案.md"],
   "test-plan": ["06-测试方案/测试方案.md"],
   tasks: ["07-实施任务/实施任务.md"],
 };
 const requiredBeforeAcceptance = Object.keys(artifactPaths);
+function validateDecisionArtifacts(root: string): void {
+  const proposal = readFileSync(join(root, "05-改造方案/方案提案.md"), "utf8");
+  const decision = readFileSync(join(root, "05-改造方案/方案决策.md"), "utf8");
+  const candidates = proposal.match(/^## 候选 [A-Z0-9]+/gm) ?? [];
+  if (candidates.length < 2 || !/^## Trade-off 矩阵$/m.test(proposal) || !/^## 推荐$/m.test(proposal) || !/^## 未决问题$/m.test(proposal)) fail("solution-proposal 缺少至少两个候选、Trade-off矩阵、推荐或未决问题");
+  for (const required of [/状态：APPROVED/, /选择：/, /决策人：/, /决策时间：/, /^## 接受的后果$/m, /^## 拒绝方案$/m]) if (!required.test(decision)) fail("solution-decision 缺少批准状态、选择、决策人、决策时间、接受后果或拒绝方案");
+}
 function infoPath(root: string): string { return join(root, "change-info.json"); }
 function approvalsPath(root: string): string { return join(root, "artifact-approvals.json"); }
 function tasksPath(root: string): string { return join(root, "task-state.json"); }
@@ -166,19 +176,25 @@ function taskSet(root: string, options: Map<string, string>): void {
   withFileLock(lockPath(root), () => { const state = parseTasks(tasksPath(root)); const task = state.tasks.find((item) => item.id === requiredOption(options, "id")); if (!task) fail("未知 task id"); const next = requiredOption(options, "state"); if (!( ["planned", "implemented_unverified", "blocked_external", "verified"] as string[]).includes(next)) fail("任务状态非法"); task.state = next as TaskStateName; task.evidence = options.has("evidence") ? [requiredOption(options, "evidence")] : []; task.blocker = options.has("blocker") ? requiredOption(options, "blocker") : null; parseTask(task, 0); atomicWriteJson(tasksPath(root), state); console.log(JSON.stringify(state, null, 2)); });
 }
 function renderTasks(root: string): void {
-  const state = parseTasks(tasksPath(root)); const byId = new Map(state.tasks.map((task) => [task.id, task])); let content = existsSync(taskMarkdownPath(root)) ? readFileSync(taskMarkdownPath(root), "utf8") : "# 实施任务\n"; const seen = new Set<string>();
-  content = content.split(/\r?\n/).map((line) => { const match = /^- \[[ xX]\]\s+(\d+\.\d+)\s+(?:\[[^\]]+\]\s+)?(.*)$/.exec(line); if (!match) return line; const task = byId.get(match[1]); if (!task) return line; seen.add(task.id); return `- [${task.state === "verified" ? "x" : " "}] ${task.id} [${task.state}] ${match[2]}`; }).join("\n");
-  for (const task of state.tasks) if (!seen.has(task.id)) content += `\n- [${task.state === "verified" ? "x" : " "}] ${task.id} [${task.state}]\n  - 交付物：${task.deliverables.join("；")}\n  - 验证：${task.verification.join("；")}`;
-  writeFileSync(taskMarkdownPath(root), `${content.replace(/\n+$/, "")}\n`, "utf8"); verifyTaskProjection(root, state); console.log(JSON.stringify({ path: taskMarkdownPath(root), tasks: state.tasks.length }, null, 2));
+  const state = parseTasks(tasksPath(root));
+  let content = "# 实现任务拆分\n\n> 状态真源：`task-state.json`。本文件由 `delivery-control.ts task render` 生成，只用于人工审阅；禁止反向解析复选框。\n";
+  for (const task of state.tasks) {
+    content += `\n- [${task.state === "verified" ? "x" : " "}] ${task.id} [${task.state}]\n`;
+    content += `  - 交付物：${task.deliverables.join("；")}\n`;
+    content += `  - 验证：${task.verification.join("；")}`;
+  }
+  writeFileSync(taskMarkdownPath(root), `${content.replace(/\n+$/, "")}\n`, "utf8");
+  verifyTaskProjection(root, state);
+  console.log(JSON.stringify({ path: taskMarkdownPath(root), tasks: state.tasks.length }, null, 2));
 }
 function guard(root: string, operation: string): void {
   parseInfo(infoPath(root)); const approvals = parseApprovals(approvalsPath(root)); const mode = parseMode(root);
-  if (operation === "apply") { if (mode !== "delivery") fail("rehearsal 模式禁止 apply"); requireApproved(root, approvals, requiredBeforeAcceptance); }
-  else if (operation === "acceptance") { requireApproved(root, approvals, requiredBeforeAcceptance); const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); if (mode === "delivery" && state.tasks.some((task) => task.state !== "verified")) fail("delivery 验收前全部任务必须 verified"); }
-  else if (operation === "release") { guard(root, "acceptance"); const path = join(root, "08-验收/验收记录.md"); if (mode === "delivery" && (!existsSync(path) || !/^结论:\s*PASS\s*$/m.test(readFileSync(path, "utf8")))) fail("delivery 发布前需要严格 PASS"); if (mode === "rehearsal" && (!existsSync(path) || !/^结论:\s*(PARTIAL|FAIL|BLOCKED)\s*$/m.test(readFileSync(path, "utf8")))) fail("rehearsal 发布记录前需要非PASS结论"); }
-  else if (operation === "verify") { requireApproved(root, approvals, requiredBeforeAcceptance); const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); }
-  else if (operation === "sync") { if (mode === "rehearsal") fail("rehearsal 模式禁止 sync"); guard(root, "release"); }
-  else if (operation === "archive") { if (mode === "rehearsal") fail("rehearsal 模式禁止 archive"); guard(root, "release"); const path = join(root, "09-发布/发布计划.md"); if (!existsSync(path) || !/(release-id\s*:|release-not-required)/.test(readFileSync(path, "utf8"))) fail("缺少成功 release-id 或 release-not-required"); }
+  if (operation === "apply") { if (mode !== "delivery") fail("rehearsal 模式禁止 apply"); requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); }
+  else if (operation === "acceptance") { requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); if (mode === "delivery" && state.tasks.some((task) => task.state !== "verified")) fail("delivery 验收前全部任务必须 verified"); if (mode === "delivery") requireReview(root); }
+  else if (operation === "release") { guard(root, "acceptance"); if (mode === "delivery") requireAcceptance(root); else { const path = join(root, "08-验收/验收记录.md"); if (!existsSync(path) || !/^- 结论：(PARTIAL|FAIL|BLOCKED)\s*$/m.test(readFileSync(path, "utf8"))) fail("rehearsal 发布记录前需要模板格式的非PASS结论"); } }
+  else if (operation === "verify") { requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); }
+  else if (operation === "sync") { if (mode === "rehearsal") fail("rehearsal 模式禁止 sync"); requireAcceptance(root); }
+  else if (operation === "archive") { if (mode === "rehearsal") fail("rehearsal 模式禁止 archive"); guard(root, "release"); requireReadiness(root); }
   else fail(`未知 guard operation: ${operation}`);
   console.log(JSON.stringify({ allowed: true, operation, mode }, null, 2));
 }

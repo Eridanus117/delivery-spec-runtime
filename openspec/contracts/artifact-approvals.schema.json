@@ -14,6 +14,8 @@
         "specs": { "$ref": "#/$defs/approval" },
         "business-current": { "$ref": "#/$defs/approval" },
         "technical-current": { "$ref": "#/$defs/approval" },
+        "solution-proposal": { "$ref": "#/$defs/approval" },
+        "solution-decision": { "$ref": "#/$defs/approval" },
         "change-plan": { "$ref": "#/$defs/approval" },
         "test-plan": { "$ref": "#/$defs/approval" },
         "tasks": { "$ref": "#/$defs/approval" }

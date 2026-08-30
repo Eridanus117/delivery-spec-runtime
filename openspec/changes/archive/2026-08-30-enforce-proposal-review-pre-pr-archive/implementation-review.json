@@ -1,0 +1,205 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "b3fc3d9389c7fd7ca1cb60cadc1d017b5a61543b",
+  "reviewedCommit": "db6d220daf3b06775f4b99c7c4aebb0ae1cc94bd",
+  "reviewedPaths": [
+    {
+      "path": ".omp/command-sources/bodies/opsx-archive.md",
+      "exists": true,
+      "sha256": "sha256:7bfddf0027d0c7aea204a233e6c4b96523a2d19b60f9d2db0bdc04407a054bee"
+    },
+    {
+      "path": ".omp/command-sources/bodies/opsx-propose.md",
+      "exists": true,
+      "sha256": "sha256:99704decfeabbe1d5e77226eec2ef49e520b6b5cdc04e958c3177007c367af46"
+    },
+    {
+      "path": ".omp/command-sources/bodies/opsx-verify.md",
+      "exists": true,
+      "sha256": "sha256:0cbc583fc5d4eb05069c6a9fac8634f7360aa6501495834fa7a427ed5225feac"
+    },
+    {
+      "path": ".omp/commands/opsx-archive.md",
+      "exists": true,
+      "sha256": "sha256:139552dc8fc63c93435ec87f0bf49e6cc520da9c81e7beee87852d52fca52546"
+    },
+    {
+      "path": ".omp/commands/opsx-propose.md",
+      "exists": true,
+      "sha256": "sha256:5ebaa00105c269be56b846be4829a49cc0d928b410205dc75336a48e6536a1c5"
+    },
+    {
+      "path": ".omp/commands/opsx-verify.md",
+      "exists": true,
+      "sha256": "sha256:9e3755fea05320f29683e13bb3067c629ece07861c21bca3ef87eda39f293a17"
+    },
+    {
+      "path": "README.md",
+      "exists": true,
+      "sha256": "sha256:2c0827d48486736aa42a65cd07f3fd057f36d0ed589ad0c7c96d8e31342550c0"
+    },
+    {
+      "path": "openspec/contracts/acceptance-state.schema.json",
+      "exists": true,
+      "sha256": "sha256:11ecc79471b262c71355530ac446f80f4a5fbbbde23cf3e8dc93f107c3651253"
+    },
+    {
+      "path": "openspec/contracts/archive-readiness.schema.json",
+      "exists": true,
+      "sha256": "sha256:31be4a3979e329eec6001021f3d720cc2c6c00fe2244972df2fdba968ac056bd"
+    },
+    {
+      "path": "openspec/contracts/artifact-approvals.schema.json",
+      "exists": true,
+      "sha256": "sha256:e0296a2e4fffbca623be028fcf46611e0818ef652e27f801004d2fdb01b2e3ef"
+    },
+    {
+      "path": "openspec/contracts/implementation-review.schema.json",
+      "exists": true,
+      "sha256": "sha256:ea1d71b159191814f267f511b3c50724c9147e228733395579970cb01ab81e5e"
+    },
+    {
+      "path": "openspec/schemas/delivery-change/schema.yaml",
+      "exists": true,
+      "sha256": "sha256:63bc4b334836074d3dfee0d35ba52f101436deb869029e56b0973db6b60883ef"
+    },
+    {
+      "path": "openspec/schemas/delivery-change/templates/acceptance.md",
+      "exists": true,
+      "sha256": "sha256:4fd7df6aff5e3b56b2a2420d98b14b495cde23ead4959d5ebcca503fe981b641"
+    },
+    {
+      "path": "openspec/schemas/delivery-change/templates/release-plan.md",
+      "exists": true,
+      "sha256": "sha256:c94e745c4e41373848a2300ecf6bcdcabfa4a5968f41e0b91025fb2875b125b5"
+    },
+    {
+      "path": "openspec/schemas/delivery-change/templates/solution-decision.md",
+      "exists": true,
+      "sha256": "sha256:30824363d23b6395a2538cc54b1fd9406524e58d9b058ea3eb7678dbda00f759"
+    },
+    {
+      "path": "openspec/schemas/delivery-change/templates/solution-proposal.md",
+      "exists": true,
+      "sha256": "sha256:e781bf1a8f2ce45d99ca64b24e6dc6f86269e393646f6c0460ec225dc6433c96"
+    },
+    {
+      "path": "openspec/tools/delivery-control.ts",
+      "exists": true,
+      "sha256": "sha256:39b10cf049bb485a7c5eb8e49b17346bcc5349139f81a2c6527c4e221c2d230b"
+    },
+    {
+      "path": "openspec/tools/delivery-lifecycle.ts",
+      "exists": true,
+      "sha256": "sha256:938e1179eb2535153fba75f1a0a9803c02e441dc294a001f1edadf822ca05a9e"
+    },
+    {
+      "path": "openspec/tools/runtime-entry.ts",
+      "exists": true,
+      "sha256": "sha256:3e8ba7210d904a6a1967427264dfe69052dfd33bcf82199db0d3d200bd1a0773"
+    },
+    {
+      "path": "public-allowlist.json",
+      "exists": true,
+      "sha256": "sha256:e6c2d4f4918e7b67467f91a2921d5fab1cd440a124d8e111b65f634a85f63ff4"
+    },
+    {
+      "path": "test/contracts.test.ts",
+      "exists": true,
+      "sha256": "sha256:712d97cd171cac6b2cb69a02ea7bc741d0a2bcdb9aea2f1b83b2bfa5f89e1b70"
+    },
+    {
+      "path": "test/control.test.ts",
+      "exists": true,
+      "sha256": "sha256:eba2ca82850157c61abf1801d7fb6974e996bb4ac13f696cc55418625fb64621"
+    },
+    {
+      "path": "test/lifecycle.test.ts",
+      "exists": true,
+      "sha256": "sha256:c77563ccb42c64120d9d23b584e19f51486434e8ce812b907c779021dbbd9d6c"
+    },
+    {
+      "path": "test/submodule.test.ts",
+      "exists": true,
+      "sha256": "sha256:ef7362d21a8e072dab2ebc158fbeeb639175bd52fe838403971198edee876b62"
+    }
+  ],
+  "reviewedDigest": "sha256:2b84a7f99a934ca4a51c283f430abdbe242ed735da89153dbd10b48edb61431f",
+  "reviewer": "当前会话实现审查",
+  "reviewedAt": "2026-08-30T12:41:30Z",
+  "findings": [
+    {
+      "id": "REV-001",
+      "severity": "HIGH",
+      "path": "openspec/tools/delivery-lifecycle.ts",
+      "line": 101,
+      "summary": "Review范围原先排除全部openspec/changes，可能漏审其他Change的意外修改",
+      "status": "RESOLVED",
+      "resolution": "只排除当前Change和长期spec；其他Change路径纳入完整baseline到reviewed差异并新增回归。"
+    },
+    {
+      "id": "REV-002",
+      "severity": "HIGH",
+      "path": "openspec/tools/delivery-lifecycle.ts",
+      "line": 209,
+      "summary": "Acceptance未绑定task-state，验收后任务状态漂移仍可能继续发布",
+      "status": "RESOLVED",
+      "resolution": "Acceptance新增taskStateDigest，inspect重算并在漂移时fail closed。"
+    },
+    {
+      "id": "REV-003",
+      "severity": "HIGH",
+      "path": "openspec/schemas/delivery-change/schema.yaml",
+      "line": 104,
+      "summary": "把Review、Acceptance或Archive建为任务会形成全部任务verified与Acceptance互相等待的状态循环",
+      "status": "RESOLVED",
+      "resolution": "Schema明确生命周期门禁不得进入task-state；本Change移除循环任务。"
+    },
+    {
+      "id": "REV-004",
+      "severity": "MEDIUM",
+      "path": "openspec/tools/delivery-control.ts",
+      "line": 178,
+      "summary": "任务渲染器保留真源已删除的Markdown任务，人工视图可能误导",
+      "status": "RESOLVED",
+      "resolution": "渲染器改为由task-state完整重建投影，并增加删除旧任务回归。"
+    },
+    {
+      "id": "REV-005",
+      "severity": "LOW",
+      "path": "openspec/tools/delivery-lifecycle.ts",
+      "line": 135,
+      "summary": "Review finding标识、引用路径和UTC时间缺少运行时严格校验",
+      "status": "RESOLVED",
+      "resolution": "增加REV编号、唯一性、Review范围路径和UTC ISO-8601校验。"
+    },
+    {
+      "id": "REV-006",
+      "severity": "HIGH",
+      "path": "openspec/tools/delivery-lifecycle.ts",
+      "line": 254,
+      "summary": "Acceptance解析器要求ASCII结论格式，但v5模板生成中文全角冒号列表，正常流程无法验收",
+      "status": "RESOLVED",
+      "resolution": "解析器和rehearsal guard改为严格接受v5模板格式，并更新行为测试。"
+    },
+    {
+      "id": "REV-007",
+      "severity": "HIGH",
+      "path": "openspec/tools/delivery-lifecycle.ts",
+      "line": 226,
+      "summary": "Readiness只摘要cleanup文件但不验证PASS语义，失败清理证据仍可生成READY",
+      "status": "RESOLVED",
+      "resolution": "Acceptance和cleanup正文统一严格验证v5模板PASS；write与inspect均fail closed，并增加FAIL cleanup回归。"
+    },
+    {
+      "id": "REV-008",
+      "severity": "MEDIUM",
+      "path": "openspec/tools/delivery-lifecycle.ts",
+      "line": 91,
+      "summary": "状态链未强制reviewedAt、acceptedAt、attestedAt单调，审计时间可能倒序",
+      "status": "RESOLVED",
+      "resolution": "Acceptance和Readiness写入及inspect均强制严格时间顺序，并覆盖提前签署失败场景。"
+    }
+  ],
+  "result": "PASS"
+}

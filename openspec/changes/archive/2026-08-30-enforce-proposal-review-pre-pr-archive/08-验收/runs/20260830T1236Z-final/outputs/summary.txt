@@ -1,0 +1,11 @@
+node --experimental-strip-types --test test/*.test.ts
+PASS: 23 tests, 0 failed, duration 10577.174167 ms
+
+node --experimental-strip-types openspec/tools/render-commands.ts check --runtime-root .
+PASS: 9 files, changed=[]
+
+openspec validate --all --strict
+PASS: 3 changes, 0 failed
+
+node --experimental-strip-types openspec/tools/public-candidate.ts generate --runtime-root . --output-root /tmp/delivery-governance-public-candidate
+PASS: unknownPath, forbiddenPath, secretAndEntropy; externalEffects=no remote created; no push performed

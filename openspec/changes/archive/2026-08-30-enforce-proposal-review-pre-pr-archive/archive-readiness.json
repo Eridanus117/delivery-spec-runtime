@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "implementationCommit": "db6d220daf3b06775f4b99c7c4aebb0ae1cc94bd",
+  "acceptanceDigest": "sha256:32828859f8a4761b2e107a7e2cd5a83ee293d0d6b386b411ff03312d59b8b134",
+  "releasePlanDigest": "sha256:06aaac021283505aae4fcfc5589db0fe24b9d8107e0a4b7adedb37fb40363023",
+  "specSync": [
+    {
+      "deltaPath": "openspec/changes/enforce-proposal-review-pre-pr-archive/specs/delivery-lifecycle-governance/spec.md",
+      "deltaSha256": "sha256:6f1112b3867054f48ce99c9b6bc71321ff49fc0e5ea252af5f5bdf1103475eee",
+      "mainPath": "openspec/specs/delivery-lifecycle-governance/spec.md",
+      "mainSha256": "sha256:81dd71af257697b65a3d6863c6b0cbf7b099223315349601327cb984e34b86d2"
+    }
+  ],
+  "strictValidation": "PASS",
+  "cleanupEvidence": {
+    "path": "openspec/changes/enforce-proposal-review-pre-pr-archive/08-验收/cleanup/cleanup.md",
+    "sha256": "sha256:23539ebfbe280a869f3182268bba150aca3883a53830146c163fcd4da6e29926"
+  },
+  "prStarted": false,
+  "migrationSource": null,
+  "historicalPr": null,
+  "attestedBy": "当前会话维护者",
+  "attestedAt": "2026-08-30T12:43:00Z",
+  "result": "READY"
+}

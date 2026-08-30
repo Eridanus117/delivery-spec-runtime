@@ -8,6 +8,10 @@
 - design.md（如何实现）
 - tasks.md（实现步骤）
 
+对于 `delivery-change`，05 不是单一设计文件：必须先创建 `solution-proposal`，呈现至少两个候选、
+Trade-off、推荐和未决问题；再等待维护者明确选择后创建 `solution-decision`；最后才能创建
+`change-plan`。推荐不得自动成为决策，Proposal、Decision 和 Plan 分别批准。
+
 `<capability-path>` 是相对于 `specs/` 的规范目录（例如 `user-auth` 或 `identity/user-auth`）。保留现有能力的完整路径，并遵循项目为新能力建立的组织方式。
 
 当用户准备好实现时，必须明确启动应用工作流。
@@ -116,8 +120,8 @@
 - 变更名称和位置
 - 已创建构件的列表及简短描述，以及任何跳过的条件构件和跳过原因
 - 已准备就绪："实现所需的所有构件均已准备就绪。"
-- 对 `delivery-change`，01～07 只是已生成，`artifact-approvals.json` 仍保持未批准；明确提示逐项审阅。
-- 不得从本次 propose 请求、文件存在或会话记忆自动写入批准。用户后续明确批准当前摘要时，才通过 `runtime-entry.ts approval set --artifact "<artifact-id>" --decision approved --approved-by "<批准人>"` 记录。
+- 对 `delivery-change`，01～07 的九项规划 artifact 只是已生成，`artifact-approvals.json` 仍保持未批准；尤其分别展示 Proposal 摘要、Trade-off 和 Decision 供维护者审阅。
+- 不得从本次 propose 请求、文件存在或会话记忆自动批准任一 artifact。只有维护者明确选择候选并批准当前摘要后，才通过 `runtime-entry.ts approval set --artifact "<artifact-id>" --decision approved --approved-by "<批准人>"` 分项记录。
 - 提示："构件已准备好供审阅。准备好后，请运行 `/opsx-apply`。"
 
 **构件创建指南**

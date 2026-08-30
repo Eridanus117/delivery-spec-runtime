@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://delivery-spec-runtime.local/contracts/implementation-review.schema.json",
+  "title": "Implementation Review",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "baselineCommit", "reviewedCommit", "reviewedPaths", "reviewedDigest", "reviewer", "reviewedAt", "findings", "result"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "baselineCommit": { "$ref": "#/$defs/commit" },
+    "reviewedCommit": { "$ref": "#/$defs/commit" },
+    "reviewedPaths": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "exists", "sha256"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "exists": { "type": "boolean" },
+          "sha256": { "anyOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] }
+        }
+      }
+    },
+    "reviewedDigest": { "$ref": "#/$defs/sha256" },
+    "reviewer": { "type": "string", "minLength": 1 },
+    "reviewedAt": { "type": "string", "format": "date-time" },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "severity", "path", "line", "summary", "status", "resolution"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^REV-[0-9]{3,}$" },
+          "severity": { "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"] },
+          "path": { "type": "string", "minLength": 1 },
+          "line": { "anyOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }] },
+          "summary": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["OPEN", "RESOLVED", "ACCEPTED"] },
+          "resolution": { "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] }
+        }
+      }
+    },
+    "result": { "enum": ["PASS", "FAIL"] }
+  },
+  "$defs": {
+    "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  }
+}

@@ -157,9 +157,25 @@
 
    **最终评估：**
 
-   - 交付包含 CRITICAL 问题时：“发现 X 个严重问题。归档前修复。”
-   - 交付没有严重问题时：使用现有的警告或一切正常评估，并说明是否已准备好归档。
-   - 演练时：始终说明“工作流演练已验证；发布、规范同步和归档仍被禁止。”NEVER 输出“准备归档”。
+   - 交付包含未处置问题时：“实现审查未通过；修复或由维护者明确接受后重新 Review。”
+   - 没有未处置问题时，说明 Implementation Review 已准备写入，下一步是严格 Acceptance，而不是直接归档。
+   - 演练时始终说明发布、规范同步和归档仍被禁止，不写 delivery Review PASS。
+
+9. **写入持久化 Implementation Review**
+
+   delivery 模式必须先提交本轮实现和永久测试；Review 证据自身仍留在工作树。计算功能分支创建点
+   `baselineCommit` 和当前实现 `reviewedCommit=HEAD`，把上述问题转换为严格 findings：
+   CRITICAL→CRITICAL、WARNING→MEDIUM、SUGGESTION→LOW；未处理为 OPEN，修复或维护者明确接受后
+   才能使用 RESOLVED/ACCEPTED 并填写 resolution。
+
+   将输入写到 OS 临时文件并执行：
+   ```bash
+   node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" lifecycle review write \
+     --change-root "<changeRoot>" --file "<review-input.json>"
+   ```
+   工具必须自行计算 baseline→reviewed 的全部实现路径和摘要。输入不得手工缩小 reviewedPaths。
+   写入后立即执行 `review inspect`；非零或 result=FAIL 时停止，不生成 08。
+   聊天 Markdown 只是阅读视图，`implementation-review.json` 才是后续门禁真源。
 
 **验证启发式方法**
 

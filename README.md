@@ -191,7 +191,26 @@ openspec new change <ascii-kebab-slug>
 openspec validate <change> --strict
 ```
 
-01～07 规划产物经维护者摘要批准后才能 apply。实现任务以 `task-state.json` 为状态真源；delivery 模式只有全部任务 `verified`、08 严格 PASS、发布门禁满足时才能交付或归档。
+05 必须先形成独立方案提案，呈现候选和 Trade-off；维护者明确批准方案决策后才能生成实施计划。
+实现任务以 `task-state.json` 为真源。完成实现后，`implementation-review.json` 绑定 baseline→reviewed
+的全部实现路径；08 验收通过 `acceptance-state.json` 绑定当前 Review、任务状态和验收正文；
+Spec Sync、strict validation、cleanup 和 `prStarted=false` 再汇入 `archive-readiness.json`。
+
+```mermaid
+flowchart LR
+    Proposal --> Decision
+    Decision --> Implementation
+    Implementation --> Review
+    Review --> Acceptance
+    Acceptance --> SpecSync
+    SpecSync --> Archive
+    Archive --> FinalValidation
+    FinalValidation --> PR
+```
+
+最终 PR 只能在功能分支归档 Change 并完成 final validation 后创建。PR 反馈若改变实现或规格，
+必须受控 reopen 并重新执行 Review→Acceptance→Sync→Archive。消费仓 gitlink 更新由各仓独立
+Change 管理，不阻塞 Runtime Archive。
 
 ## 开发验证
 

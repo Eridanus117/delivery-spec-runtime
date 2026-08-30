@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "runId": "20260830T1236Z-final",
+  "implementationCommit": "db6d220daf3b06775f4b99c7c4aebb0ae1cc94bd",
+  "environment": "darwin-arm64-local",
+  "nodeVersion": "26.7.0",
+  "openspecVersion": "1.11.0",
+  "startedAt": "2026-08-30T12:41:47Z",
+  "finishedAt": "2026-08-30T12:41:58Z",
+  "result": "PASS"
+}

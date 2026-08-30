@@ -115,7 +115,10 @@ function main(): void {
   }
   const openspecVersion = execFileSync("openspec", ["--version"], { encoding: "utf8" }).trim().replace(/^v/, "");
   if (openspecVersion !== manifest.openspec.required) fail(`OpenSpec版本不满足运行时合同: ${openspecVersion}`);
-  const result = spawnSync(process.execPath, ["--experimental-strip-types", join(runtimeRoot, "openspec/tools/delivery-control.ts"), ...argv, "--asset-root", assetRoot], { cwd: assetRoot, stdio: "inherit" });
+  const lifecycle = argv[0] === "lifecycle";
+  const tool = lifecycle ? "delivery-lifecycle.ts" : "delivery-control.ts";
+  const forwarded = lifecycle ? argv.slice(1) : argv;
+  const result = spawnSync(process.execPath, ["--experimental-strip-types", join(runtimeRoot, `openspec/tools/${tool}`), ...forwarded, "--asset-root", assetRoot], { cwd: assetRoot, stdio: "inherit" });
   if (result.error) throw result.error;
   process.exitCode = result.status ?? 1;
 }
