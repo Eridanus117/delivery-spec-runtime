@@ -73,6 +73,20 @@ node --experimental-strip-types \
 
 随后运行 `runtime-check`。只有检查通过后才能执行 `/opsx-*` 生命周期命令。
 
+## 使用 Intake workflow
+
+需求尚未决定是否实施时，在项目仓运行 Runtime 的 Intake 命令：
+
+```bash
+node --experimental-strip-types \
+  .delivery-spec-runtime/openspec/tools/runtime-entry.ts \
+  intake init --intake-root . \
+  --id INT-YYYYMMDD-001-slug \
+  --source "<来源>" --issue "<原始问题>"
+```
+
+Intake 负责前置分流和人工决定；正式 Requirement、方案和实现仍通过 Change 完成。只使用项目仓路径，不向 `.delivery-spec-runtime` 写入 Intake 内容。
+
 ## 更新 Runtime gitlink
 
 Runtime Change 归档和发布不替消费仓自动升级。每个消费仓应建立自己的 Change，评审目标 Runtime commit，并在消费仓中验证兼容性。

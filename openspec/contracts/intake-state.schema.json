@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "delivery-change/intake-state.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "state", "phase", "source", "capturedAt", "promotedTo"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "pattern": "^INT-[0-9]{8}-[0-9]{3}-[a-z0-9][a-z0-9-]*$" },
+    "state": { "enum": ["captured", "triaged", "held", "promoted", "closed"] },
+    "phase": { "enum": ["capture", "triage", "evidence", "options", "disposition"] },
+    "source": { "type": "string", "minLength": 1 },
+    "capturedAt": { "type": "string", "format": "date" },
+    "promotedTo": { "type": ["string", "null"] },
+    "history": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "stages": ["capture", "triage", "evidence", "options", "disposition"],
+  "next": {
+    "capture": "triage",
+    "triage": "evidence",
+    "evidence": "options",
+    "options": "disposition"
+  },
+  "exits": ["promote", "hold", "close"]
+}

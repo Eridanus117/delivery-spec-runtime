@@ -34,11 +34,22 @@ flowchart LR
     Decision -->|否：保留问题与结论| Intake
     Decision -->|是| Change
     Change --> Plan
+
     Plan --> Apply
     Apply --> Verify
     Verify --> Spec
     Spec --> Archive
 ```
+
+## 进入正式 Change 之前：Intake workflow
+
+需求尚未决定是否投入时，先进入项目仓的 `openspec/intake/`，而不是直接创建正式 Change。Runtime 的 Intake DAG 为：
+
+```text
+capture → triage → evidence → options → disposition
+```
+
+`disposition` 由维护者选择 `promote`、`hold` 或 `close`。Promote 只关联已存在的 Change；Hold 和 Close 保留理由，Reopen 后重新从 `triage` 开始。Intake 记录事实、未知、证据和候选处置；正式 Requirement、方案、任务、实现和验收只进入 Change。
 
 需求分析不等于实现，也不必先创建一个空 Change。是否创建 Change 取决于是否已经决定进入正式交付；调查过程中可以读取代码、现有 spec 和外部资料，但不得修改项目实现。
 

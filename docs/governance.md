@@ -140,6 +140,12 @@ PR 反馈如果只要求措辞说明且不改变实现或规格，可在当前�
 - 将相关任务恢复为未验证；
 - 从 fresh Review 重新执行 Review→Acceptance→Sync→Archive。
 
+## Intake 与 Change
+
+需求在尚未承诺实施前，保存在项目仓 `openspec/intake/`，由 Intake workflow 管理 `capture → triage → evidence → options → disposition`。只有维护者明确选择 Promote 后，才进入正式 Change；Promote 不隐式创建 Change，Intake 保留来源索引，Change 成为后续交付真源。
+
+Intake 的状态、阶段和 Promote/Close/Reopen 合同由 `intake-state.schema.json` 和 `intake-control.ts` 管理；它不替代 `delivery-change` 的九层 Artifact DAG。
+
 ## 最终验证
 
 ```bash
