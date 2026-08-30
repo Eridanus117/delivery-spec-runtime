@@ -251,7 +251,7 @@ function acceptanceWrite(changeRoot: string, inputPath: string): void {
   const input = object(readJson(inputPath), "acceptance-input"); exactKeys(input, ["schemaVersion", "acceptedBy", "acceptedAt"], ["schemaVersion", "acceptedBy", "acceptedAt"], "acceptance-input"); if (input.schemaVersion !== 1) fail("acceptance-input.schemaVersion非法");
   const review = requireReview(changeRoot); const tasks = object(readJson(join(changeRoot, "task-state.json")), "task-state");
   if (!Array.isArray(tasks.tasks) || tasks.tasks.some((value) => object(value, "task").state !== "verified")) fail("Acceptance前全部任务必须verified");
-  const markdown = join(changeRoot, "08-验收/验收记录.md"); if (!existsSync(markdown) || !/^结论:\s*PASS\s*$/m.test(readFileSync(markdown, "utf8"))) fail("Acceptance正文必须严格PASS");
+  const markdown = join(changeRoot, "08-验收/验收记录.md"); if (!existsSync(markdown) || !/^- 结论：PASS\s*$/m.test(readFileSync(markdown, "utf8"))) fail("Acceptance正文必须使用模板格式并严格PASS");
   const taskState = join(changeRoot, "task-state.json");
   const state: Acceptance = { schemaVersion: 1, implementationCommit: review.reviewedCommit, reviewDigest: sha256File(reviewPath(changeRoot)), taskStateDigest: sha256File(taskState), acceptanceDigest: sha256File(markdown), acceptedBy: text(input.acceptedBy, "acceptedBy"), acceptedAt: timestamp(input.acceptedAt, "acceptedAt"), result: "PASS" };
   withFileLock(lockPath(changeRoot), () => atomicWriteJson(acceptancePath(changeRoot), state)); console.log(JSON.stringify(state, null, 2));

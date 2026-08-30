@@ -60,7 +60,7 @@ test("Acceptance与Archive Readiness取代Markdown关键词并支持受控reopen
     const { change, baseline, reviewed } = prepareChange(repo);
     const reviewInput = join(change, "review-input.json"); write(reviewInput, JSON.stringify({ schemaVersion: 1, baselineCommit: baseline, reviewedCommit: reviewed, reviewer: "reviewer", reviewedAt: "2026-08-30T12:00:00Z", findings: [] }));
     let result = runTool("delivery-lifecycle.ts", ["review", "write", "--change-root", change, "--file", reviewInput], { cwd: repo }); assert.equal(result.status, 0, result.stderr);
-    write(join(change, "08-验收/验收记录.md"), "# 验收\n结论: PASS\n"); write(join(change, "08-验收/cleanup/cleanup.md"), "结论: PASS\n");
+    write(join(change, "08-验收/验收记录.md"), "# 验收\n- 结论：PASS\n"); write(join(change, "08-验收/cleanup/cleanup.md"), "结论: PASS\n");
     const acceptanceInput = join(change, "acceptance-input.json"); write(acceptanceInput, JSON.stringify({ schemaVersion: 1, acceptedBy: "maintainer", acceptedAt: "2026-08-30T12:01:00Z" }));
     result = runTool("delivery-lifecycle.ts", ["acceptance", "write", "--change-root", change, "--file", acceptanceInput], { cwd: repo }); assert.equal(result.status, 0, result.stderr);
     const taskStatePath = join(change, "task-state.json"); const originalTaskState = readFileSync(taskStatePath, "utf8");

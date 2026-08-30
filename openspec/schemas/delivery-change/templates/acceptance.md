@@ -52,4 +52,4 @@
 ## Acceptance State
 
 正文和证据完成后执行 `delivery-lifecycle.ts acceptance write`。只有生成的
-`acceptance-state.json` 仍绑定当前 Review、implementation commit 和本文件摘要时，09 才能继续。
+`acceptance-state.json` 仍绑定当前 Review、task state、implementation commit 和本文件摘要时，09 才能继续。
