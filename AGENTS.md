@@ -6,3 +6,4 @@
 - TypeScript 通过 `node --experimental-strip-types` 执行；测试使用 Node 内置 `node:test`，不得新增 shell runner。
 - runtime 只通过资产仓 `.delivery-spec-runtime` Git submodule 接入；`runtime-manifest.json` 只声明三个相对软链。禁止恢复复制投影、`runtime-lock.json` 或第二套 commit/hash lock。
 - 不创建 Git remote 或 push，除非维护者当轮明确授权。
+- GitHub 相关操作（查看、创建、更新、合并 PR，Issue 和 Actions）必须使用 `gh` CLI；禁止改走浏览器，除非维护者明确要求浏览器交互。
