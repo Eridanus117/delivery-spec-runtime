@@ -1,0 +1,55 @@
+name: Runtime CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: runtime-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate Runtime
+    env:
+      GIT_AUTHOR_NAME: github-actions[bot]
+      GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+      GIT_COMMITTER_NAME: github-actions[bot]
+      GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.6.0
+
+      - name: Install pinned OpenSpec
+        run: |
+          npm install --prefix "$RUNNER_TEMP/openspec" --no-save --no-package-lock --ignore-scripts --no-audit --no-fund @fission-ai/openspec@1.11.0
+          echo "$RUNNER_TEMP/openspec/node_modules/.bin" >> "$GITHUB_PATH"
+
+      - name: Check runtime entry
+        run: node --experimental-strip-types openspec/tools/runtime-entry.ts runtime-check --change-root .
+
+      - name: Check rendered Commands
+        run: node --experimental-strip-types openspec/tools/render-commands.ts check --runtime-root .
+
+      - name: Run contract tests
+        run: node --experimental-strip-types --test "test/*.test.ts"
+
+      - name: Validate OpenSpec
+        env:
+          NPM_CONFIG_AUDIT: "false"
+          NPM_CONFIG_FUND: "false"
+          NPM_CONFIG_UPDATE_NOTIFIER: "false"
+        run: npm exec --yes --package=@fission-ai/openspec@1.11.0 -- openspec validate --all --strict
