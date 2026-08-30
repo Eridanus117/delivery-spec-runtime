@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "commands": [
+    {
+      "id": "apply",
+      "description": "实现 OpenSpec 变更中的任务（实验性）",
+      "body": "bodies/opsx-apply.md"
+    },
+    {
+      "id": "archive",
+      "description": "在实验性工作流中归档已完成的变更",
+      "body": "bodies/opsx-archive.md"
+    },
+    {
+      "id": "continue",
+      "description": "继续处理一项变更——创建下一个制品（实验性）",
+      "body": "bodies/opsx-continue.md"
+    },
+    {
+      "id": "explore",
+      "description": "进入探索模式——深入思考想法、调查问题、明确需求",
+      "body": "bodies/opsx-explore.md"
+    },
+    {
+      "id": "new",
+      "description": "使用实验性的工件工作流（OPSX）启动新的变更",
+      "body": "bodies/opsx-new.md"
+    },
+    {
+      "id": "propose",
+      "description": "提出一项新变更——创建它并一步生成所有构件",
+      "body": "bodies/opsx-propose.md"
+    },
+    {
+      "id": "sync",
+      "description": "将变更中的增量规范同步到主规范",
+      "body": "bodies/opsx-sync.md"
+    },
+    {
+      "id": "update",
+      "description": "更新变更 - 修订现有规划产物并保持其一致性（实验性）",
+      "body": "bodies/opsx-update.md"
+    },
+    {
+      "id": "verify",
+      "description": "在归档前验证实现是否与变更工件匹配",
+      "body": "bodies/opsx-verify.md"
+    }
+  ]
+}

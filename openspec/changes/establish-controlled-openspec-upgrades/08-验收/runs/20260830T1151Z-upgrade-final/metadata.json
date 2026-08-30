@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "runId": "20260830T1151Z-upgrade-final",
+  "repository": "Eridanus117/delivery-spec-runtime",
+  "commit": "82f283ba8b8b52e6169b2f48d2c29456b72eb0a7",
+  "branch": "change/establish-controlled-openspec-upgrades",
+  "environment": {
+    "os": "macOS arm64",
+    "node": "v26.7.0",
+    "openspecCurrent": "1.10.0",
+    "openspecCandidate": "1.11.0"
+  },
+  "startedAt": "2026-08-30T11:51:52.734Z",
+  "endedAt": "2026-08-30T11:56:24Z",
+  "commands": {
+    "upgradeEvaluation": { "status": 0, "result": "PASS" },
+    "runtimeTests": { "status": 0, "tests": 21, "passed": 21, "failed": 0 },
+    "rendererCheck": { "status": 0, "files": 9, "changed": [] },
+    "strictChangeValidation": { "status": 0, "passed": 2, "failed": 0 },
+    "publicCandidate": { "status": 0, "result": "PASS" }
+  },
+  "setupRetries": [
+    {
+      "step": "runtimeTests reporter",
+      "status": 7,
+      "reason": "首次调用时 outputs 目录尚未创建；创建证据目录后原命令成功，产品代码与断言未改"
+    }
+  ]
+}

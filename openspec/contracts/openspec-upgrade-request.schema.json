@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Eridanus117/delivery-spec-runtime/contracts/openspec-upgrade-request.schema.json",
+  "title": "OpenSpec upgrade evaluation request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "currentVersion", "candidateVersion", "runtimeRoot", "evidenceRoot", "consumers"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "currentVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "candidateVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "runtimeRoot": { "type": "string", "minLength": 1 },
+    "evidenceRoot": { "type": "string", "minLength": 1 },
+    "consumers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "path"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+          "path": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

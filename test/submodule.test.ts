@@ -1,14 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { appendFileSync, cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { appendFileSync, chmodSync, cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { createHash } from "node:crypto";
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { runtimeRoot } from "./helpers.ts";
 
-function command(root: string, executable: string, args: string[]): SpawnSyncReturns<string> {
-  return spawnSync(executable, args, { cwd: root, encoding: "utf8" });
+function command(root: string, executable: string, args: string[], env?: NodeJS.ProcessEnv): SpawnSyncReturns<string> {
+  return spawnSync(executable, args, { cwd: root, encoding: "utf8", env: env ?? process.env });
 }
 
 function must(root: string, executable: string, args: string[]): string {
@@ -21,8 +21,8 @@ function git(root: string, args: string[]): string {
   return must(root, "git", ["-c", "protocol.file.allow=always", ...args]);
 }
 
-function node(root: string, script: string, args: string[]): SpawnSyncReturns<string> {
-  return command(root, process.execPath, ["--experimental-strip-types", script, ...args]);
+function node(root: string, script: string, args: string[], env?: NodeJS.ProcessEnv): SpawnSyncReturns<string> {
+  return command(root, process.execPath, ["--experimental-strip-types", script, ...args], env);
 }
 
 function prepareFixture(): { root: string; runtime: string; asset: string } {
@@ -52,7 +52,14 @@ function prepareFixture(): { root: string; runtime: string; asset: string } {
 }
 
 function check(asset: string): SpawnSyncReturns<string> {
-  return node(asset, join(asset, ".delivery-spec-runtime/openspec/tools/runtime-entry.ts"), ["runtime-check", "--change-root", asset]);
+  const manifest = JSON.parse(readFileSync(join(asset, ".delivery-spec-runtime/runtime-manifest.json"), "utf8"));
+  const bin = join(dirname(asset), "runtime-test-bin");
+  const openspec = join(bin, "openspec");
+  mkdirSync(bin, { recursive: true });
+  writeFileSync(openspec, `#!/usr/bin/env node\nconsole.log(${JSON.stringify(manifest.openspec.required)});\n`, "utf8");
+  chmodSync(openspec, 0o755);
+  const env = { ...process.env, PATH: `${bin}:${process.env.PATH ?? ""}` };
+  return node(asset, join(asset, ".delivery-spec-runtime/openspec/tools/runtime-entry.ts"), ["runtime-check", "--change-root", asset], env);
 }
 
 function runtimeUpdate(asset: string): SpawnSyncReturns<string> {

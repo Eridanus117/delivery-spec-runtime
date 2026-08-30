@@ -5,7 +5,7 @@
     "minimum": "22.6.0"
   },
   "openspec": {
-    "required": "1.10.0"
+    "required": "1.11.0"
   },
   "submodule": {
     "path": ".delivery-spec-runtime",

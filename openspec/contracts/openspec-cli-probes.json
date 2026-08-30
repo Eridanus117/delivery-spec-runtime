@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "probes": [
+    {
+      "id": "change-status",
+      "minVersion": "1.10.0",
+      "argv": ["status", "--change", "probe", "--json"],
+      "expectedExit": 0,
+      "requiredFields": [
+        { "path": "changeName", "type": "string" },
+        { "path": "schemaName", "type": "string" },
+        { "path": "planningHome", "type": "object" },
+        { "path": "artifactPaths", "type": "object" },
+        { "path": "isPlanningComplete", "type": "boolean" },
+        { "path": "isComplete", "type": "boolean" },
+        { "path": "applyRequires", "type": "array" },
+        { "path": "nextSteps", "type": "array" },
+        { "path": "actionContext", "type": "object" },
+        { "path": "artifacts", "type": "array" },
+        { "path": "root", "type": "object" }
+      ]
+    },
+    {
+      "id": "change-show-error-json",
+      "minVersion": "1.10.0",
+      "argv": ["show", "probe", "--json", "--type", "change", "--no-interactive"],
+      "expectedExit": 1,
+      "requiredFields": [
+        { "path": "status", "type": "array" },
+        { "path": "status.0.severity", "type": "string" },
+        { "path": "status.0.code", "type": "string" },
+        { "path": "status.0.message", "type": "string" }
+      ]
+    },
+    {
+      "id": "status-all",
+      "minVersion": "1.11.0",
+      "argv": ["status", "--all", "--json"],
+      "expectedExit": 0,
+      "requiredFields": [
+        { "path": "changes", "type": "array" },
+        { "path": "root", "type": "object" }
+      ]
+    }
+  ]
+}
