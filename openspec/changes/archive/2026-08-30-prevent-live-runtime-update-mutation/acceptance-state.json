@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "implementationCommit": "059e485819907176d29af13d5456812adc12c834",
+  "reviewDigest": "sha256:e800be5a5369730e634b957a35fd61f769398df62791653cbe80153871739159",
+  "taskStateDigest": "sha256:2869a1ddfe78a04eec8e427bbd7d8de36349100053f14d7f09544d4c405b64b8",
+  "acceptanceDigest": "sha256:c5f7f04e4a0f71dd054412ae5d729105bb252bc8aae1bd4a7fdb458a8644f9b6",
+  "acceptedBy": "仓库维护者（历史迁移确认）",
+  "acceptedAt": "2026-08-30T13:02:10Z",
+  "result": "PASS"
+}

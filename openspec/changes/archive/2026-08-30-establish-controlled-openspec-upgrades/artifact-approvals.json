@@ -49,6 +49,20 @@
       "approvedBy": "仓库维护者（当前会话）",
       "approvedAt": "2026-08-30T11:57:39.896Z",
       "migrationSource": null
+    },
+    "solution-proposal": {
+      "digest": "sha256:7e4b472f0a23a432f6756f2de7186673045757b7dee422912d4a78b725be6a78",
+      "decision": "approved",
+      "approvedBy": "仓库维护者（历史迁移确认）",
+      "approvedAt": "2026-08-30T12:58:41.035Z",
+      "migrationSource": "pre-v5-merged-change"
+    },
+    "solution-decision": {
+      "digest": "sha256:e316665161f911320ea01dce2ca9185d72d32d5c2782da2e1848cbcc29f6cb71",
+      "decision": "approved",
+      "approvedBy": "仓库维护者（历史迁移确认）",
+      "approvedAt": "2026-08-30T12:58:41.167Z",
+      "migrationSource": "pre-v5-merged-change"
     }
   }
 }

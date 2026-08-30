@@ -1,0 +1,347 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "b8efa99f4adf3d735e19007b2ab3d9739fead433",
+  "reviewedCommit": "6e51e7a4046bfdbd222f51418ab3b9a29da0756b",
+  "reviewedPaths": [
+    {
+      "path": ".omp/command-sources/bodies/opsx-apply.md",
+      "exists": true,
+      "sha256": "sha256:5db91ce7167d24b43e5c6e601c6651f00ce60b7efa4ffd57e8992aa8ba981b51"
+    },
+    {
+      "path": ".omp/command-sources/bodies/opsx-archive.md",
+      "exists": true,
+      "sha256": "sha256:7bfddf0027d0c7aea204a233e6c4b96523a2d19b60f9d2db0bdc04407a054bee"
+    },
+    {
+      "path": ".omp/command-sources/bodies/opsx-continue.md",
+      "exists": true,
+      "sha256": "sha256:a76128baff51791a41fbc862f665ac26e72afd877575a1321a077a3e1143d9eb"
+    },
+    {
+      "path": ".omp/command-sources/bodies/opsx-explore.md",
+      "exists": true,
+      "sha256": "sha256:538e65fde98e1e9af7ba98629bd926c17b9fd86a500070998b024aeeaee3cede"
+    },
+    {
+      "path": ".omp/command-sources/bodies/opsx-new.md",
+      "exists": true,
+      "sha256": "sha256:d5167fe7de3f872ebbd96028f7d150933e920ca899a5217226dfc18f9f02e977"
+    },
+    {
+      "path": ".omp/command-sources/bodies/opsx-propose.md",
+      "exists": true,
+      "sha256": "sha256:99704decfeabbe1d5e77226eec2ef49e520b6b5cdc04e958c3177007c367af46"
+    },
+    {
+      "path": ".omp/command-sources/bodies/opsx-sync.md",
+      "exists": true,
+      "sha256": "sha256:9042c07b355a2125795cb5db1b4c8409ec8c64240aac1976da5d25aca5769681"
+    },
+    {
+      "path": ".omp/command-sources/bodies/opsx-update.md",
+      "exists": true,
+      "sha256": "sha256:f5f940e8905786837bc13387f89d508c69f0e81daa29590adb1297c262e3fc00"
+    },
+    {
+      "path": ".omp/command-sources/bodies/opsx-verify.md",
+      "exists": true,
+      "sha256": "sha256:0cbc583fc5d4eb05069c6a9fac8634f7360aa6501495834fa7a427ed5225feac"
+    },
+    {
+      "path": ".omp/command-sources/manifest.json",
+      "exists": true,
+      "sha256": "sha256:039af4ca7018193029194d48570cc47acd16c5572c3be96e6ca055b58c2da51c"
+    },
+    {
+      "path": ".omp/command-sources/runtime-preamble.md",
+      "exists": true,
+      "sha256": "sha256:3b578f28b84aa35dc9b761bbf4e4283476050e27b7227dc89d020180f6247d13"
+    },
+    {
+      "path": ".omp/commands/opsx-archive.md",
+      "exists": true,
+      "sha256": "sha256:139552dc8fc63c93435ec87f0bf49e6cc520da9c81e7beee87852d52fca52546"
+    },
+    {
+      "path": ".omp/commands/opsx-explore.md",
+      "exists": true,
+      "sha256": "sha256:b4cf313c4e2362f787a32292a5884144576cb855a48151556b18bb60973cfc4d"
+    },
+    {
+      "path": ".omp/commands/opsx-propose.md",
+      "exists": true,
+      "sha256": "sha256:5ebaa00105c269be56b846be4829a49cc0d928b410205dc75336a48e6536a1c5"
+    },
+    {
+      "path": ".omp/commands/opsx-verify.md",
+      "exists": true,
+      "sha256": "sha256:9e3755fea05320f29683e13bb3067c629ece07861c21bca3ef87eda39f293a17"
+    },
+    {
+      "path": "README.md",
+      "exists": true,
+      "sha256": "sha256:2c0827d48486736aa42a65cd07f3fd057f36d0ed589ad0c7c96d8e31342550c0"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/.openspec.yaml",
+      "exists": true,
+      "sha256": "sha256:ab80b9624a4867c4a76f083fb0fb54c1dc34275d5669ce3e33a7680c4db397c0"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/01-原始需求/原始需求索引.md",
+      "exists": true,
+      "sha256": "sha256:85220e6c72110544b24b9f14242b065ca390d953b2f68bc72e87c23c58477084"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/02-需求理解/需求理解.md",
+      "exists": true,
+      "sha256": "sha256:2f02739260bd93490f0842f379e499c99a7e73e2115c77ca7366d106d522f48a"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/03-业务现状/业务现状.md",
+      "exists": true,
+      "sha256": "sha256:8d7f55d0c792a8e7acdc37c455dc02ba0518a15d12ba90641bf00b9f9d21915e"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/04-技术现状/技术现状.md",
+      "exists": true,
+      "sha256": "sha256:63fe62f2a9a12be2684c2827a860e110a5416cdac8d7614aa66f1db70fcd34e5"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/05-改造方案/改造方案.md",
+      "exists": true,
+      "sha256": "sha256:66d054218549a814059bb1049950492097069ea4088acf93a3789591b691edaa"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/05-改造方案/方案决策.md",
+      "exists": true,
+      "sha256": "sha256:ff7e2d659d96cbdbd6820bbe455962b46796bee6dbb246e10f66ec6286ee910b"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/05-改造方案/方案提案.md",
+      "exists": true,
+      "sha256": "sha256:e902c6ee93de3c9216be913db3edf50cc5bc091e0d258f013608ebdc25cc4ee3"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/06-测试方案/测试方案.md",
+      "exists": true,
+      "sha256": "sha256:ec936d7d7539292ef89f5ce356016df1b4e8816e9808f763ef5cb15965235eac"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/07-实施任务/实施任务.md",
+      "exists": true,
+      "sha256": "sha256:1dac96c518c019d92aad7f3e8d85ab6a7a3a84a41be625272cd815fb4d7ae5eb"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/08-验收/cleanup/cleanup.md",
+      "exists": true,
+      "sha256": "sha256:23539ebfbe280a869f3182268bba150aca3883a53830146c163fcd4da6e29926"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/08-验收/runs/20260830T1236Z-final/metadata.json",
+      "exists": true,
+      "sha256": "sha256:8db73286f7dfd2574e19b65f907ba71735afc8a838a82f2ca960cc28c413d092"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/08-验收/runs/20260830T1236Z-final/outputs/summary.txt",
+      "exists": true,
+      "sha256": "sha256:dc7100240ef9267f63d97016b2589691aa364c43731cc8d3f4e373dc2705f64d"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/08-验收/验收记录.md",
+      "exists": true,
+      "sha256": "sha256:b9c4e1e725fff427b48e36c45cd41ce855d9672ece92abdb80be70fc2f2624f3"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/09-发布/final-validation.md",
+      "exists": true,
+      "sha256": "sha256:62a039930ad79a16974ba9781ca6b1c0d3ba9a6a9a30626399361e1f28f60e0a"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/09-发布/发布计划.md",
+      "exists": true,
+      "sha256": "sha256:06aaac021283505aae4fcfc5589db0fe24b9d8107e0a4b7adedb37fb40363023"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/acceptance-state.json",
+      "exists": true,
+      "sha256": "sha256:32828859f8a4761b2e107a7e2cd5a83ee293d0d6b386b411ff03312d59b8b134"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/archive-readiness.json",
+      "exists": true,
+      "sha256": "sha256:f4b734ca08614ce8895b518557b218a1355b4374da2e0ec947c2a53966656abc"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/artifact-approvals.json",
+      "exists": true,
+      "sha256": "sha256:b51b30b0bf78ab0d4dbe5eb9b810db1603311c69cc10cfd72237f2fd6501af5a"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/change-info.json",
+      "exists": true,
+      "sha256": "sha256:846bce1d9034f5e5e70006753ef02946528b0e54c47a7934732520f97d1401eb"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/change-sources.json",
+      "exists": true,
+      "sha256": "sha256:4dda6ad5664c2180081f3a27aa6bbf58023a70f800e10ed85d98aa4b1a778d93"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/implementation-review.json",
+      "exists": true,
+      "sha256": "sha256:3fd8fff281acc6aa005d534cc93fe670da69c14b304c3026f532bc87c8a71d58"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/specs/delivery-lifecycle-governance/spec.md",
+      "exists": true,
+      "sha256": "sha256:6f1112b3867054f48ce99c9b6bc71321ff49fc0e5ea252af5f5bdf1103475eee"
+    },
+    {
+      "path": "openspec/changes/archive/2026-08-30-enforce-proposal-review-pre-pr-archive/task-state.json",
+      "exists": true,
+      "sha256": "sha256:db475030c3bcae5524d0d3f65b52cf4635f0f21b37cb438dde86ca1eeca1c905"
+    },
+    {
+      "path": "openspec/contracts/acceptance-state.schema.json",
+      "exists": true,
+      "sha256": "sha256:11ecc79471b262c71355530ac446f80f4a5fbbbde23cf3e8dc93f107c3651253"
+    },
+    {
+      "path": "openspec/contracts/archive-readiness.schema.json",
+      "exists": true,
+      "sha256": "sha256:31be4a3979e329eec6001021f3d720cc2c6c00fe2244972df2fdba968ac056bd"
+    },
+    {
+      "path": "openspec/contracts/artifact-approvals.schema.json",
+      "exists": true,
+      "sha256": "sha256:e0296a2e4fffbca623be028fcf46611e0818ef652e27f801004d2fdb01b2e3ef"
+    },
+    {
+      "path": "openspec/contracts/implementation-review.schema.json",
+      "exists": true,
+      "sha256": "sha256:ea1d71b159191814f267f511b3c50724c9147e228733395579970cb01ab81e5e"
+    },
+    {
+      "path": "openspec/contracts/openspec-cli-probes.json",
+      "exists": true,
+      "sha256": "sha256:4a58c4d9bfdef003e77e8eb6b15bee2807eee02b3ca8dbf51f6a71d6e782523c"
+    },
+    {
+      "path": "openspec/contracts/openspec-upgrade-report.schema.json",
+      "exists": true,
+      "sha256": "sha256:1968c24092c6805aea62f82154536ffc433cc84770cb3a08b251ef9c2fd38ff2"
+    },
+    {
+      "path": "openspec/contracts/openspec-upgrade-request.schema.json",
+      "exists": true,
+      "sha256": "sha256:00af5d0bb99dce12ae34f780a4de62ae38914c69dfff56185f7617d8f3f990dc"
+    },
+    {
+      "path": "openspec/schemas/delivery-change/schema.yaml",
+      "exists": true,
+      "sha256": "sha256:63bc4b334836074d3dfee0d35ba52f101436deb869029e56b0973db6b60883ef"
+    },
+    {
+      "path": "openspec/schemas/delivery-change/templates/acceptance.md",
+      "exists": true,
+      "sha256": "sha256:4fd7df6aff5e3b56b2a2420d98b14b495cde23ead4959d5ebcca503fe981b641"
+    },
+    {
+      "path": "openspec/schemas/delivery-change/templates/release-plan.md",
+      "exists": true,
+      "sha256": "sha256:c94e745c4e41373848a2300ecf6bcdcabfa4a5968f41e0b91025fb2875b125b5"
+    },
+    {
+      "path": "openspec/schemas/delivery-change/templates/solution-decision.md",
+      "exists": true,
+      "sha256": "sha256:30824363d23b6395a2538cc54b1fd9406524e58d9b058ea3eb7678dbda00f759"
+    },
+    {
+      "path": "openspec/schemas/delivery-change/templates/solution-proposal.md",
+      "exists": true,
+      "sha256": "sha256:e781bf1a8f2ce45d99ca64b24e6dc6f86269e393646f6c0460ec225dc6433c96"
+    },
+    {
+      "path": "openspec/tools/delivery-control.ts",
+      "exists": true,
+      "sha256": "sha256:39b10cf049bb485a7c5eb8e49b17346bcc5349139f81a2c6527c4e221c2d230b"
+    },
+    {
+      "path": "openspec/tools/delivery-lifecycle.ts",
+      "exists": true,
+      "sha256": "sha256:938e1179eb2535153fba75f1a0a9803c02e441dc294a001f1edadf822ca05a9e"
+    },
+    {
+      "path": "openspec/tools/openspec-upgrade.ts",
+      "exists": true,
+      "sha256": "sha256:0feb2297a7626e465b45868a088b65cc08a96c9879aad9e1f6db19a0d162a3a3"
+    },
+    {
+      "path": "openspec/tools/render-commands.ts",
+      "exists": true,
+      "sha256": "sha256:39a40e7d60906b3796968dcc66033171b842e3809f29702745162f8105b56286"
+    },
+    {
+      "path": "openspec/tools/runtime-entry.ts",
+      "exists": true,
+      "sha256": "sha256:3e8ba7210d904a6a1967427264dfe69052dfd33bcf82199db0d3d200bd1a0773"
+    },
+    {
+      "path": "public-allowlist.json",
+      "exists": true,
+      "sha256": "sha256:e6c2d4f4918e7b67467f91a2921d5fab1cd440a124d8e111b65f634a85f63ff4"
+    },
+    {
+      "path": "runtime-manifest.json",
+      "exists": true,
+      "sha256": "sha256:4997cdce3e34b91468d37ebebba05f4f135a1b5a7b53c6fa69130459ff565e12"
+    },
+    {
+      "path": "test/command-renderer.test.ts",
+      "exists": true,
+      "sha256": "sha256:f2a0be63382bd7220f4aea1b0e64fa8ae5833338df8dc60d2b7c73697dd529f0"
+    },
+    {
+      "path": "test/contracts.test.ts",
+      "exists": true,
+      "sha256": "sha256:712d97cd171cac6b2cb69a02ea7bc741d0a2bcdb9aea2f1b83b2bfa5f89e1b70"
+    },
+    {
+      "path": "test/control.test.ts",
+      "exists": true,
+      "sha256": "sha256:eba2ca82850157c61abf1801d7fb6974e996bb4ac13f696cc55418625fb64621"
+    },
+    {
+      "path": "test/lifecycle.test.ts",
+      "exists": true,
+      "sha256": "sha256:c77563ccb42c64120d9d23b584e19f51486434e8ce812b907c779021dbbd9d6c"
+    },
+    {
+      "path": "test/openspec-upgrade.test.ts",
+      "exists": true,
+      "sha256": "sha256:c714e728c750b0117a47e56fefaca20d02468f415d750d5c33fb26e0885ebf8a"
+    },
+    {
+      "path": "test/submodule.test.ts",
+      "exists": true,
+      "sha256": "sha256:ef7362d21a8e072dab2ebc158fbeeb639175bd52fe838403971198edee876b62"
+    }
+  ],
+  "reviewedDigest": "sha256:7cefc1e93800a37c850b16b68c3ed4d0aa3646425af62e3bc70d684041209853",
+  "reviewer": "AI 历史迁移审查",
+  "reviewedAt": "2026-08-30T12:58:55Z",
+  "findings": [
+    {
+      "id": "REV-001",
+      "severity": "MEDIUM",
+      "path": "(general)",
+      "line": null,
+      "summary": "v4 发布计划把已合并 Runtime Change 留在 active 并等待消费仓采用，与当前归档职责冲突",
+      "status": "RESOLVED",
+      "resolution": "按 pre-v5-merged-change 回填 v5 状态；消费仓采用改由各仓独立 Change 管理，不再阻塞 Runtime Archive。"
+    }
+  ],
+  "result": "PASS"
+}
