@@ -122,14 +122,16 @@
     },
     {
       "id": "4.1",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
         "08 验收 run、09 发布计划、功能分支和中文 PR"
       ],
       "verification": [
         "全部任务 verified、验收严格 PASS、release guard allowed、PR 只通过功能分支交付"
       ],
-      "evidence": [],
+      "evidence": [
+        "PR #2已创建：https://github.com/Eridanus117/delivery-spec-runtime/pull/2；08严格PASS；09记录GO与release-not-required"
+      ],
       "blocker": null
     }
   ]

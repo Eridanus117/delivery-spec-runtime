@@ -1,0 +1,7 @@
+mkdir openspec/changes/establish-controlled-openspec-upgrades/08-验收/runs/20260830T1151Z-upgrade-final/outputs
+node --experimental-strip-types --test --test-reporter=tap --test-reporter-destination=openspec/changes/establish-controlled-openspec-upgrades/08-验收/runs/20260830T1151Z-upgrade-final/outputs/runtime-tests.tap test/*.test.ts
+node --experimental-strip-types openspec/tools/render-commands.ts check --runtime-root .
+npm exec --yes --package @fission-ai/openspec@1.11.0 -- openspec validate establish-controlled-openspec-upgrades --strict
+npm exec --yes --package @fission-ai/openspec@1.11.0 -- openspec validate --all --strict
+node --experimental-strip-types openspec/tools/openspec-upgrade.ts evaluate --request /tmp/openspec-upgrade-request.json
+node --experimental-strip-types openspec/tools/public-candidate.ts generate --runtime-root . --output-root <run>/public-candidate
