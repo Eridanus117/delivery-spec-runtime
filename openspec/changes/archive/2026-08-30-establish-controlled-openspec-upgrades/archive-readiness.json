@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "implementationCommit": "6e51e7a4046bfdbd222f51418ab3b9a29da0756b",
+  "acceptanceDigest": "sha256:bbbfb798625be387b7ad32a436c0c59f7e469e3588ec4d78e1f3f139d3de2bb9",
+  "releasePlanDigest": "sha256:905cca966c1ac80d8a5eafeff83a39abd6356cac2cd972da6bee8253390e988e",
+  "specSync": [
+    {
+      "deltaPath": "openspec/changes/establish-controlled-openspec-upgrades/specs/controlled-openspec-upgrades/spec.md",
+      "deltaSha256": "sha256:8af72546766a4357df1eef3214b97686cac0be26590fdd2b7a77673504a03c68",
+      "mainPath": "openspec/specs/controlled-openspec-upgrades/spec.md",
+      "mainSha256": "sha256:556fa11ea241b3a33b084bf0c03ea6c759f1b06ad215d2c4060c38c2cbd9369c"
+    }
+  ],
+  "strictValidation": "PASS",
+  "cleanupEvidence": {
+    "path": "openspec/changes/establish-controlled-openspec-upgrades/08-验收/cleanup/archive-migration.md",
+    "sha256": "sha256:f56bb4da7f3e660f32c5df3d46800d625ab37b7a8bd22c77f4dfcf2bca4c3f28"
+  },
+  "prStarted": true,
+  "migrationSource": "pre-v5-merged-change",
+  "historicalPr": "https://github.com/Eridanus117/delivery-spec-runtime/pull/2",
+  "attestedBy": "仓库维护者（历史迁移确认）",
+  "attestedAt": "2026-08-30T12:59:30Z",
+  "result": "READY"
+}
