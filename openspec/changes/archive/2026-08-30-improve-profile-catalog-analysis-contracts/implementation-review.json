@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "af078f455f897a6ad54098fe6016546b7d16d913",
+  "reviewedCommit": "bf28fd1e77a06effd9f3ccf1c46704cdd4d1bedc",
+  "reviewedPaths": [
+    {
+      "path": "README.md",
+      "exists": true,
+      "sha256": "sha256:01f98beb6536b11af3bae7855c114814397eeec0690bc3b6239efb8ce85bbc1e"
+    },
+    {
+      "path": "docs/consumer-guide.md",
+      "exists": true,
+      "sha256": "sha256:6a456e7f37f21a6799efe47bf0f0d0476f31b0f3ec89d12f6a43ad8ab6b7c25d"
+    },
+    {
+      "path": "docs/workflow-guide.md",
+      "exists": true,
+      "sha256": "sha256:3fd8fdfb7ab136c349b6b604a40c5a177506b424e33664767edb72d367582f11"
+    },
+    {
+      "path": "openspec/contracts/workflow-profile.schema.json",
+      "exists": true,
+      "sha256": "sha256:ade399232d7bcfb3efee65ef279150bf7833fef3a19b197dceee849e5b6deb48"
+    },
+    {
+      "path": "openspec/profiles/delivery-change-v1.json",
+      "exists": true,
+      "sha256": "sha256:15329cd616e12e17ef44b57ef9b0340f4baf82f612d6e55a3607005f08a7b3f3"
+    },
+    {
+      "path": "openspec/profiles/light-change-v1.json",
+      "exists": true,
+      "sha256": "sha256:c6d9946099e4326a4857267623ee0b0dd51f6a4402509bc5428b43caa2141248"
+    },
+    {
+      "path": "openspec/profiles/requirement-analysis-v1.json",
+      "exists": true,
+      "sha256": "sha256:c85cec3be2f9de878648210aebcceccb0936753f6ff339ffec159fcc1131bdfe"
+    },
+    {
+      "path": "openspec/tools/workflow-control.ts",
+      "exists": true,
+      "sha256": "sha256:b82264aba404c6ae7270146383e73418529741056726bcd8ae3346e16d488365"
+    },
+    {
+      "path": "openspec/tools/workflow-core.ts",
+      "exists": true,
+      "sha256": "sha256:48e8091ae581034155e32f72c50632e2499901289858148812b00e32e0a4a29c"
+    },
+    {
+      "path": "test/workflow.test.ts",
+      "exists": true,
+      "sha256": "sha256:66e4458a2fa2879929b7b72d4f092ba04701fb1e50b868c59d3c117a4e2852b9"
+    }
+  ],
+  "reviewedDigest": "sha256:ec4b9b01e1f5e3fa970aea61f56db3cbe5fb8f015fa7abbc3cc5cdb6dce9eb09",
+  "reviewer": "runtime-maintainer-review",
+  "reviewedAt": "2026-08-30T21:45:00.000Z",
+  "findings": [],
+  "result": "PASS"
+}

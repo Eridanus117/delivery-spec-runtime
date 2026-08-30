@@ -1,0 +1,12 @@
+{
+  "files": 9,
+  "changed": []
+}
+✓ spec/controlled-openspec-upgrades
+✓ spec/delivery-lifecycle-governance
+✓ change/establish-workflow-v01-contract
+✓ change/improve-profile-catalog-analysis-contracts
+✓ spec/requirement-analysis
+✓ spec/runtime-upgrade-safety
+✓ spec/workflow-profiles
+Totals: 7 passed, 0 failed (7 items)

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "implementationCommit": "bf28fd1e77a06effd9f3ccf1c46704cdd4d1bedc",
+  "acceptanceDigest": "sha256:f48ad1352bc5c95579068116e32403e557eda1b954a59ebaf9a8891fa64d014f",
+  "releasePlanDigest": "sha256:fc60c41607f1584d71cafbbb6ca8daa093d6050a3685e0082707cd2f76505a53",
+  "specSync": [
+    {
+      "deltaPath": "openspec/changes/improve-profile-catalog-analysis-contracts/specs/profile-catalog-analysis/spec.md",
+      "deltaSha256": "sha256:3b2d75a48ff94d41d800caeed7680f0b570abe8285bfd6692305c37e5e843be2",
+      "mainPath": "openspec/specs/workflow-profiles/spec.md",
+      "mainSha256": "sha256:17087215d2a989de273aa71d58bf04b9ba790dfabd8908aade7b1db8e1f65866"
+    }
+  ],
+  "strictValidation": "PASS",
+  "cleanupEvidence": {
+    "path": "openspec/changes/improve-profile-catalog-analysis-contracts/08-验收/cleanup/cleanup-evidence.md",
+    "sha256": "sha256:c04cd5f45f9c8e730f06094e6aa4d9cfee5e0b54f495c268eb8234e7dcc447fc"
+  },
+  "prStarted": false,
+  "migrationSource": null,
+  "historicalPr": null,
+  "attestedBy": "runtime-maintainer-readiness",
+  "attestedAt": "2026-08-30T22:20:00.000Z",
+  "result": "READY"
+}
