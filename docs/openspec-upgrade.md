@@ -31,6 +31,7 @@ flowchart TD
     Probes[CLI JSON probes]
     Blank[空白 Runtime fixture]
     Consumers[消费仓临时 Git 副本]
+    Public[公开候选与安全扫描]
     Gate{全部门禁通过?}
     Promote[更新 sources 与 manifest pin]
     Keep[保持当前 pin并保存失败报告]
@@ -42,7 +43,8 @@ flowchart TD
     Delta --> Probes
     Probes --> Blank
     Blank --> Consumers
-    Consumers --> Gate
+    Consumers --> Public
+    Public --> Gate
     Gate -->|是| Promote
     Gate -->|否| Keep
 ```
@@ -75,6 +77,17 @@ node --experimental-strip-types \
   openspec/tools/openspec-upgrade.ts evaluate --request <request.json>
 ```
 
+升级 run 还必须从允许清单生成公开候选：
+
+```bash
+node --experimental-strip-types \
+  openspec/tools/public-candidate.ts generate \
+  --runtime-root . \
+  --output-root openspec/changes/<change>/08-验收/runs/<run-id>/public-candidate
+```
+
+公开候选只复制 `public-allowlist.json` 中的路径，并检查未知路径、禁用路径段、秘密与高熵内容、示例 provenance 和远程副作用。`candidate-report.json` 必须作为同一升级 run 的验收证据。
+
 ## 评估器输出
 
 评估器固定以 executable + argv 调用两个精确版本，并在临时目录完成：
@@ -100,6 +113,7 @@ node --experimental-strip-types \
 - Runtime 完整合同测试；
 - 三个消费仓隔离 smoke；
 - 真实仓零写入核验；
+- public candidate 允许清单、安全扫描和 `candidate-report.json`；
 - 临时资源清理。
 
 完成实现后运行 [Runtime 维护指南](maintainer-guide.md)中的最终验证，并按 [Runtime 自治理](governance.md)进入 fresh Review、Acceptance 和 Archive。

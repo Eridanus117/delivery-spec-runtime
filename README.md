@@ -23,7 +23,7 @@ flowchart LR
     Entry -->|执行前校验| Contract[runtime-manifest 与 Git 状态]
 ```
 
-父仓 gitlink 是唯一版本锁。`runtime-manifest.json` 声明 Node/OpenSpec 精确版本和三条受管相对软链；Runtime 入口在执行生命周期命令前验证 gitlink、submodule、manifest、工具版本、软链和 bootstrap 状态。任一条件不满足都 fail closed。
+父仓 gitlink 是唯一版本锁。`runtime-manifest.json` 声明 Node 最低版本、OpenSpec 精确版本和三条受管相对软链；Runtime 入口在执行生命周期命令前验证 gitlink、submodule、manifest、工具版本、软链和 bootstrap 状态。任一条件不满足都 fail closed。
 
 完整设计见 [架构与安全边界](docs/architecture.md)。
 

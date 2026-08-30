@@ -15,7 +15,7 @@
 
 | 路径 | 职责 | 维护方式 |
 |---|---|---|
-| `runtime-manifest.json` | Node/OpenSpec 精确版本和软链合同 | 受控 Change 修改 |
+| `runtime-manifest.json` | Node 最低版本、OpenSpec 精确版本和软链合同 | 受控 Change 修改 |
 | `.omp/command-sources/manifest.json` | 九个 Commands 的声明真源 | 直接修改 |
 | `.omp/command-sources/runtime-preamble.md` | 公共 Runtime 前置说明 | 直接修改 |
 | `.omp/command-sources/bodies/` | 各 Command body | 直接修改 |

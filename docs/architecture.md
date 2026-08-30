@@ -49,7 +49,7 @@ flowchart LR
 
 | 路径 | 职责 | 是否直接编辑 |
 |---|---|---|
-| `runtime-manifest.json` | Node/OpenSpec 精确版本和三条软链合同 | 仅受控 Runtime Change |
+| `runtime-manifest.json` | Node 最低版本、OpenSpec 精确版本和三条软链合同 | 仅受控 Runtime Change |
 | `.omp/command-sources/` | Commands manifest、公共 preamble 和 body 真源 | 是 |
 | `.omp/commands/` | 九个确定性渲染物 | 否 |
 | `openspec/schemas/delivery-change/` | 九层交付 schema 与模板 | 是 |

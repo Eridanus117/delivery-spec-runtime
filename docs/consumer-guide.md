@@ -21,9 +21,10 @@ git add .gitmodules .delivery-spec-runtime \
   .omp/commands \
   openspec/schemas/delivery-change \
   openspec/tools/runtime-entry.ts
+git commit -m "chore: adopt delivery spec runtime"
 ```
 
-然后验证：
+`runtime-check` 以父仓 `HEAD` 的 gitlink 和 clean 状态为准，因此必须先在功能分支提交上述四类路径，再执行验证：
 
 ```bash
 node --experimental-strip-types \
@@ -37,7 +38,7 @@ node --experimental-strip-types \
 - `.delivery-spec-runtime` 是父仓登记的 submodule；
 - submodule 当前 commit 与父仓 gitlink 一致；
 - `.omp/commands`、`openspec/schemas/delivery-change`、`openspec/tools/runtime-entry.ts` 是 manifest 托管的相对软链；
-- 父仓可将 `.gitmodules`、gitlink 和三条软链作为同一个 Change 提交。
+- 父仓已将 `.gitmodules`、gitlink 和三条软链作为同一个 Change 提交。
 
 若验证失败，不要复制 Runtime 文件或建立第二份 lock；按“故障诊断”处理。
 
@@ -64,11 +65,14 @@ Runtime Change 归档和发布不替消费仓自动升级。每个消费仓应�
 ```bash
 git -C .delivery-spec-runtime fetch origin
 git -C .delivery-spec-runtime checkout <reviewed-runtime-commit>
+git add .delivery-spec-runtime
+git commit -m "chore: update delivery spec runtime"
 node --experimental-strip-types \
   .delivery-spec-runtime/openspec/tools/runtime-entry.ts \
   runtime-check --change-root .
-git add .delivery-spec-runtime
 ```
+
+`runtime-check` 不接受只存在于工作树或暂存区的 gitlink；必须先让父仓 `HEAD` 记录目标 commit。若检查失败，在功能分支修复并 amend/new commit，检查通过后再提交 PR。
 
 ### 完成标准
 
@@ -80,17 +84,22 @@ git add .delivery-spec-runtime
 
 ## 修复受管软链
 
-软链缺失或目标漂移时执行：
+软链缺失时执行：
 
 ```bash
 node --experimental-strip-types \
   .delivery-spec-runtime/openspec/tools/runtime-link.ts apply --asset-root .
-node --experimental-strip-types \
-  .delivery-spec-runtime/openspec/tools/runtime-entry.ts \
-  runtime-check --change-root .
 ```
 
-`runtime-link.ts` 只处理 manifest 托管路径。运行前先确认这些路径没有需要保留的本地文件；工具不应被当作通用目录清理器。
+受管路径已存在但目标漂移时，先确认其中没有需要保留的本地文件，再显式允许替换：
+
+```bash
+node --experimental-strip-types \
+  .delivery-spec-runtime/openspec/tools/runtime-link.ts apply \
+  --asset-root . --replace-managed
+```
+
+修复和对应父仓提交完成后运行 `runtime-check`。`runtime-link.ts` 只处理 manifest 托管路径，不得被当作通用目录清理器。
 
 ## 故障诊断
 
@@ -99,8 +108,8 @@ node --experimental-strip-types \
 | 未找到 Runtime submodule | clone 未初始化 submodule | `git submodule update --init --recursive` | `runtime-check` |
 | 当前 commit 与 gitlink 不一致 | submodule 被手动切换 | `git submodule update --init --recursive` 恢复父仓记录，或提交受评审 gitlink 变更 | 两侧 commit 一致 |
 | Runtime dirty | submodule 中存在本地修改 | `git -C .delivery-spec-runtime status --short` 定位并人工处理 | 状态 clean |
-| 受管软链缺失或漂移 | 路径被替换或移动 | 执行 `runtime-link.ts apply` | 三条链接通过检查 |
-| Node/OpenSpec 版本不符 | 本机工具版本漂移 | 安装 manifest 指定精确版本 | `runtime-check` |
+| 受管软链缺失或漂移 | 路径被替换或移动 | 缺失时执行 `runtime-link.ts apply`；漂移时核对内容后增加 `--replace-managed` | 提交修复后运行 `runtime-check` |
+| Node/OpenSpec 版本不符 | 本机工具版本漂移 | 安装 manifest 要求的 Node 最低版本和 OpenSpec 精确版本 | `runtime-check` |
 | `runtime-update` 被拒绝 | Runtime 的预期安全行为 | 在 Runtime 仓建立独立升级 Change | 不得绕过 |
 
 ## 禁止操作

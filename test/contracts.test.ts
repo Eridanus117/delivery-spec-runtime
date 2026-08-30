@@ -95,9 +95,16 @@ test("README与专题文档的仓库内链接全部有效", () => {
   for (const path of paths) {
     const source = join(runtimeRoot, path);
     const content = readFileSync(source, "utf8");
-    for (const match of content.matchAll(/(?<!!)\[[^\]]+\]\(([^)#]+)(?:#[^)]+)?\)/g)) {
+    for (const match of content.matchAll(/(?<!!)\[[^\]]+\]\(([^)]+)\)/g)) {
       if (/^[a-z]+:/i.test(match[1])) continue;
-      assert.equal(existsSync(resolve(dirname(source), match[1])), true, `${path} 链接目标不存在: ${match[1]}`);
+      const [relativePath, fragment] = match[1].split("#", 2);
+      const target = relativePath ? resolve(dirname(source), relativePath) : source;
+      assert.equal(existsSync(target), true, `${path} 链接目标不存在: ${match[1]}`);
+      if (!fragment) continue;
+      const anchors = [...readFileSync(target, "utf8").matchAll(/^#{1,6}\s+(.+?)\s*$/gm)].map((heading) =>
+        heading[1].toLowerCase().replace(/`/g, "").replace(/[^\p{L}\p{N}\s-]/gu, "").trim().replace(/\s+/g, "-")
+      );
+      assert.equal(anchors.includes(decodeURIComponent(fragment).toLowerCase()), true, `${path} 链接锚点不存在: ${match[1]}`);
     }
   }
 });
