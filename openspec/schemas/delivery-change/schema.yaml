@@ -101,7 +101,8 @@ artifacts:
       同时读取 05 的实施切片和 06 的验证依据，拆成可执行实现任务。
       任务的唯一状态真源是 `task-state.json`；初始化后由 runtime-entry 的 task 命令在 Change 根排他锁内原子更新，
       `07-实施任务/实施任务.md` 只从机器状态渲染，禁止从复选框反向解析状态。
-      任务覆盖代码、配置、自动化测试、runner、迁移和验收前置，但不执行 08 验收或 09 发布。
+      任务覆盖代码、配置、自动化测试、runner、迁移和验收前置；Review、Acceptance、Sync、Archive、PR 属于生命周期门禁，
+      不得写入 `task-state.json`，否则会形成“全部任务 verified 后才能 Acceptance”的状态循环。
     requires:
       - change-plan
       - test-plan

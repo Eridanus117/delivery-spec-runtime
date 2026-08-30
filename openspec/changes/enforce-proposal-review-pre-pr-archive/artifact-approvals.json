@@ -30,10 +30,10 @@
       "migrationSource": null
     },
     "change-plan": {
-      "digest": "sha256:7ec38325d22b835d0fe2790b863efe480a916db8a8fc3ff0669c65a5d8b45104",
+      "digest": "sha256:66d054218549a814059bb1049950492097069ea4088acf93a3789591b691edaa",
       "decision": "approved",
-      "approvedBy": "仓库维护者（当前会话）",
-      "approvedAt": "2026-08-30T12:28:13.341Z",
+      "approvedBy": "当前会话维护者",
+      "approvedAt": "2026-08-30T12:34:02.407Z",
       "migrationSource": null
     },
     "test-plan": {
@@ -44,10 +44,10 @@
       "migrationSource": null
     },
     "tasks": {
-      "digest": "sha256:6ee6ab501bf3bf7ac1c70a6e418090d7d07058952de56661332e78f1bf11818d",
+      "digest": "sha256:1dac96c518c019d92aad7f3e8d85ab6a7a3a84a41be625272cd815fb4d7ae5eb",
       "decision": "approved",
-      "approvedBy": "仓库维护者（当前会话）",
-      "approvedAt": "2026-08-30T12:28:14.674Z",
+      "approvedBy": "当前会话维护者",
+      "approvedAt": "2026-08-30T12:32:08.797Z",
       "migrationSource": null
     },
     "solution-proposal": {

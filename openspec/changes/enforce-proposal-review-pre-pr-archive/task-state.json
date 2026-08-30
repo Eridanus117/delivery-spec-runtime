@@ -102,30 +102,6 @@
         "Runtime完整合同23/23 PASS；OpenSpec strict validate 3/3 PASS"
       ],
       "blocker": null
-    },
-    {
-      "id": "4.1",
-      "state": "planned",
-      "deliverables": [
-        "本 Change implementation-review、acceptance-state 和验收证据"
-      ],
-      "verification": [
-        "Review 绑定实现 commit 且 PASS；无 unresolved critical；Acceptance 当前且 PASS"
-      ],
-      "evidence": [],
-      "blocker": null
-    },
-    {
-      "id": "4.2",
-      "state": "planned",
-      "deliverables": [
-        "同步后的长期 spec、archive-readiness、归档 Change 和 final validation"
-      ],
-      "verification": [
-        "PR 尚未创建；READY 当前；Change 在功能分支归档；归档后 strict validate 全部通过"
-      ],
-      "evidence": [],
-      "blocker": null
     }
   ]
 }

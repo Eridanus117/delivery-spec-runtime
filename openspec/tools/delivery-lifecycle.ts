@@ -35,6 +35,7 @@ type Acceptance = {
   schemaVersion: 1;
   implementationCommit: string;
   reviewDigest: string;
+  taskStateDigest: string;
   acceptanceDigest: string;
   acceptedBy: string;
   acceptedAt: string;
@@ -79,6 +80,11 @@ function sha(value: unknown, label: string): string {
   if (!digestPattern.test(result)) fail(`${label} 必须为小写SHA-256`);
   return result;
 }
+function timestamp(value: unknown, label: string): string {
+  const result = text(value, label);
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(result) || Number.isNaN(Date.parse(result))) fail(`${label} 必须为UTC ISO-8601时间`);
+  return result;
+}
 function git(repo: string, args: string[], allowFailure = false): Buffer {
   const result = spawnSync("git", args, { cwd: repo, encoding: "buffer", maxBuffer: 16 * 1024 * 1024 });
   if (!allowFailure && result.status !== 0) fail(`git ${args.join(" ")} 失败: ${result.stderr.toString("utf8").trim()}`);
@@ -90,22 +96,27 @@ function repoRoot(changeRoot: string): string {
 function nulPaths(buffer: Buffer): string[] {
   return buffer.toString("utf8").split("\0").filter(Boolean).map((path) => path.split("\\").join("/"));
 }
-function isLifecyclePath(path: string): boolean {
-  return path === "openspec/changes" || path.startsWith("openspec/changes/") || path === "openspec/specs" || path.startsWith("openspec/specs/");
+function changeRelative(repo: string, changeRoot: string): string {
+  return relative(repo, realpathSync(changeRoot)).split(sep).join("/");
 }
-function implementationPaths(repo: string, from: string, to: string): string[] {
-  return [...new Set(nulPaths(git(repo, ["diff", "--name-only", "-z", from, to, "--"])).filter((path) => !isLifecyclePath(path)))].sort();
+function isLifecyclePath(path: string, changeRel: string): boolean {
+  return path === changeRel || path.startsWith(`${changeRel}/`) || path === "openspec/specs" || path.startsWith("openspec/specs/");
 }
-function dirtyImplementationPaths(repo: string): string[] {
+function implementationPaths(repo: string, from: string, to: string, changeRoot: string): string[] {
+  const changeRel = changeRelative(repo, changeRoot);
+  return [...new Set(nulPaths(git(repo, ["diff", "--name-only", "-z", from, to, "--"])).filter((path) => !isLifecyclePath(path, changeRel)))].sort();
+}
+function dirtyImplementationPaths(repo: string, changeRoot: string): string[] {
+  const changeRel = changeRelative(repo, changeRoot);
   const tracked = nulPaths(git(repo, ["diff", "--name-only", "-z", "HEAD", "--"]));
   const untracked = nulPaths(git(repo, ["ls-files", "--others", "--exclude-standard", "-z"]));
-  return [...new Set([...tracked, ...untracked].filter((path) => !isLifecyclePath(path)))].sort();
+  return [...new Set([...tracked, ...untracked].filter((path) => !isLifecyclePath(path, changeRel)))].sort();
 }
 function commitHasPath(repo: string, reviewedCommit: string, path: string): boolean {
   return spawnSync("git", ["cat-file", "-e", `${reviewedCommit}:${path}`], { cwd: repo, encoding: "utf8" }).status === 0;
 }
-function reviewedPaths(repo: string, baselineCommit: string, reviewedCommit: string): ReviewedPath[] {
-  return implementationPaths(repo, baselineCommit, reviewedCommit).map((path) => {
+function reviewedPaths(repo: string, baselineCommit: string, reviewedCommit: string, changeRoot: string): ReviewedPath[] {
+  return implementationPaths(repo, baselineCommit, reviewedCommit, changeRoot).map((path) => {
     const exists = commitHasPath(repo, reviewedCommit, path);
     return { path, exists, sha256: exists ? hashBytes(git(repo, ["show", `${reviewedCommit}:${path}`])) : null };
   });
@@ -124,15 +135,26 @@ function safeRepoFile(repo: string, value: unknown, label: string): string {
 function parseFinding(value: unknown, index: number): Finding {
   const item = object(value, `findings[${index}]`);
   exactKeys(item, ["id", "severity", "path", "line", "summary", "status", "resolution"], ["id", "severity", "path", "line", "summary", "status", "resolution"], `findings[${index}]`);
+  const id = text(item.id, `findings[${index}].id`);
   const severity = text(item.severity, `findings[${index}].severity`);
   const status = text(item.status, `findings[${index}].status`);
+  if (!/^REV-\d{3,}$/.test(id)) fail(`findings[${index}].id 必须匹配REV-<至少三位数字>`);
   if (!["CRITICAL", "HIGH", "MEDIUM", "LOW"].includes(severity)) fail(`findings[${index}].severity 非法`);
   if (!["OPEN", "RESOLVED", "ACCEPTED"].includes(status)) fail(`findings[${index}].status 非法`);
   const line = item.line === null ? null : integer(item.line, `findings[${index}].line`);
   const resolution = item.resolution === null ? null : text(item.resolution, `findings[${index}].resolution`);
   if (status === "OPEN" && resolution !== null) fail(`findings[${index}] OPEN 不得有resolution`);
   if (status !== "OPEN" && resolution === null) fail(`findings[${index}] 已处置必须有resolution`);
-  return { id: text(item.id, `findings[${index}].id`), severity: severity as Finding["severity"], path: text(item.path, `findings[${index}].path`), line, summary: text(item.summary, `findings[${index}].summary`), status: status as Finding["status"], resolution };
+  return { id, severity: severity as Finding["severity"], path: text(item.path, `findings[${index}].path`), line, summary: text(item.summary, `findings[${index}].summary`), status: status as Finding["status"], resolution };
+}
+function validateFindings(findings: Finding[], paths: ReviewedPath[]): void {
+  const ids = new Set<string>();
+  const reviewed = new Set(paths.map((item) => item.path));
+  for (const finding of findings) {
+    if (ids.has(finding.id)) fail(`finding id重复: ${finding.id}`);
+    ids.add(finding.id);
+    if (finding.path !== "(general)" && !reviewed.has(finding.path)) fail(`finding路径不在Review范围: ${finding.path}`);
+  }
 }
 function parseReview(value: unknown): Review {
   const root = object(value, "implementation-review");
@@ -147,14 +169,15 @@ function parseReview(value: unknown): Review {
     return { path: text(item.path, `reviewedPaths[${index}].path`), exists: item.exists, sha256: valueSha };
   });
   const findings = root.findings.map(parseFinding);
+  validateFindings(findings, paths);
   if (root.result !== "PASS" && root.result !== "FAIL") fail("implementation-review.result非法");
-  return { schemaVersion: 1, baselineCommit: commit(root.baselineCommit, "baselineCommit"), reviewedCommit: commit(root.reviewedCommit, "reviewedCommit"), reviewedPaths: paths, reviewedDigest: sha(root.reviewedDigest, "reviewedDigest"), reviewer: text(root.reviewer, "reviewer"), reviewedAt: text(root.reviewedAt, "reviewedAt"), findings, result: root.result };
+  return { schemaVersion: 1, baselineCommit: commit(root.baselineCommit, "baselineCommit"), reviewedCommit: commit(root.reviewedCommit, "reviewedCommit"), reviewedPaths: paths, reviewedDigest: sha(root.reviewedDigest, "reviewedDigest"), reviewer: text(root.reviewer, "reviewer"), reviewedAt: timestamp(root.reviewedAt, "reviewedAt"), findings, result: root.result };
 }
 function parseAcceptance(value: unknown): Acceptance {
   const root = object(value, "acceptance-state");
-  exactKeys(root, ["schemaVersion", "implementationCommit", "reviewDigest", "acceptanceDigest", "acceptedBy", "acceptedAt", "result"], ["schemaVersion", "implementationCommit", "reviewDigest", "acceptanceDigest", "acceptedBy", "acceptedAt", "result"], "acceptance-state");
+  exactKeys(root, ["schemaVersion", "implementationCommit", "reviewDigest", "taskStateDigest", "acceptanceDigest", "acceptedBy", "acceptedAt", "result"], ["schemaVersion", "implementationCommit", "reviewDigest", "taskStateDigest", "acceptanceDigest", "acceptedBy", "acceptedAt", "result"], "acceptance-state");
   if (root.schemaVersion !== 1 || (root.result !== "PASS" && root.result !== "FAIL")) fail("acceptance-state合同非法");
-  return { schemaVersion: 1, implementationCommit: commit(root.implementationCommit, "implementationCommit"), reviewDigest: sha(root.reviewDigest, "reviewDigest"), acceptanceDigest: sha(root.acceptanceDigest, "acceptanceDigest"), acceptedBy: text(root.acceptedBy, "acceptedBy"), acceptedAt: text(root.acceptedAt, "acceptedAt"), result: root.result };
+  return { schemaVersion: 1, implementationCommit: commit(root.implementationCommit, "implementationCommit"), reviewDigest: sha(root.reviewDigest, "reviewDigest"), taskStateDigest: sha(root.taskStateDigest, "taskStateDigest"), acceptanceDigest: sha(root.acceptanceDigest, "acceptanceDigest"), acceptedBy: text(root.acceptedBy, "acceptedBy"), acceptedAt: timestamp(root.acceptedAt, "acceptedAt"), result: root.result };
 }
 function parseReadiness(value: unknown): Readiness {
   const root = object(value, "archive-readiness");
@@ -165,18 +188,18 @@ function parseReadiness(value: unknown): Readiness {
     return { deltaPath: text(item.deltaPath, "deltaPath"), deltaSha256: sha(item.deltaSha256, "deltaSha256"), mainPath: text(item.mainPath, "mainPath"), mainSha256: sha(item.mainSha256, "mainSha256") };
   });
   const cleanup = object(root.cleanupEvidence, "cleanupEvidence"); exactKeys(cleanup, ["path", "sha256"], ["path", "sha256"], "cleanupEvidence");
-  return { schemaVersion: 1, implementationCommit: commit(root.implementationCommit, "implementationCommit"), acceptanceDigest: sha(root.acceptanceDigest, "acceptanceDigest"), releasePlanDigest: sha(root.releasePlanDigest, "releasePlanDigest"), specSync: sync, strictValidation: "PASS", cleanupEvidence: { path: text(cleanup.path, "cleanupEvidence.path"), sha256: sha(cleanup.sha256, "cleanupEvidence.sha256") }, prStarted: root.prStarted, migrationSource: root.migrationSource === null ? null : text(root.migrationSource, "migrationSource"), historicalPr: root.historicalPr === null ? null : text(root.historicalPr, "historicalPr"), attestedBy: text(root.attestedBy, "attestedBy"), attestedAt: text(root.attestedAt, "attestedAt"), result: root.result };
+  return { schemaVersion: 1, implementationCommit: commit(root.implementationCommit, "implementationCommit"), acceptanceDigest: sha(root.acceptanceDigest, "acceptanceDigest"), releasePlanDigest: sha(root.releasePlanDigest, "releasePlanDigest"), specSync: sync, strictValidation: "PASS", cleanupEvidence: { path: text(cleanup.path, "cleanupEvidence.path"), sha256: sha(cleanup.sha256, "cleanupEvidence.sha256") }, prStarted: root.prStarted, migrationSource: root.migrationSource === null ? null : text(root.migrationSource, "migrationSource"), historicalPr: root.historicalPr === null ? null : text(root.historicalPr, "historicalPr"), attestedBy: text(root.attestedBy, "attestedBy"), attestedAt: timestamp(root.attestedAt, "attestedAt"), result: root.result };
 }
 
 function inspectReviewState(changeRoot: string): Review {
   const review = parseReview(readJson(reviewPath(changeRoot)));
   const repo = repoRoot(changeRoot);
   if (spawnSync("git", ["merge-base", "--is-ancestor", review.reviewedCommit, "HEAD"], { cwd: repo }).status !== 0) fail("implementation review stale: reviewedCommit不是当前HEAD祖先");
-  const later = implementationPaths(repo, review.reviewedCommit, "HEAD");
+  const later = implementationPaths(repo, review.reviewedCommit, "HEAD", changeRoot);
   if (later.length) fail(`implementation review stale: review后实现路径变化 ${later.join(", ")}`);
-  const dirty = dirtyImplementationPaths(repo);
+  const dirty = dirtyImplementationPaths(repo, changeRoot);
   if (dirty.length) fail(`implementation review stale: 工作树实现路径变化 ${dirty.join(", ")}`);
-  const expected = reviewedPaths(repo, review.baselineCommit, review.reviewedCommit);
+  const expected = reviewedPaths(repo, review.baselineCommit, review.reviewedCommit, changeRoot);
   if (digest(expected) !== review.reviewedDigest || JSON.stringify(expected) !== JSON.stringify(review.reviewedPaths)) fail("implementation review stale: reviewedPaths摘要变化");
   if (review.findings.some((finding) => finding.status === "OPEN") || review.result !== "PASS") fail("implementation review未PASS或存在OPEN finding");
   return review;
@@ -187,7 +210,8 @@ function inspectAcceptanceState(changeRoot: string): Acceptance {
   const review = requireReview(changeRoot);
   const acceptance = parseAcceptance(readJson(acceptancePath(changeRoot)));
   const markdown = join(changeRoot, "08-验收/验收记录.md");
-  if (acceptance.result !== "PASS" || acceptance.implementationCommit !== review.reviewedCommit || acceptance.reviewDigest !== sha256File(reviewPath(changeRoot)) || !existsSync(markdown) || acceptance.acceptanceDigest !== sha256File(markdown)) fail("acceptance-state stale或未PASS");
+  const taskState = join(changeRoot, "task-state.json");
+  if (acceptance.result !== "PASS" || acceptance.implementationCommit !== review.reviewedCommit || acceptance.reviewDigest !== sha256File(reviewPath(changeRoot)) || !existsSync(taskState) || acceptance.taskStateDigest !== sha256File(taskState) || !existsSync(markdown) || acceptance.acceptanceDigest !== sha256File(markdown)) fail("acceptance-state stale或未PASS");
   return acceptance;
 }
 export function requireAcceptance(changeRoot: string): Acceptance { return inspectAcceptanceState(changeRoot); }
@@ -217,9 +241,9 @@ function reviewWrite(changeRoot: string, inputPath: string): void {
   const repo = repoRoot(changeRoot); const baseline = commit(input.baselineCommit, "baselineCommit"); const reviewed = commit(input.reviewedCommit, "reviewedCommit");
   if (spawnSync("git", ["merge-base", "--is-ancestor", baseline, reviewed], { cwd: repo }).status !== 0) fail("baselineCommit不是reviewedCommit祖先");
   if (git(repo, ["rev-parse", "HEAD"]).toString("utf8").trim() !== reviewed) fail("reviewedCommit必须等于当前HEAD");
-  const dirty = dirtyImplementationPaths(repo); if (dirty.length) fail(`Review写入前实现路径必须clean: ${dirty.join(", ")}`);
-  const findings = input.findings.map(parseFinding); const paths = reviewedPaths(repo, baseline, reviewed); const result = findings.some((finding) => finding.status === "OPEN") ? "FAIL" : "PASS";
-  const review: Review = { schemaVersion: 1, baselineCommit: baseline, reviewedCommit: reviewed, reviewedPaths: paths, reviewedDigest: digest(paths), reviewer: text(input.reviewer, "reviewer"), reviewedAt: text(input.reviewedAt, "reviewedAt"), findings, result };
+  const dirty = dirtyImplementationPaths(repo, changeRoot); if (dirty.length) fail(`Review写入前实现路径必须clean: ${dirty.join(", ")}`);
+  const paths = reviewedPaths(repo, baseline, reviewed, changeRoot); const findings = input.findings.map(parseFinding); validateFindings(findings, paths); const result = findings.some((finding) => finding.status === "OPEN") ? "FAIL" : "PASS";
+  const review: Review = { schemaVersion: 1, baselineCommit: baseline, reviewedCommit: reviewed, reviewedPaths: paths, reviewedDigest: digest(paths), reviewer: text(input.reviewer, "reviewer"), reviewedAt: timestamp(input.reviewedAt, "reviewedAt"), findings, result };
   withFileLock(lockPath(changeRoot), () => atomicWriteJson(reviewPath(changeRoot), review));
   console.log(JSON.stringify(review, null, 2));
 }
@@ -228,7 +252,8 @@ function acceptanceWrite(changeRoot: string, inputPath: string): void {
   const review = requireReview(changeRoot); const tasks = object(readJson(join(changeRoot, "task-state.json")), "task-state");
   if (!Array.isArray(tasks.tasks) || tasks.tasks.some((value) => object(value, "task").state !== "verified")) fail("Acceptance前全部任务必须verified");
   const markdown = join(changeRoot, "08-验收/验收记录.md"); if (!existsSync(markdown) || !/^结论:\s*PASS\s*$/m.test(readFileSync(markdown, "utf8"))) fail("Acceptance正文必须严格PASS");
-  const state: Acceptance = { schemaVersion: 1, implementationCommit: review.reviewedCommit, reviewDigest: sha256File(reviewPath(changeRoot)), acceptanceDigest: sha256File(markdown), acceptedBy: text(input.acceptedBy, "acceptedBy"), acceptedAt: text(input.acceptedAt, "acceptedAt"), result: "PASS" };
+  const taskState = join(changeRoot, "task-state.json");
+  const state: Acceptance = { schemaVersion: 1, implementationCommit: review.reviewedCommit, reviewDigest: sha256File(reviewPath(changeRoot)), taskStateDigest: sha256File(taskState), acceptanceDigest: sha256File(markdown), acceptedBy: text(input.acceptedBy, "acceptedBy"), acceptedAt: timestamp(input.acceptedAt, "acceptedAt"), result: "PASS" };
   withFileLock(lockPath(changeRoot), () => atomicWriteJson(acceptancePath(changeRoot), state)); console.log(JSON.stringify(state, null, 2));
 }
 function readinessWrite(changeRoot: string, inputPath: string): void {
@@ -249,7 +274,7 @@ function readinessWrite(changeRoot: string, inputPath: string): void {
   const migration = migrationSource === "pre-v5-merged-change" && historicalPr !== null;
   if (input.prStarted && !migration) fail("正常Change必须声明prStarted=false");
   if (!input.prStarted && (migrationSource !== null || historicalPr !== null)) fail("正常Change不得使用历史迁移字段");
-  const state: Readiness = { schemaVersion: 1, implementationCommit: acceptance.implementationCommit, acceptanceDigest: sha256File(acceptancePath(changeRoot)), releasePlanDigest: sha256File(releasePlan), specSync: sync, strictValidation: "PASS", cleanupEvidence: { path: cleanupPath, sha256: sha256File(join(repo, cleanupPath)) }, prStarted: input.prStarted, migrationSource, historicalPr, attestedBy: text(input.attestedBy, "attestedBy"), attestedAt: text(input.attestedAt, "attestedAt"), result: "READY" };
+  const state: Readiness = { schemaVersion: 1, implementationCommit: acceptance.implementationCommit, acceptanceDigest: sha256File(acceptancePath(changeRoot)), releasePlanDigest: sha256File(releasePlan), specSync: sync, strictValidation: "PASS", cleanupEvidence: { path: cleanupPath, sha256: sha256File(join(repo, cleanupPath)) }, prStarted: input.prStarted, migrationSource, historicalPr, attestedBy: text(input.attestedBy, "attestedBy"), attestedAt: timestamp(input.attestedAt, "attestedAt"), result: "READY" };
   withFileLock(lockPath(changeRoot), () => atomicWriteJson(readinessPath(changeRoot), state)); console.log(JSON.stringify(state, null, 2));
 }
 function renderReopenedTasks(changeRoot: string): void {

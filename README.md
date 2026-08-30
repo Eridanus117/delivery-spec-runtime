@@ -193,8 +193,8 @@ openspec validate <change> --strict
 
 05 必须先形成独立方案提案，呈现候选和 Trade-off；维护者明确批准方案决策后才能生成实施计划。
 实现任务以 `task-state.json` 为真源。完成实现后，`implementation-review.json` 绑定 baseline→reviewed
-的全部实现路径；08 验收通过 `acceptance-state.json` 绑定当前 Review；Spec Sync、strict validation、
-cleanup 和 `prStarted=false` 再汇入 `archive-readiness.json`。
+的全部实现路径；08 验收通过 `acceptance-state.json` 绑定当前 Review、任务状态和验收正文；
+Spec Sync、strict validation、cleanup 和 `prStarted=false` 再汇入 `archive-readiness.json`。
 
 ```mermaid
 flowchart LR

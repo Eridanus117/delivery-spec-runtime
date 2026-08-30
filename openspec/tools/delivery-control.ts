@@ -176,10 +176,16 @@ function taskSet(root: string, options: Map<string, string>): void {
   withFileLock(lockPath(root), () => { const state = parseTasks(tasksPath(root)); const task = state.tasks.find((item) => item.id === requiredOption(options, "id")); if (!task) fail("未知 task id"); const next = requiredOption(options, "state"); if (!( ["planned", "implemented_unverified", "blocked_external", "verified"] as string[]).includes(next)) fail("任务状态非法"); task.state = next as TaskStateName; task.evidence = options.has("evidence") ? [requiredOption(options, "evidence")] : []; task.blocker = options.has("blocker") ? requiredOption(options, "blocker") : null; parseTask(task, 0); atomicWriteJson(tasksPath(root), state); console.log(JSON.stringify(state, null, 2)); });
 }
 function renderTasks(root: string): void {
-  const state = parseTasks(tasksPath(root)); const byId = new Map(state.tasks.map((task) => [task.id, task])); let content = existsSync(taskMarkdownPath(root)) ? readFileSync(taskMarkdownPath(root), "utf8") : "# 实施任务\n"; const seen = new Set<string>();
-  content = content.split(/\r?\n/).map((line) => { const match = /^- \[[ xX]\]\s+(\d+\.\d+)\s+(?:\[[^\]]+\]\s+)?(.*)$/.exec(line); if (!match) return line; const task = byId.get(match[1]); if (!task) return line; seen.add(task.id); return `- [${task.state === "verified" ? "x" : " "}] ${task.id} [${task.state}] ${match[2]}`; }).join("\n");
-  for (const task of state.tasks) if (!seen.has(task.id)) content += `\n- [${task.state === "verified" ? "x" : " "}] ${task.id} [${task.state}]\n  - 交付物：${task.deliverables.join("；")}\n  - 验证：${task.verification.join("；")}`;
-  writeFileSync(taskMarkdownPath(root), `${content.replace(/\n+$/, "")}\n`, "utf8"); verifyTaskProjection(root, state); console.log(JSON.stringify({ path: taskMarkdownPath(root), tasks: state.tasks.length }, null, 2));
+  const state = parseTasks(tasksPath(root));
+  let content = "# 实现任务拆分\n\n> 状态真源：`task-state.json`。本文件由 `delivery-control.ts task render` 生成，只用于人工审阅；禁止反向解析复选框。\n";
+  for (const task of state.tasks) {
+    content += `\n- [${task.state === "verified" ? "x" : " "}] ${task.id} [${task.state}]\n`;
+    content += `  - 交付物：${task.deliverables.join("；")}\n`;
+    content += `  - 验证：${task.verification.join("；")}`;
+  }
+  writeFileSync(taskMarkdownPath(root), `${content.replace(/\n+$/, "")}\n`, "utf8");
+  verifyTaskProjection(root, state);
+  console.log(JSON.stringify({ path: taskMarkdownPath(root), tasks: state.tasks.length }, null, 2));
 }
 function guard(root: string, operation: string): void {
   parseInfo(infoPath(root)); const approvals = parseApprovals(approvalsPath(root)); const mode = parseMode(root);

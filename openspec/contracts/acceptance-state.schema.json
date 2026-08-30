@@ -4,11 +4,12 @@
   "title": "Acceptance State",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "implementationCommit", "reviewDigest", "acceptanceDigest", "acceptedBy", "acceptedAt", "result"],
+  "required": ["schemaVersion", "implementationCommit", "reviewDigest", "taskStateDigest", "acceptanceDigest", "acceptedBy", "acceptedAt", "result"],
   "properties": {
     "schemaVersion": { "const": 1 },
     "implementationCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
     "reviewDigest": { "$ref": "#/$defs/sha256" },
+    "taskStateDigest": { "$ref": "#/$defs/sha256" },
     "acceptanceDigest": { "$ref": "#/$defs/sha256" },
     "acceptedBy": { "type": "string", "minLength": 1 },
     "acceptedAt": { "type": "string", "format": "date-time" },

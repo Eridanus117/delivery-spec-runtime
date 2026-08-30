@@ -33,7 +33,9 @@ function prepareChange(repo: string): { change: string; baseline: string; review
   write(join(change, "task-state.json"), `${JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "verified", deliverables: ["src/app.ts"], verification: ["node --test"], evidence: ["PASS"], blocker: null }] }, null, 2)}\n`);
   let result = runTool("delivery-control.ts", ["init", "--change-root", change, "--slug", "demo-change", "--display-name", "演示", "--mode", "delivery"], { cwd: repo }); assert.equal(result.status, 0, result.stderr);
   for (const artifact of artifacts) { result = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", artifact, "--decision", "approved", "--approved-by", "tester"], { cwd: repo }); assert.equal(result.status, 0, result.stderr); }
-  write(join(repo, "src/app.ts"), "export const value = 1;\n"); git(repo, ["add", "."]); git(repo, ["commit", "-qm", "implementation"]); const reviewed = git(repo, ["rev-parse", "HEAD"]);
+  write(join(repo, "src/app.ts"), "export const value = 1;\n");
+  write(join(repo, "openspec/changes/another-change/notes.md"), "cross-change evidence\n");
+  git(repo, ["add", "."]); git(repo, ["commit", "-qm", "implementation"]); const reviewed = git(repo, ["rev-parse", "HEAD"]);
   return { change, baseline, reviewed };
 }
 
@@ -43,7 +45,7 @@ test("Review绑定完整实现范围并在实现漂移时失效", () => {
     const { change, baseline, reviewed } = prepareChange(repo);
     const input = join(change, "review-input.json"); write(input, `${JSON.stringify({ schemaVersion: 1, baselineCommit: baseline, reviewedCommit: reviewed, reviewer: "reviewer", reviewedAt: "2026-08-30T12:00:00Z", findings: [] }, null, 2)}\n`);
     let result = runTool("delivery-lifecycle.ts", ["review", "write", "--change-root", change, "--file", input], { cwd: repo }); assert.equal(result.status, 0, result.stderr);
-    const review = JSON.parse(readFileSync(join(change, "implementation-review.json"), "utf8")); assert.deepEqual(review.reviewedPaths.map((item: { path: string }) => item.path), ["src/app.ts"]); assert.equal(review.result, "PASS");
+    const review = JSON.parse(readFileSync(join(change, "implementation-review.json"), "utf8")); assert.deepEqual(review.reviewedPaths.map((item: { path: string }) => item.path), ["openspec/changes/another-change/notes.md", "src/app.ts"]); assert.equal(review.result, "PASS");
     result = runTool("delivery-lifecycle.ts", ["review", "inspect", "--change-root", change], { cwd: repo }); assert.equal(result.status, 0, result.stderr);
     write(join(repo, "src/app.ts"), "export const value = 2;\n"); result = runTool("delivery-lifecycle.ts", ["review", "inspect", "--change-root", change], { cwd: repo }); assert.notEqual(result.status, 0); assert.match(result.stderr, /stale/);
     git(repo, ["checkout", "--", "src/app.ts"]);
@@ -61,6 +63,10 @@ test("Acceptance与Archive Readiness取代Markdown关键词并支持受控reopen
     write(join(change, "08-验收/验收记录.md"), "# 验收\n结论: PASS\n"); write(join(change, "08-验收/cleanup/cleanup.md"), "结论: PASS\n");
     const acceptanceInput = join(change, "acceptance-input.json"); write(acceptanceInput, JSON.stringify({ schemaVersion: 1, acceptedBy: "maintainer", acceptedAt: "2026-08-30T12:01:00Z" }));
     result = runTool("delivery-lifecycle.ts", ["acceptance", "write", "--change-root", change, "--file", acceptanceInput], { cwd: repo }); assert.equal(result.status, 0, result.stderr);
+    const taskStatePath = join(change, "task-state.json"); const originalTaskState = readFileSync(taskStatePath, "utf8");
+    write(taskStatePath, originalTaskState.replace("\"PASS\"", "\"PASS-drift\""));
+    result = runTool("delivery-lifecycle.ts", ["acceptance", "inspect", "--change-root", change], { cwd: repo }); assert.notEqual(result.status, 0); assert.match(result.stderr, /stale/);
+    write(taskStatePath, originalTaskState);
     write(join(change, "09-发布/发布计划.md"), "# 发布计划\nrelease-not-required\n");
     result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "archive"], { cwd: repo }); assert.notEqual(result.status, 0); assert.match(result.stderr, /archive-readiness/);
     const delta = "openspec/changes/demo-change/specs/example/spec.md"; const main = "openspec/specs/example/spec.md"; write(join(repo, main), readFileSync(join(repo, delta), "utf8"));
