@@ -1,0 +1,16 @@
+✔ registry 提供两个 profile 且 profile 版本必须精确匹配 (105.9834ms)
+✔ workflow core 按阶段返回 blocked、waiting、in_progress 和 completed (1.0845ms)
+✔ workflow core 拒绝跳阶段和伪造完成阶段 (0.5411ms)
+✔ workflow core 不把继承属性当作输入 (0.1468ms)
+✔ profile 合同拒绝重复阶段和未知字段 (0.1777ms)
+✔ workflow CLI 固定 Change binding 并拒绝静默切换 (515.6522ms)
+✔ runtime-entry 暴露 workflow 命令且保持入口校验 (509.4068ms)
+✔ 公开候选清单包含 workflow runtime 资产 (1.1625ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1242.5017

@@ -1,9 +1,12 @@
 #!/usr/bin/env -S node --experimental-strip-types
 import { existsSync, lstatSync, readFileSync, readlinkSync, realpathSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import { execFileSync, spawnSync } from "node:child_process";
 
 type LinkContract = { link: string; source: string };
+
+type RuntimeBinding = { assetRoot: string; runtimeRoot: string; sourceRoot: boolean };
 type Manifest = {
   schemaVersion: 2;
   schemaName: "delivery-change";
@@ -17,14 +20,33 @@ function git(root: string, args: string[]): string {
   try { return execFileSync("git", args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim(); }
   catch (error) { fail(`Git检查失败: ${error instanceof Error ? error.message : String(error)}`); }
 }
-function findAssetRoot(start: string): string {
+function sourceRootFromScript(): string {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+  if (!existsSync(join(root, "runtime-manifest.json"))) fail("Runtime 源仓缺少 runtime-manifest.json");
+  return root;
+}
+function samePath(left: string, right: string): boolean {
+  let leftResolved = resolve(left).toLowerCase();
+  let rightResolved = resolve(right).toLowerCase();
+  try { leftResolved = realpathSync(left).toLowerCase(); } catch {}
+  try { rightResolved = realpathSync(right).toLowerCase(); } catch {}
+  return leftResolved === rightResolved;
+}
+function findConsumerRoot(start: string): string {
   let current = resolve(start);
   for (;;) {
     if (existsSync(join(current, ".gitmodules")) && existsSync(join(current, ".delivery-spec-runtime", "runtime-manifest.json"))) return current;
     const parent = dirname(current);
-    if (parent === current) fail("未找到已初始化的 .delivery-spec-runtime submodule；请执行 git submodule update --init --recursive");
+    if (parent === current) fail("运行时未初始化：未找到已初始化的 .delivery-spec-runtime submodule；请执行 git submodule update --init --recursive");
     current = parent;
   }
+}
+function resolveBinding(start: string, explicitAssetRoot: string | null): RuntimeBinding {
+  const sourceRoot = sourceRootFromScript();
+  const candidate = resolve(explicitAssetRoot ?? start);
+  if (samePath(candidate, sourceRoot)) return { assetRoot: sourceRoot, runtimeRoot: sourceRoot, sourceRoot: true };
+  const assetRoot = findConsumerRoot(candidate);
+  return { assetRoot, runtimeRoot: join(assetRoot, ".delivery-spec-runtime"), sourceRoot: false };
 }
 function safeRelative(path: string, label: string): string {
   if (!path || isAbsolute(path) || path.split(/[\\/]/).some((segment) => segment === ".." || segment === "")) fail(`${label} 必须是安全相对路径: ${path}`);
@@ -85,6 +107,12 @@ function verifyLinks(assetRoot: string, runtimeRoot: string, links: LinkContract
     if (realpathSync(link) !== realpathSync(source)) fail(`运行时软链目标漂移: ${contract.link}`);
   }
 }
+function verifySourceLinks(runtimeRoot: string, links: LinkContract[]): void {
+  for (const contract of links) {
+    const source = inside(runtimeRoot, contract.source, "source");
+    if (!existsSync(source)) fail(`运行时 source 不存在: ${contract.source}`);
+  }
+}
 function verifyBootstrapState(assetRoot: string): void {
   const path = join(assetRoot, "openspec/bootstrap-state.json");
   if (!existsSync(path)) return;
@@ -98,19 +126,26 @@ function verifyBootstrapState(assetRoot: string): void {
 function main(): void {
   const argv = process.argv.slice(2);
   const assetIndex = argv.indexOf("--asset-root");
-  const assetRoot = assetIndex >= 0 ? resolve(argv[assetIndex + 1] ?? fail("--asset-root 缺少值")) : findAssetRoot(process.cwd());
+  const explicitAssetRoot = assetIndex >= 0 ? resolve(argv[assetIndex + 1] ?? fail("--asset-root 缺少值")) : null;
   if (assetIndex >= 0) argv.splice(assetIndex, 2);
-  const runtimeRoot = join(assetRoot, ".delivery-spec-runtime");
-  if (!existsSync(join(runtimeRoot, "runtime-manifest.json"))) fail(".delivery-spec-runtime 未初始化；请执行 git submodule update --init --recursive");
-  const manifest = parseManifest(join(runtimeRoot, "runtime-manifest.json"));
-  verifySubmoduleRegistration(assetRoot, manifest.submodule.path);
-  const expectedCommit = expectedGitlink(assetRoot, manifest.submodule.path);
-  const actualCommit = git(runtimeRoot, ["rev-parse", "HEAD"]);
-  if (actualCommit !== expectedCommit) fail(`运行时 gitlink 漂移: expected=${expectedCommit} actual=${actualCommit}`);
-  const runtimeStatus = git(runtimeRoot, ["status", "--porcelain"]);
-  if (runtimeStatus) fail(`运行时 submodule 包含未提交修改，拒绝执行: ${runtimeStatus}`);
-  if (git(assetRoot, ["status", "--porcelain", "--", manifest.submodule.path])) fail("父仓记录的 runtime submodule 状态漂移，拒绝执行");
-  verifyLinks(assetRoot, runtimeRoot, manifest.submodule.links);
+  const binding = resolveBinding(process.cwd(), explicitAssetRoot);
+  const assetRoot = binding.assetRoot;
+  const runtimeRoot = binding.runtimeRoot;
+  const manifestPath = join(runtimeRoot, "runtime-manifest.json");
+  if (!existsSync(manifestPath)) fail(".delivery-spec-runtime 未初始化；请执行 git submodule update --init --recursive");
+  const manifest = parseManifest(manifestPath);
+  if (binding.sourceRoot) {
+    verifySourceLinks(runtimeRoot, manifest.submodule.links);
+  } else {
+    verifySubmoduleRegistration(assetRoot, manifest.submodule.path);
+    const expectedCommit = expectedGitlink(assetRoot, manifest.submodule.path);
+    const actualCommit = git(runtimeRoot, ["rev-parse", "HEAD"]);
+    if (actualCommit !== expectedCommit) fail(`运行时 gitlink 漂移: expected=${expectedCommit} actual=${actualCommit}`);
+    const runtimeStatus = git(runtimeRoot, ["status", "--porcelain"]);
+    if (runtimeStatus) fail(`运行时 submodule 包含未提交修改，拒绝执行: ${runtimeStatus}`);
+    if (git(assetRoot, ["status", "--porcelain", "--", manifest.submodule.path])) fail("父仓记录的 runtime submodule 状态漂移，拒绝执行");
+    verifyLinks(assetRoot, runtimeRoot, manifest.submodule.links);
+  }
   verifyBootstrapState(assetRoot);
   if (!atLeast(process.versions.node, manifest.node.minimum)) fail(`Node版本不满足运行时合同: ${process.versions.node}`);
   if (argv[0] === "runtime-update") {
@@ -119,9 +154,11 @@ function main(): void {
   const openspecVersion = execFileSync(process.platform === "win32" ? "openspec.cmd" : "openspec", ["--version"], { encoding: "utf8", shell: process.platform === "win32" }).trim().replace(/^v/, "");
   if (openspecVersion !== manifest.openspec.required) fail(`OpenSpec版本不满足运行时合同: ${openspecVersion}`);
   const lifecycle = argv[0] === "lifecycle";
-  const tool = lifecycle ? "delivery-lifecycle.ts" : "delivery-control.ts";
-  const forwarded = lifecycle ? argv.slice(1) : argv;
-  const result = spawnSync(process.execPath, ["--experimental-strip-types", join(runtimeRoot, `openspec/tools/${tool}`), ...forwarded, "--asset-root", assetRoot], { cwd: assetRoot, stdio: "inherit" });
+  const workflow = argv[0] === "workflow";
+  const tool = workflow ? "workflow-control.ts" : lifecycle ? "delivery-lifecycle.ts" : "delivery-control.ts";
+  const forwarded = workflow || lifecycle ? argv.slice(1) : argv;
+  const internalArgs = workflow ? ["--runtime-root", runtimeRoot] : [];
+  const result = spawnSync(process.execPath, ["--experimental-strip-types", join(runtimeRoot, `openspec/tools/${tool}`), ...forwarded, ...internalArgs, "--asset-root", assetRoot], { cwd: assetRoot, stdio: "inherit" });
   if (result.error) throw result.error;
   process.exitCode = result.status ?? 1;
 }

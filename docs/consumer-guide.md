@@ -9,6 +9,14 @@
 - OpenSpec CLI 版本等于 manifest 锁定的精确版本；
 - 父仓工作树中不存在需要被三条受管软链覆盖的未保存文件。
 
+## 需求进入与 Change 边界
+
+消费仓的业务需求不属于 Runtime 仓。需求尚未决定实施时，先在消费仓自己的 Intake、Issue 或分析记录中澄清问题、影响、边界和候选方向；可以使用 `/opsx-explore` 读取代码、现有 spec 和相关资料，但不得修改项目实现。
+
+只有决定进入正式交付后，才在消费仓创建 `openspec/changes/<change>/`。Change 内应保留原始需求来源，并将需求理解、业务/技术现状、方案决策、测试方案和实施任务分别写入对应工件；不需要再建立一个游离的“需求分析.md”。这样，分析结论可以进入后续 `/opsx-apply`、Review、Acceptance 和归档门禁的追溯链。
+
+不要把消费仓的业务需求、凭据、请求响应或交付证据写回 `delivery-spec-runtime`；Runtime 只保存公共工作流及 Runtime 自身 Change。
+
 ## 首次接入
 
 在消费仓根目录执行：
@@ -118,6 +126,26 @@ node --experimental-strip-types \
 | 受管软链缺失或漂移 | 路径被替换或移动 | 缺失时执行 `runtime-link.ts apply`；漂移时核对内容后增加 `--replace-managed` | 提交修复后运行 `runtime-check` |
 | Node/OpenSpec 版本不符 | 本机工具版本漂移 | 安装 manifest 要求的 Node 最低版本和 OpenSpec 精确版本 | `runtime-check` |
 | `runtime-update` 被拒绝 | Runtime 的预期安全行为 | 在 Runtime 仓建立独立升级 Change | 不得绕过 |
+
+## 选择 Workflow Profile
+
+Runtime 只从固定 commit 的 `openspec/profiles/registry.json` 读取 profile。消费仓在 Change 根显式绑定 profile 后，才可以构造并执行 workflow request：
+
+```bash
+node --experimental-strip-types \
+  .delivery-spec-runtime/openspec/tools/runtime-entry.ts \
+  workflow list-profiles
+node --experimental-strip-types \
+  .delivery-spec-runtime/openspec/tools/runtime-entry.ts \
+  workflow bind --change-root openspec/changes/<change> \
+  --profile-id light-change --profile-version v1.0.0
+node --experimental-strip-types \
+  .delivery-spec-runtime/openspec/tools/runtime-entry.ts \
+  workflow run --change-root openspec/changes/<change> \
+  --request-file request.json
+```
+
+`list-profiles` 返回阶段的 `id`、展示名、必需输入和人工判断标志；`bind` 只允许建立一次固定绑定。`run` 会读取 Change 根的 `workflow-binding.json`，校验 request 中的 profile 身份与版本完全一致，并只接受已完成阶段的连续前缀。未绑定、绑定冲突、请求不匹配、阶段越序或伪造阶段完成都会返回机器可读的 `rejected`；缺少当前阶段输入或人工判断分别返回 `blocked` 或 `waiting_human_judgment`。
 
 ## 禁止操作
 

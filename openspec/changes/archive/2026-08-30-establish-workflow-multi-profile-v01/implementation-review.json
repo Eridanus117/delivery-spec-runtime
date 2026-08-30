@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "17aba1ab6ea2a9ebbccb3c5e6791fd4034d4a160",
+  "reviewedCommit": "bdaead9e78ca4dc18a5e4e69c91532cb8b4d1e02",
+  "reviewedPaths": [
+    {
+      "path": ".omp/command-sources/runtime-preamble.md",
+      "exists": true,
+      "sha256": "sha256:5c97469ba0a8243cce0326127dbed1ef71aef645e0f5384bd3cb21bd36c7e555"
+    },
+    {
+      "path": ".omp/commands/opsx-apply.md",
+      "exists": true,
+      "sha256": "sha256:8f511634e315a7fbf84d642afca7d7faee9a59657993521abccf61815aeb7d7a"
+    },
+    {
+      "path": ".omp/commands/opsx-archive.md",
+      "exists": true,
+      "sha256": "sha256:d3366facd058e4ee719c606f770f42f1c6a9cefaa2bd141041fb83d2a5a24627"
+    },
+    {
+      "path": ".omp/commands/opsx-continue.md",
+      "exists": true,
+      "sha256": "sha256:1eb03cd1368eddf6a5c2d9fef2de3ae0c002edfeebd086d0a4e8ea465d7d365b"
+    },
+    {
+      "path": ".omp/commands/opsx-explore.md",
+      "exists": true,
+      "sha256": "sha256:64958409c0baaa289568265d822e662577f2b45e3df4fef7bcfbaa74d434eda2"
+    },
+    {
+      "path": ".omp/commands/opsx-new.md",
+      "exists": true,
+      "sha256": "sha256:befbec7bff53175370df5e4f66ac73e2b09776a40c449ce89998b7489999826b"
+    },
+    {
+      "path": ".omp/commands/opsx-propose.md",
+      "exists": true,
+      "sha256": "sha256:1e70df3b0cee7af140b6b48af1003130d9c06d95b5c7b51ce9b97ba50d4d4efc"
+    },
+    {
+      "path": ".omp/commands/opsx-sync.md",
+      "exists": true,
+      "sha256": "sha256:c41475ff8f8d9d73f7a12097eed1e494dcb734dfeae0ce6a7ec2c2b5af4c8a7c"
+    },
+    {
+      "path": ".omp/commands/opsx-update.md",
+      "exists": true,
+      "sha256": "sha256:bf2cb9bbb1d575a1efb87861c8d1fc96042a78abeb849d47ac5900c8855a2c1a"
+    },
+    {
+      "path": ".omp/commands/opsx-verify.md",
+      "exists": true,
+      "sha256": "sha256:fd7e145afbf04b006aadf4b163e98301a9a8bf87e9c28642668f6a87808e72a0"
+    },
+    {
+      "path": "README.md",
+      "exists": true,
+      "sha256": "sha256:a65939a73863253535be6d7d0095699a55dfb63a2a3cfb69d488ccffa08b73a8"
+    },
+    {
+      "path": "docs/architecture.md",
+      "exists": true,
+      "sha256": "sha256:b39be9b5d16ddfbc34630c4c46efc93333323ac4feab4026e70e13147d228f3f"
+    },
+    {
+      "path": "docs/consumer-guide.md",
+      "exists": true,
+      "sha256": "sha256:a7bcadcc9723290cf240fa7bee4899914333514015155255bf567ae69dcf0e91"
+    },
+    {
+      "path": "docs/governance.md",
+      "exists": true,
+      "sha256": "sha256:f0baa789c561ae89d649bfc45a8a2722167e1fef08593c9e177d3dacca897b54"
+    },
+    {
+      "path": "docs/maintainer-guide.md",
+      "exists": true,
+      "sha256": "sha256:6b7984af77aa5ad146de8b85c71c31e243a1bedff0097f1c6926198ae8be9520"
+    },
+    {
+      "path": "docs/workflow-guide.md",
+      "exists": true,
+      "sha256": "sha256:0f47a1c14a00a286a694fe091eff5491d838fa4d604726a09f7741c1b009caa1"
+    },
+    {
+      "path": "openspec/changes/establish-workflow-v01-contract/.openspec.yaml",
+      "exists": true,
+      "sha256": "sha256:ab80b9624a4867c4a76f083fb0fb54c1dc34275d5669ce3e33a7680c4db397c0"
+    },
+    {
+      "path": "openspec/changes/establish-workflow-v01-contract/01-原始需求/原始需求索引.md",
+      "exists": true,
+      "sha256": "sha256:3926a7845a4e492b226d281b2c3888fd30b623d30aca7deb4f1bfc7b5c3fc5ff"
+    },
+    {
+      "path": "openspec/changes/establish-workflow-v01-contract/03-业务现状/业务现状.md",
+      "exists": true,
+      "sha256": "sha256:bd7ab158d1bc18e16c746e2d85fe31bba32f3256ab43fb266a559f4f6148bc37"
+    },
+    {
+      "path": "openspec/changes/establish-workflow-v01-contract/04-技术现状/技术现状.md",
+      "exists": true,
+      "sha256": "sha256:71b68ef49a34cedb3d136c2fda958c2f595c50a0196fac3aef9ff6dfdd1f911a"
+    },
+    {
+      "path": "openspec/changes/establish-workflow-v01-contract/05-改造方案/改造方案.md",
+      "exists": true,
+      "sha256": "sha256:a6e26d2ab12dc68dc9cc41479e7c4e0e8ed29e704466532730249f8bc9328476"
+    },
+    {
+      "path": "openspec/changes/establish-workflow-v01-contract/05-改造方案/方案决策.md",
+      "exists": true,
+      "sha256": "sha256:40290ce965b9383a308867d2ef1919b84a4780224044ea739ae194d0a4a42e6a"
+    },
+    {
+      "path": "openspec/changes/establish-workflow-v01-contract/05-改造方案/方案提案.md",
+      "exists": true,
+      "sha256": "sha256:c5596fa74b69bdf3656c903aa1771b1f09d7afe7b6fa944fefcf325eb81d53bc"
+    },
+    {
+      "path": "openspec/changes/establish-workflow-v01-contract/06-测试方案/测试方案.md",
+      "exists": true,
+      "sha256": "sha256:1855948acb0ebd4cdf96bbb537e94a812ee723d56f636b37e8249aae6792091b"
+    },
+    {
+      "path": "openspec/changes/establish-workflow-v01-contract/artifact-approvals.json",
+      "exists": true,
+      "sha256": "sha256:3745d70a32362f9d4ce36d51036ab20534cc276683861ccf694f0212d5402fb1"
+    },
+    {
+      "path": "openspec/changes/establish-workflow-v01-contract/change-info.json",
+      "exists": true,
+      "sha256": "sha256:d9ecd86862985f303d08385df54090b0a92d7bf0d0d8dc96c01c19d846cc327c"
+    },
+    {
+      "path": "openspec/changes/establish-workflow-v01-contract/change-sources.json",
+      "exists": true,
+      "sha256": "sha256:693461c72f3e575d65f75d0e5544fa385ce163a1ebb326bc49a32ab23fd4fc60"
+    },
+    {
+      "path": "openspec/changes/establish-workflow-v01-contract/specs/workflow-execution/spec.md",
+      "exists": true,
+      "sha256": "sha256:44c5198d17f1187aa4df87813f83b8cbce4d041744a2a6c9ee52c4f94e759114"
+    },
+    {
+      "path": "openspec/changes/establish-workflow-v01-contract/task-state.json",
+      "exists": true,
+      "sha256": "sha256:d29a8100c70cb8f75cc5c9a07c3c01305d73424194d1d97679657087a41bed51"
+    },
+    {
+      "path": "openspec/contracts/workflow-binding.schema.json",
+      "exists": true,
+      "sha256": "sha256:8bc706e5e8c06877d2976f3d104b7382e9cc84044e15b287c529da5b478d8325"
+    },
+    {
+      "path": "openspec/contracts/workflow-profile.schema.json",
+      "exists": true,
+      "sha256": "sha256:b43d6075b7f2c931f0dc9c2fa90ceef66273eae8a7e12425bcf0b46ebbd3a665"
+    },
+    {
+      "path": "openspec/contracts/workflow-registry.schema.json",
+      "exists": true,
+      "sha256": "sha256:8a3b90ab744020a375575b35713953976c81968c438b21dc1acc155a4e104e0c"
+    },
+    {
+      "path": "openspec/contracts/workflow-request.schema.json",
+      "exists": true,
+      "sha256": "sha256:b4385151bb99b870958aa9445ae867e45ef771a9a6e1bd251c34df52b996de99"
+    },
+    {
+      "path": "openspec/contracts/workflow-result.schema.json",
+      "exists": true,
+      "sha256": "sha256:44f21f8befa1c424226aaf3c171608089c89070662d0ef74e0ef485c5ee44921"
+    },
+    {
+      "path": "openspec/profiles/delivery-change-v1.json",
+      "exists": true,
+      "sha256": "sha256:2147d4632fc8dae1ce2becaa54adf84cee410da3ebb5220677b081f39018430b"
+    },
+    {
+      "path": "openspec/profiles/light-change-v1.json",
+      "exists": true,
+      "sha256": "sha256:f44cfbe047fe6b849460a8e5d309e83c6f7596d6001658c76222159a93bc8000"
+    },
+    {
+      "path": "openspec/profiles/registry.json",
+      "exists": true,
+      "sha256": "sha256:66c62786ef7a51f537ef03e81b34b1bc75e0210edd720999d0e378ee677c7175"
+    },
+    {
+      "path": "openspec/tools/runtime-entry.ts",
+      "exists": true,
+      "sha256": "sha256:bf01703a0ebfbcc1d6a477eb9beeb714c19d988ce873dafbca20922fd53449c4"
+    },
+    {
+      "path": "openspec/tools/workflow-control.ts",
+      "exists": true,
+      "sha256": "sha256:1189d4a2fcc49d374a851888124c0f5d37b8091dba50132080e0313842bde2ea"
+    },
+    {
+      "path": "openspec/tools/workflow-core.ts",
+      "exists": true,
+      "sha256": "sha256:34e11a20e0ddd6792cbdc1b672db9ab0d1bb6d84ef9b1e81c877d3b6faa07935"
+    },
+    {
+      "path": "public-allowlist.json",
+      "exists": true,
+      "sha256": "sha256:c98894d660c6c4ea8475d3c925ef82ad8c3ad1d42e792b29f38b2e3a1b144987"
+    },
+    {
+      "path": "test/submodule.test.ts",
+      "exists": true,
+      "sha256": "sha256:c522610c0dbb2d48a17d3981271842bc07501e74263e88ee3eef307c62827643"
+    },
+    {
+      "path": "test/workflow.test.ts",
+      "exists": true,
+      "sha256": "sha256:0a95dcac240a65f499ffe2c1789e5016bf167d068eb0c8d5af7bf6c51283012c"
+    }
+  ],
+  "reviewedDigest": "sha256:3092d54ea33c84da723a31a66ec29cd2b12cf3e37f8b9f047d4b535784026af2",
+  "reviewer": "fresh-reviewer-session",
+  "reviewedAt": "2026-08-30T19:28:52.000Z",
+  "findings": [],
+  "result": "PASS"
+}

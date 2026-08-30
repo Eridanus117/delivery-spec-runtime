@@ -42,6 +42,14 @@
     "openspec/contracts/source-adapters.schema.json",
     "openspec/contracts/sources.schema.json",
     "openspec/contracts/task-state.schema.json",
+    "openspec/contracts/workflow-binding.schema.json",
+    "openspec/contracts/workflow-profile.schema.json",
+    "openspec/contracts/workflow-registry.schema.json",
+    "openspec/contracts/workflow-request.schema.json",
+    "openspec/contracts/workflow-result.schema.json",
+    "openspec/profiles/delivery-change-v1.json",
+    "openspec/profiles/light-change-v1.json",
+    "openspec/profiles/registry.json",
     "openspec/schemas/delivery-change/schema.yaml",
     "openspec/schemas/delivery-change/templates/acceptance.md",
     "openspec/schemas/delivery-change/templates/business-current.md",
@@ -62,6 +70,8 @@
     "openspec/tools/runtime-link.ts",
     "openspec/tools/render-commands.ts",
     "openspec/tools/runtime-lib.ts",
+    "openspec/tools/workflow-control.ts",
+    "openspec/tools/workflow-core.ts",
     "runtime-manifest.json"
   ],
   "forbiddenPathSegments": [

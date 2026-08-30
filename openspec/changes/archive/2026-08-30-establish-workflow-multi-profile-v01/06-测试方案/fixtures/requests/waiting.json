@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "matterId": "synthetic-waiting",
+  "binding": { "schemaVersion": 1, "profileId": "light-change", "profileVersion": "v1.0.0" },
+  "inputs": { "request": "synthetic request", "verification": "synthetic verification" },
+  "judgments": {},
+  "completedStages": ["intake"]
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "profileId": "light-change",
+  "profileVersion": "v1.0.0",
+  "displayName": "Synthetic Light",
+  "stages": [
+    { "id": "intake", "displayName": "Intake", "requiredInputs": ["request"], "humanJudgment": false },
+    { "id": "verification", "displayName": "Verification", "requiredInputs": ["verification"], "humanJudgment": true }
+  ]
+}

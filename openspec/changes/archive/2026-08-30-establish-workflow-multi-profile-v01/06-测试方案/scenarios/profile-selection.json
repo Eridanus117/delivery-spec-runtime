@@ -1,0 +1,5 @@
+{
+  "scenario": "PF-001",
+  "registry": "../fixtures/profiles/registry.json",
+  "expectedProfiles": ["delivery-change@v1.0.0", "light-change@v1.0.0"]
+}

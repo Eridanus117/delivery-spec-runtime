@@ -1,0 +1,7 @@
+- Validating...
+✓ spec/controlled-openspec-upgrades
+✓ spec/delivery-lifecycle-governance
+✓ change/establish-workflow-multi-profile-v01
+✓ change/establish-workflow-v01-contract
+✓ spec/runtime-upgrade-safety
+Totals: 5 passed, 0 failed (5 items)

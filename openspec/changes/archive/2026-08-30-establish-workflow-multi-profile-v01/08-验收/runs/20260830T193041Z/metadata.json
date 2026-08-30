@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "runId": "20260830T193041Z",
+  "implementationCommit": "bdaead9e78ca4dc18a5e4e69c91532cb8b4d1e02",
+  "runtime": "delivery-spec-runtime",
+  "node": "v25.2.1",
+  "openspec": "1.11.0",
+  "environment": "local Runtime source repository",
+  "startedAt": "2026-08-30T19:30:41.000Z",
+  "purpose": "验收 multi-profile workflow contracts, docs, strict validation and regression behavior"
+}

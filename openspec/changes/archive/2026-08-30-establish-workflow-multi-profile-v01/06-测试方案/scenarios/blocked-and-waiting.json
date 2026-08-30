@@ -1,0 +1,6 @@
+{
+  "scenarios": [
+    { "id": "PF-008", "request": "../fixtures/requests/blocked.json", "expectedStatus": "blocked" },
+    { "id": "PF-009", "request": "../fixtures/requests/waiting.json", "expectedStatus": "waiting_human_judgment" }
+  ]
+}

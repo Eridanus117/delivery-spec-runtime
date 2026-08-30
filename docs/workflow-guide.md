@@ -18,7 +18,9 @@
 ```mermaid
 flowchart LR
     Input[需求或问题]
+    Intake[需求分析与记录]
     Explore[可选调查]
+    Decision{是否承诺实施}
     Change[建立 Change]
     Plan[需求、方案与任务]
     Apply[修改项目实现]
@@ -26,8 +28,11 @@ flowchart LR
     Spec[同步长期 spec]
     Archive[归档证据]
 
-    Input --> Explore
-    Explore --> Change
+    Input --> Intake
+    Intake --> Explore
+    Explore --> Decision
+    Decision -->|否：保留问题与结论| Intake
+    Decision -->|是| Change
     Change --> Plan
     Plan --> Apply
     Apply --> Verify
@@ -35,7 +40,40 @@ flowchart LR
     Spec --> Archive
 ```
 
+需求分析不等于实现，也不必先创建一个空 Change。是否创建 Change 取决于是否已经决定进入正式交付；调查过程中可以读取代码、现有 spec 和外部资料，但不得修改项目实现。
+
+## 需求分析与 Change 的边界
+
+| 阶段 | 主要载体 | 应记录什么 | 是否修改项目实现 |
+|---|---|---|---|
+| 尚未承诺实施 | 项目仓的 `openspec/intake/`、Issue 或团队自己的分析记录 | 原始问题、来源、可核验观察、影响、边界、候选方向和当前处置 | 否 |
+| 已决定实施，正在规划 | `openspec/changes/<change>/` | 原始需求索引、正式 Requirement、业务/技术现状、方案提案与决策、测试方案、实施任务 | 否 |
+| 已批准规划，进入交付 | 同一个 Change 加项目源码、配置和测试 | 任务状态、验证证据、Review、Acceptance、Spec Sync 和归档证据 | 是；仅 `/opsx-apply` 修改项目实现 |
+
+`/opsx-explore` 适合第一阶段：帮助澄清问题、调查现状和比较方向，默认不建立 Change。确定要做之后使用 `/opsx-new` 或 `/opsx-propose` 建立 Change；不要把聊天记录、Issue 或 Intake 当作正式 Requirement 的唯一载体。
+
+Change 内不需要另造一个统一的“需求分析.md”。按分析性质填写既有工件：`01` 保留原始需求及来源，`02` 归一化 WHAT/WHY、范围、术语和可验收 Scenario，`03/04` 分别记录业务和技术现状，`05` 记录候选方案和维护者决策。这样既保留原意，也让后续实现、Review 和归档可以逐项追溯。
+
 Runtime 不会只生成一份静态方案。它把“为什么改、决定怎么改、实际改了什么、如何证明正确”保存在同一条可审计链中。
+
+## 多 Profile Workflow System
+
+Runtime 同一仓库可以注册多套 workflow profile。Profile 是可版本化的阶段合同；它定义阶段顺序、必需输入和需要人工判断的节点。每个 Change 必须显式绑定 `profileId` 与 `profileVersion`，执行时只解析该精确版本，不自动选择最新版本，也不跨仓扫描其他 profile。
+
+```text
+node --experimental-strip-types \
+  openspec/tools/runtime-entry.ts workflow list-profiles
+node --experimental-strip-types \
+  openspec/tools/runtime-entry.ts workflow bind \
+  --change-root openspec/changes/add-order-export \
+  --profile-id delivery-change --profile-version v1.0.0
+node --experimental-strip-types \
+  openspec/tools/runtime-entry.ts workflow run \
+  --change-root openspec/changes/add-order-export \
+  --request-file request.json
+```
+
+`workflow bind` 会把不可静默替换的 `workflow-binding.json` 写入 Change 根；`workflow run` 必须读取该持久绑定，并要求 request 中的 profile 身份和版本逐字段一致。重复绑定不同 profile 或版本、未绑定、绑定不存在或请求不匹配都会被拒绝。request 的 `completedStages` 只能是 profile 阶段的连续前缀，不能跳过输入或人工判断；缺少当前阶段输入返回 `blocked`，缺少当前阶段人工判断返回 `waiting_human_judgment`。
 
 ## 一个完整例子
 
