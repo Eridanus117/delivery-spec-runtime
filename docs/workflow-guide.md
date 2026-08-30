@@ -58,11 +58,16 @@ Runtime 不会只生成一份静态方案。它把“为什么改、决定怎么
 
 ## 多 Profile Workflow System
 
-Runtime 同一仓库可以注册多套 workflow profile。Profile 是可版本化的阶段合同；它定义阶段顺序、必需输入和需要人工判断的节点。每个 Change 必须显式绑定 `profileId` 与 `profileVersion`，执行时只解析该精确版本，不自动选择最新版本，也不跨仓扫描其他 profile。
+Runtime 同一仓库可以注册多套 workflow profile。Profile 是可版本化的阶段合同；它定义用途、适用范围、阶段顺序、每阶段输入、退出条件和人工判断节点。每个 Change 必须显式绑定 `profileId` 与 `profileVersion`，执行时只解析该精确版本，不自动选择最新版本，也不跨仓扫描其他 profile。
 
 ```text
 node --experimental-strip-types \
   openspec/tools/runtime-entry.ts workflow list-profiles
+node --experimental-strip-types \
+  openspec/tools/runtime-entry.ts workflow catalog
+node --experimental-strip-types \
+  openspec/tools/runtime-entry.ts workflow describe \
+  --profile-id requirement-analysis --profile-version v1.0.0
 node --experimental-strip-types \
   openspec/tools/runtime-entry.ts workflow bind \
   --change-root openspec/changes/add-order-export \
@@ -73,7 +78,9 @@ node --experimental-strip-types \
   --request-file request.json
 ```
 
-`workflow bind` 会把不可静默替换的 `workflow-binding.json` 写入 Change 根；`workflow run` 必须读取该持久绑定，并要求 request 中的 profile 身份和版本逐字段一致。重复绑定不同 profile 或版本、未绑定、绑定不存在或请求不匹配都会被拒绝。request 的 `completedStages` 只能是 profile 阶段的连续前缀，不能跳过输入或人工判断；缺少当前阶段输入返回 `blocked`，缺少当前阶段人工判断返回 `waiting_human_judgment`。
+`list-profiles` 保留机器 JSON；`catalog` 适合快速查看所有 Profile 的用途和完整阶段；`describe` 只查看一个精确版本。三者都直接读取 registry 和 Profile 文件，身份漂移或未知版本会 fail closed。
+
+`workflow bind` 会把不可静默替换的 `workflow-binding.json` 写入 Change 根；`workflow run` 必须读取该持久绑定，并要求 request 中的 profile 身份和版本逐字段一致。重复绑定不同 profile 或版本、未绑定、绑定不存在或请求不匹配都会被拒绝。request 的 `completedStages` 只能是 profile 阶段的连续前缀，不能跳过输入或人工判断；缺少当前阶段输入返回 `blocked`，结构不符合 Profile `inputContracts` 返回 `rejected`，缺少当前阶段人工判断返回 `waiting_human_judgment`。
 
 ### 需求分析 Profile
 
@@ -84,12 +91,14 @@ capture → clarify ↺ → discover ↺ → evaluate ↺ → decision
 ```
 
 - `capture`：保存原始需求陈述。
-- `clarify`：提交 `problemFrame`，明确真实问题、目标、范围和约束。
-- `discover`：提交 `capabilityReport`，核验现有能力并区分已知、未知、证据状态和置信度。
-- `evaluate`：提交 `optionReport`，比较候选方案、投入、风险和可逆性。
-- `decision`：提交 `decisionReport` 和 `disposition`，人工判断只能是 `build`、`use-existing`、`defer` 或 `reject`。
+- `clarify`：提交含 `problem`、`goals`、`scope`、`constraints` 的 `problemFrame`。
+- `discover`：提交含 `known`、`unknown`、`evidence`、`confidence` 的 `capabilityReport`。
+- `evaluate`：提交含 `options`、`tradeoffs`、`investment`、`risk`、`reversible` 的 `optionReport`。
+- `decision`：提交含 `decision`、`rationale`、`risks`、`nextStep` 的 `decisionReport`、合法 `disposition` 和至少一项 `analysisRounds`。
 
-`clarify`、`discover` 和 `evaluate` 都可在人工判断 `continue-analysis` 时保持当前阶段；判断 `sufficient` 才能进入下一阶段。决策完成时，`outputs.publishedInputs` 返回完整分析链与处置结果。`build` 只表示“可以由调用方创建后续 Change”，不会自动创建 Change、读取 Desk 或写回 Desk。Desk 负责个人分析策略和事项归属；Runtime 负责阶段合同和结果状态。
+`analysisRounds` 是调用方累积的轮次数组；每项至少记录 `round`、`stage`、`known`、`unknown`、`evidence`、`confidence`、`judgment` 和 `decision`。Runtime 检查结构并在 `outputs.publishedInputs` 回显，不替调用方判断事实是否真实，也不替调用方持久化历史。
+
+`clarify`、`discover` 和 `evaluate` 都可在人工判断 `continue-analysis` 时保持当前阶段；判断 `sufficient` 才能进入下一阶段。决策处置只能是 `build`、`use-existing`、`defer` 或 `reject`。`build` 只表示“可以由调用方创建后续 Change”，不会自动创建 Change、读取 Desk 或写回 Desk。Desk 负责个人分析策略和事项归属；Runtime 负责阶段合同和结果状态。
 
 ## 一个完整例子
 

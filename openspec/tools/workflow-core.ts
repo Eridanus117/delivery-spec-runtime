@@ -2,9 +2,19 @@ import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { exactKeys, fail, object, readJson, stringArray, text } from "./runtime-lib.ts";
 
+export type WorkflowInputContract = {
+ type: "string" | "object" | "array" | "enum";
+ requiredFields?: string[];
+ itemRequiredFields?: string[];
+ minItems?: number;
+ enum?: string[];
+};
+
 export type WorkflowStage = {
  id: string;
  displayName: string;
+ description: string;
+ exitCondition: string;
  requiredInputs: string[];
  humanJudgment: boolean;
  judgmentOptions?: string[];
@@ -13,39 +23,45 @@ export type WorkflowStage = {
 };
 
 export type WorkflowProfile = {
-  schemaVersion: 1;
-  profileId: string;
-  profileVersion: string;
-  displayName: string;
-  stages: WorkflowStage[];
+ schemaVersion: 1;
+ profileId: string;
+ profileVersion: string;
+ displayName: string;
+ purpose: string;
+ recommendedFor: string[];
+ notRecommendedFor: string[];
+ handoff: string;
+ inputContracts?: Record<string, WorkflowInputContract>;
+ stages: WorkflowStage[];
 };
 
 export type WorkflowBinding = {
-  schemaVersion: 1;
-  profileId: string;
-  profileVersion: string;
+ schemaVersion: 1;
+ profileId: string;
+ profileVersion: string;
 };
 
 export type WorkflowRequest = {
-  schemaVersion: 1;
-  matterId: string;
-  binding: WorkflowBinding;
-  inputs: Record<string, unknown>;
-  judgments: Record<string, string>;
-  completedStages?: string[];
+ schemaVersion: 1;
+ matterId: string;
+ binding: WorkflowBinding;
+ inputs: Record<string, unknown>;
+ judgments: Record<string, string>;
+ completedStages?: string[];
 };
 
 export type WorkflowResult = {
-  schemaVersion: 1;
-  matterId: string;
-  profileId: string;
-  profileVersion: string;
-  status: "in_progress" | "completed" | "blocked" | "waiting_human_judgment" | "rejected";
-  currentStageId: string | null;
-  nextStageId: string | null;
-  outputs: Record<string, unknown>;
-  reason: string | null;
+ schemaVersion: 1;
+ matterId: string;
+ profileId: string;
+ profileVersion: string;
+ status: "in_progress" | "completed" | "blocked" | "waiting_human_judgment" | "rejected";
+ currentStageId: string | null;
+ nextStageId: string | null;
+ outputs: Record<string, unknown>;
+ reason: string | null;
 };
+
 
 type RegistryEntry = {
   profileId: string;
@@ -106,10 +122,40 @@ export function parseWorkflowRequest(value: unknown): WorkflowRequest {
     completedStages,
   };
 }
+function parseInputContract(value: unknown, key: string): WorkflowInputContract {
+  const contract = object(value, `profile.inputContracts.${key}`);
+  exactKeys(contract, ["type", "requiredFields", "itemRequiredFields", "minItems", "enum"], ["type"], `profile.inputContracts.${key}`);
+  if (!["string", "object", "array", "enum"].includes(String(contract.type))) fail(`profile.inputContracts.${key}.type 非法`);
+  const requiredFields = contract.requiredFields === undefined ? undefined : stringArray(contract.requiredFields, `profile.inputContracts.${key}.requiredFields`);
+  const itemRequiredFields = contract.itemRequiredFields === undefined ? undefined : stringArray(contract.itemRequiredFields, `profile.inputContracts.${key}.itemRequiredFields`);
+  const minItems = contract.minItems === undefined ? undefined : contract.minItems;
+  const enumValues = contract.enum === undefined ? undefined : stringArray(contract.enum, `profile.inputContracts.${key}.enum`);
+  for (const [name, values] of [["requiredFields", requiredFields], ["itemRequiredFields", itemRequiredFields], ["enum", enumValues] ] as const) {
+    if (values && values.some((item) => item.length === 0)) fail(`profile.inputContracts.${key}.${name} 不得为空`);
+    if (values && new Set(values).size !== values.length) fail(`profile.inputContracts.${key}.${name} 不得重复`);
+  }
+  if (minItems !== undefined && (!Number.isInteger(minItems) || minItems < 1)) fail(`profile.inputContracts.${key}.minItems 必须是正整数`);
+  if (contract.type === "object" && itemRequiredFields) fail(`profile.inputContracts.${key}.object 不得声明 itemRequiredFields`);
+  if (contract.type !== "object" && requiredFields) fail(`profile.inputContracts.${key}.${contract.type} 不得声明 requiredFields`);
+  if (contract.type !== "array" && (itemRequiredFields || minItems !== undefined)) fail(`profile.inputContracts.${key}.${contract.type} 不得声明数组约束`);
+  if (contract.type === "enum" && !enumValues) fail(`profile.inputContracts.${key}.enum 必须存在`);
+  if (contract.type !== "enum" && enumValues) fail(`profile.inputContracts.${key}.${contract.type} 不得声明 enum`);
+  return { type: contract.type as WorkflowInputContract["type"], requiredFields, itemRequiredFields, minItems, enum: enumValues };
+}
+function parseInputContracts(value: unknown): Record<string, WorkflowInputContract> {
+  if (value === undefined) return {};
+  const contracts = object(value, "workflow profile.inputContracts");
+  const parsed: Record<string, WorkflowInputContract> = {};
+  for (const [key, contract] of Object.entries(contracts)) {
+    if (!key) fail("workflow profile.inputContracts 不得包含空键");
+    parsed[key] = parseInputContract(contract, key);
+  }
+  return parsed;
+}
 
 function parseStage(value: unknown, index: number): WorkflowStage {
  const stage = object(value, `profile.stages[${index}]`);
- exactKeys(stage, ["id", "displayName", "requiredInputs", "humanJudgment", "judgmentOptions", "repeatOnJudgments", "outputInputs"], ["id", "displayName", "requiredInputs", "humanJudgment"], `profile.stages[${index}]`);
+ exactKeys(stage, ["id", "displayName", "description", "exitCondition", "requiredInputs", "humanJudgment", "judgmentOptions", "repeatOnJudgments", "outputInputs"], ["id", "displayName", "requiredInputs", "humanJudgment"], `profile.stages[${index}]`);
  const requiredInputs = stringArray(stage.requiredInputs, `profile.stages[${index}].requiredInputs`);
  const judgmentOptions = stage.judgmentOptions === undefined ? [] : stringArray(stage.judgmentOptions, `profile.stages[${index}].judgmentOptions`);
  const repeatOnJudgments = stage.repeatOnJudgments === undefined ? [] : stringArray(stage.repeatOnJudgments, `profile.stages[${index}].repeatOnJudgments`);
@@ -123,10 +169,12 @@ function parseStage(value: unknown, index: number): WorkflowStage {
   if (new Set(repeatOnJudgments).size !== repeatOnJudgments.length) fail(`profile.stages[${index}].repeatOnJudgments 不得重复`);
   if (repeatOnJudgments.some((value) => !judgmentOptions.includes(value))) fail(`profile.stages[${index}].repeatOnJudgments 必须属于 judgmentOptions`);
   if (new Set(outputInputs).size !== outputInputs.length) fail(`profile.stages[${index}].outputInputs 不得重复`);
-if (typeof stage.humanJudgment !== "boolean") fail(`profile.stages[${index}].humanJudgment 必须是布尔值`);
+  if (typeof stage.humanJudgment !== "boolean") fail(`profile.stages[${index}].humanJudgment 必须是布尔值`);
  const parsed: WorkflowStage = {
    id: assertId(stage.id, `profile.stages[${index}].id`),
    displayName: text(stage.displayName, `profile.stages[${index}].displayName`),
+   description: stage.description === undefined ? text(stage.displayName, `profile.stages[${index}].displayName`) : text(stage.description, `profile.stages[${index}].description`),
+   exitCondition: stage.exitCondition === undefined ? "阶段必需输入已提供且人工判断已完成。" : text(stage.exitCondition, `profile.stages[${index}].exitCondition`),
    requiredInputs,
    humanJudgment: stage.humanJudgment,
  };
@@ -138,16 +186,26 @@ if (typeof stage.humanJudgment !== "boolean") fail(`profile.stages[${index}].hum
 
 export function parseWorkflowProfile(value: unknown): WorkflowProfile {
   const profile = object(value, "workflow profile");
-  exactKeys(profile, ["schemaVersion", "profileId", "profileVersion", "displayName", "stages"], ["schemaVersion", "profileId", "profileVersion", "displayName", "stages"], "workflow profile");
+  exactKeys(profile, ["schemaVersion", "profileId", "profileVersion", "displayName", "purpose", "recommendedFor", "notRecommendedFor", "handoff", "inputContracts", "stages"], ["schemaVersion", "profileId", "profileVersion", "displayName", "stages"], "workflow profile");
   if (profile.schemaVersion !== 1) fail("workflow profile.schemaVersion 必须为 1");
+  const displayName = text(profile.displayName, "workflow profile.displayName");
+  const recommendedFor = profile.recommendedFor === undefined ? ["未声明"] : stringArray(profile.recommendedFor, "workflow profile.recommendedFor");
+  const notRecommendedFor = profile.notRecommendedFor === undefined ? ["未声明"] : stringArray(profile.notRecommendedFor, "workflow profile.notRecommendedFor");
+  if (recommendedFor.length === 0 || notRecommendedFor.length === 0) fail("workflow profile 适用范围不得为空");
   if (!Array.isArray(profile.stages) || profile.stages.length === 0) fail("workflow profile.stages 必须为非空数组");
   const stages = profile.stages.map(parseStage);
   if (new Set(stages.map((stage) => stage.id)).size !== stages.length) fail("workflow profile.stages.id 不得重复");
+  const inputContracts = parseInputContracts(profile.inputContracts);
   return {
     schemaVersion: 1,
     profileId: assertId(profile.profileId, "workflow profile.profileId"),
     profileVersion: assertVersion(profile.profileVersion, "workflow profile.profileVersion"),
-    displayName: text(profile.displayName, "workflow profile.displayName"),
+    displayName,
+    purpose: profile.purpose === undefined ? displayName : text(profile.purpose, "workflow profile.purpose"),
+    recommendedFor,
+    notRecommendedFor,
+    handoff: profile.handoff === undefined ? "交给调用方继续处理。" : text(profile.handoff, "workflow profile.handoff"),
+    inputContracts: Object.keys(inputContracts).length > 0 ? inputContracts : undefined,
     stages,
   };
 }
@@ -241,6 +299,37 @@ function judgmentError(stage: WorkflowStage, request: WorkflowRequest): string |
  return null;
 }
 
+function inputContractError(contract: WorkflowInputContract, value: unknown, label: string): string | null {
+ if (contract.type === "string" && typeof value !== "string") return `${label} 必须是字符串`;
+ if (contract.type === "enum" && (typeof value !== "string" || !contract.enum?.includes(value))) return `${label} 必须是声明的枚举值`;
+ if (contract.type === "object") {
+   if (typeof value !== "object" || value === null || Array.isArray(value)) return `${label} 必须是对象`;
+   for (const field of contract.requiredFields ?? []) if (!Object.hasOwn(value, field)) return `${label} 缺少字段 ${field}`;
+ }
+ if (contract.type === "array") {
+   if (!Array.isArray(value)) return `${label} 必须是数组`;
+   if (contract.minItems !== undefined && value.length < contract.minItems) return `${label} 至少需要 ${contract.minItems} 项`;
+   for (let index = 0; index < value.length; index += 1) {
+     const item = value[index];
+     if (typeof item !== "object" || item === null || Array.isArray(item)) return `${label}[${index}] 必须是对象`;
+     for (const field of contract.itemRequiredFields ?? []) if (!Object.hasOwn(item, field)) return `${label}[${index}] 缺少字段 ${field}`;
+   }
+ }
+ return null;
+}
+function stageInputError(profile: WorkflowProfile, stage: WorkflowStage, request: WorkflowRequest): { missing: string[]; invalid: string | null } {
+ const missing = stage.requiredInputs.filter((key) => !Object.hasOwn(request.inputs, key));
+ if (missing.length > 0) return { missing, invalid: null };
+ for (const key of stage.requiredInputs) {
+   const contract = profile.inputContracts?.[key];
+   if (contract) {
+     const error = inputContractError(contract, request.inputs[key], `阶段 ${stage.id} 输入 ${key}`);
+     if (error) return { missing: [], invalid: error };
+   }
+ }
+ return { missing: [], invalid: null };
+}
+
 export function executeWorkflow(profile: WorkflowProfile, request: WorkflowRequest): WorkflowResult {
   const completed = request.completedStages ?? [];
   for (let index = 0; index < completed.length; index += 1) {
@@ -249,10 +338,11 @@ export function executeWorkflow(profile: WorkflowProfile, request: WorkflowReque
     if (!stage || stage.id !== stageId) {
       return resultBase(request, profile, "rejected", null, null, `completedStages 必须是 profile 阶段的连续前缀: ${stageId}`);
     }
-    const missing = stage.requiredInputs.filter((key) => !Object.hasOwn(request.inputs, key));
-    if (missing.length > 0) {
-      return resultBase(request, profile, "rejected", null, null, `已完成阶段 ${stage.id} 缺少输入: ${missing.join(", ")}`);
+    const inputs = stageInputError(profile, stage, request);
+    if (inputs.missing.length > 0) {
+      return resultBase(request, profile, "rejected", null, null, `已完成阶段 ${stage.id} 缺少输入: ${inputs.missing.join(", ")}`);
     }
+    if (inputs.invalid) return resultBase(request, profile, "rejected", null, null, inputs.invalid);
     const completedJudgment = request.judgments[stage.id];
     if (stage.repeatOnJudgments?.includes(completedJudgment)) return resultBase(request, profile, "rejected", null, null, `已完成阶段 ${stage.id} 仍要求继续分析`);
     const error = judgmentError(stage, request);
@@ -263,9 +353,10 @@ export function executeWorkflow(profile: WorkflowProfile, request: WorkflowReque
     return resultBase(request, profile, "completed", null, null, null, { completedStages: completed });
   }
   const current = profile.stages[currentIndex];
-  const missing = current.requiredInputs.filter((key) => !Object.hasOwn(request.inputs, key));
+  const inputs = stageInputError(profile, current, request);
   const next = profile.stages[currentIndex + 1]?.id ?? null;
-  if (missing.length > 0) return resultBase(request, profile, "blocked", current.id, null, `阶段 ${current.id} 缺少输入: ${missing.join(", ")}`, { missingInputs: missing, completedStages: completed });
+  if (inputs.missing.length > 0) return resultBase(request, profile, "blocked", current.id, null, `阶段 ${current.id} 缺少输入: ${inputs.missing.join(", ")}`, { missingInputs: inputs.missing, completedStages: completed });
+  if (inputs.invalid) return resultBase(request, profile, "rejected", current.id, null, inputs.invalid, { completedStages: completed });
   const error = judgmentError(current, request);
   if (error) {
     const judgment = request.judgments[current.id];

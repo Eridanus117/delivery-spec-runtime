@@ -14,11 +14,13 @@ test("registry 提供三个 profile 且 profile 版本必须精确匹配", () =>
   assert.deepEqual(profiles[2].stages[1], {
     id: "clarify",
     displayName: "澄清问题与边界",
+    description: "明确真实问题、目标、范围和约束。",
+    exitCondition: "问题框架完整，且人工判断为 sufficient。",
     requiredInputs: ["problemFrame"],
     humanJudgment: true,
     judgmentOptions: ["continue-analysis", "sufficient"],
     repeatOnJudgments: ["continue-analysis"],
-    outputInputs: ["problemFrame"],
+    outputInputs: ["problemFrame", "analysisRounds"],
   });
   assert.throws(() => loadWorkflowProfile(runtimeRoot, { schemaVersion: 1, profileId: "delivery-change", profileVersion: "v9.0.0" }), /未注册 workflow profile/);
 });
@@ -68,13 +70,19 @@ test("需求分析 profile 按澄清、核验、比较和决策阶段推进", ()
 
   const decided = {
     ...evaluated,
-    inputs: { ...evaluated.inputs, decisionReport: "build bounded profile", disposition: "build", candidateProfileId: "light-change" },
+    inputs: {
+      ...evaluated.inputs,
+      decisionReport: { decision: "build", rationale: "reuse core", risks: ["scope"], nextStep: "create Change" },
+      disposition: "build",
+      candidateProfileId: "light-change",
+      analysisRounds: [{ round: 1, stage: "clarify", known: ["problem"], unknown: ["owner"], evidence: ["session"], confidence: "medium", judgment: "sufficient", decision: "continue" }],
+    },
     judgments: { clarify: "sufficient", discover: "sufficient", evaluate: "sufficient", decision: "build" },
     completedStages: ["capture", "clarify", "discover", "evaluate"],
   };
   result = executeWorkflow(profile, decided);
   assert.equal(result.status, "completed");
-  assert.deepEqual(result.outputs.publishedInputs, { problemFrame: decided.inputs.problemFrame, capabilityReport: decided.inputs.capabilityReport, optionReport: decided.inputs.optionReport, decisionReport: "build bounded profile", disposition: "build", candidateProfileId: "light-change" });
+  assert.deepEqual(result.outputs.publishedInputs, { problemFrame: decided.inputs.problemFrame, capabilityReport: decided.inputs.capabilityReport, optionReport: decided.inputs.optionReport, decisionReport: decided.inputs.decisionReport, disposition: "build", candidateProfileId: "light-change", analysisRounds: decided.inputs.analysisRounds });
   result = executeWorkflow(profile, { ...decided, judgments: { ...decided.judgments, decision: "unknown" } });
   assert.equal(result.status, "rejected");
   result = executeWorkflow(profile, { ...decided, completedStages: ["capture", "clarify"], judgments: { clarify: "continue-analysis" } });
@@ -183,4 +191,50 @@ test("公开候选清单包含 workflow runtime 资产", () => {
     assert.equal(allowlist.paths.includes(path), true, path);
     assert.equal(existsSync(join(runtimeRoot, path)), true, path);
   }
+});
+test("workflow catalog 和 describe 输出 Profile 用途、阶段与交接", () => {
+  const catalog = runTool("workflow-control.ts", ["catalog", "--runtime-root", runtimeRoot]);
+  assert.equal(catalog.status, 0, catalog.stderr);
+  assert.match(catalog.stdout, /Requirement Analysis \(requirement-analysis@v1\.0\.0\)/);
+  assert.match(catalog.stdout, /阶段:\n[\s\S]*捕获需求陈述 \(capture\)/);
+  assert.match(catalog.stdout, /交接:/);
+
+  const describe = runTool("workflow-control.ts", ["describe", "--runtime-root", runtimeRoot, "--profile-id", "light-change", "--profile-version", "v1.0.0"]);
+  assert.equal(describe.status, 0, describe.stderr);
+  assert.match(describe.stdout, /^Lightweight Change \(light-change@v1\.0\.0\)/);
+  assert.doesNotMatch(describe.stdout, /Delivery Change/);
+
+  const unknown = runTool("workflow-control.ts", ["describe", "--runtime-root", runtimeRoot, "--profile-id", "missing-profile", "--profile-version", "v1.0.0"]);
+  assert.notEqual(unknown.status, 0);
+  assert.match(unknown.stderr, /未注册 workflow profile/);
+});
+
+test("需求分析输入合同拒绝占位报告和空分析轮次", () => {
+  const profile = loadWorkflowProfile(runtimeRoot, { schemaVersion: 1, profileId: "requirement-analysis", profileVersion: "v1.0.0" });
+  const request = parseWorkflowRequest({
+    schemaVersion: 1,
+    matterId: "contract-matter",
+    binding: { schemaVersion: 1, profileId: "requirement-analysis", profileVersion: "v1.0.0" },
+    inputs: {
+      request: "need",
+      problemFrame: { problem: "p", goals: ["g"], scope: ["s"], constraints: ["c"] },
+      capabilityReport: { known: ["k"], unknown: ["u"], evidence: ["e"], confidence: "medium" },
+      optionReport: { options: ["a"], tradeoffs: ["t"], investment: "small", risk: "low", reversible: true },
+      decisionReport: { decision: "build", rationale: "r", risks: [], nextStep: "n" },
+      disposition: "build",
+      analysisRounds: [],
+    },
+    judgments: { clarify: "sufficient", discover: "sufficient", evaluate: "sufficient", decision: "build" },
+    completedStages: ["capture", "clarify", "discover", "evaluate"],
+  });
+  const result = executeWorkflow(profile, request);
+  assert.equal(result.status, "rejected");
+  assert.match(result.reason ?? "", /至少需要 1 项/);
+
+  const malformed = executeWorkflow(profile, {
+    ...request,
+    inputs: { ...request.inputs, analysisRounds: [{ round: 1 }] },
+  });
+  assert.equal(malformed.status, "rejected");
+  assert.match(malformed.reason ?? "", /缺少字段 stage/);
 });

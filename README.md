@@ -81,9 +81,9 @@ Change 是正式交付的审计对象，不是聊天记录的替代品，也不�
 
 随后使用 `/opsx-continue` 生成下一项规划工件；方案批准后由 `/opsx-apply` 实施，完成后使用 `/opsx-verify` 进入 Review 与验收，并由 `/opsx-archive` 完成长期 spec 同步和归档门禁。
 
-Workflow System 支持同一仓库的多套 profile。先执行 `runtime-entry.ts workflow list-profiles` 查看完整阶段合同，再在 Change 根执行 `workflow bind --profile-id <id> --profile-version <version>`；`workflow run` 必须同时指定该 Change 根和 request 文件，并校验 request 中的绑定与 Change 持久绑定一致。未绑定、版本不存在、请求不匹配、阶段越序、缺少阶段输入或缺少人工判断时，Runtime 返回机器可读的拒绝或阻塞结果，不自动回退到其他 profile。
+Workflow System 支持同一仓库的多套 profile。先执行 `runtime-entry.ts workflow list-profiles` 获取机器 JSON，或执行 `workflow catalog` 查看所有 Profile 的用途、适用范围、阶段和交接；需要单个版本时使用 `workflow describe --profile-id <id> --profile-version <version>`。之后在 Change 根执行 `workflow bind --profile-id <id> --profile-version <version>`；`workflow run` 必须同时指定该 Change 根和 request 文件，并校验 request 中的绑定与 Change 持久绑定一致。未绑定、版本不存在、请求不匹配、阶段越序、缺少阶段输入、输入结构不符或缺少人工判断时，Runtime 返回机器可读的拒绝或阻塞结果，不自动回退到其他 profile。
 
-没有完整外部需求分析输入的事项可使用 `requirement-analysis@v1.0.0`：`capture → clarify ↺ → discover ↺ → evaluate ↺ → decision`。它分别要求问题框架、现有能力核验和候选方案比较，并允许每个分析阶段通过 `continue-analysis` / `sufficient` 循环或推进；门 B 输出 `build`、`use-existing`、`defer` 或 `reject`。`build` 不会自动创建 Change，Desk 仍负责个人分析策略和事项归属。
+没有完整外部需求分析输入的事项可使用 `requirement-analysis@v1.0.0`：`capture → clarify ↺ → discover ↺ → evaluate ↺ → decision`。它要求结构完整的问题框架、现有能力核验、候选方案比较、决策报告和至少一项 `analysisRounds`；每轮记录 `round`、`stage`、`known`、`unknown`、`evidence`、`confidence`、`judgment` 和 `decision`。门 B 输出 `build`、`use-existing`、`defer` 或 `reject`。`build` 不会自动创建 Change，Desk 仍负责个人分析策略和事项归属。
 
 ## 三条安全边界
 

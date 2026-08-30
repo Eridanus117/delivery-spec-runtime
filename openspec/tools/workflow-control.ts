@@ -9,6 +9,7 @@ import {
   parseWorkflowBinding,
   readWorkflowRequest,
   type WorkflowBinding,
+  type WorkflowProfile,
   type WorkflowRequest,
   type WorkflowResult,
 } from "./workflow-core.ts";
@@ -25,6 +26,25 @@ function bindingForOptions(options: Map<string, string>): WorkflowBinding {
   });
 }
 
+function profileSummary(profile: WorkflowProfile): string {
+  const lines = [
+    `${profile.displayName} (${profile.profileId}@${profile.profileVersion})`,
+    `用途: ${profile.purpose}`,
+    `适用: ${profile.recommendedFor.join("；")}`,
+    `不适用: ${profile.notRecommendedFor.join("；")}`,
+    "阶段:",
+  ];
+  profile.stages.forEach((stage, index) => {
+    lines.push(`  ${index + 1}. ${stage.displayName} (${stage.id})`);
+    lines.push(`     输入: ${stage.requiredInputs.join("、") || "无"}`);
+    lines.push(`     人工判断: ${stage.humanJudgment ? (stage.judgmentOptions?.join("、") || "需要") : "否"}`);
+    lines.push(`     说明: ${stage.description}`);
+    lines.push(`     退出条件: ${stage.exitCondition}`);
+  });
+  lines.push(`交接: ${profile.handoff}`);
+  return lines.join("\n");
+}
+
 function listProfiles(options: Map<string, string>): void {
   const root = runtimeRoot(options);
   const registryPath = options.get("registry");
@@ -35,6 +55,17 @@ function listProfiles(options: Map<string, string>): void {
     displayName: profile.displayName,
     stages: profile.stages,
   })), null, 2));
+}
+
+function catalog(options: Map<string, string>): void {
+  const profiles = listWorkflowProfiles(runtimeRoot(options), options.get("registry"));
+  console.log(["Workflow Profiles", ...profiles.map(profileSummary)].join("\n\n"));
+}
+
+function describe(options: Map<string, string>): void {
+  const binding = bindingForOptions(options);
+  const profile = loadWorkflowProfile(runtimeRoot(options), binding, options.get("registry"));
+  console.log(profileSummary(profile));
 }
 
 function rejectedResult(request: WorkflowRequest | null, binding: WorkflowBinding | null, reason: string): WorkflowResult {
@@ -98,9 +129,11 @@ function main(): void {
   const { positional, options } = parseArgs(process.argv.slice(2));
   const command = positional[0];
   if (command === "list-profiles") return listProfiles(options);
+  if (command === "catalog") return catalog(options);
+  if (command === "describe") return describe(options);
   if (command === "bind") return bindChange(options);
   if (command === "run") return runWorkflow(options);
-  fail("workflow-control 命令必须是 list-profiles、bind 或 run");
+  fail("workflow-control 命令必须是 list-profiles、catalog、describe、bind 或 run");
 }
 
 try {

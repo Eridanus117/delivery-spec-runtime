@@ -3,9 +3,13 @@
   "profileId": "light-change",
   "profileVersion": "v1.0.0",
   "displayName": "Lightweight Change",
+  "purpose": "为范围清楚、风险受控的小改动提供短流程。",
+  "recommendedFor": ["已有明确边界和验证方式的小改动", "不需要长期 spec 变更的维护任务"],
+  "notRecommendedFor": ["问题和目标尚未澄清的需求", "需要完整方案取舍、Review 和归档证据的交付"],
+  "handoff": "verification 完成后将结果交给提交者或项目维护者，不自动升级为完整 Change。",
   "stages": [
-    { "id": "intake", "displayName": "需求登记", "requiredInputs": ["request"], "humanJudgment": false },
-    { "id": "implementation", "displayName": "直接实施", "requiredInputs": ["implementation"], "humanJudgment": false },
-    { "id": "verification", "displayName": "快速验证", "requiredInputs": ["verification"], "humanJudgment": true }
+    { "id": "intake", "displayName": "需求登记", "description": "记录清楚且受控的改动请求。", "exitCondition": "请求范围和验收目标已明确。", "requiredInputs": ["request"], "humanJudgment": false },
+    { "id": "implementation", "displayName": "直接实施", "description": "按已知边界完成小范围实现。", "exitCondition": "实现已完成且未扩大范围。", "requiredInputs": ["implementation"], "humanJudgment": false },
+    { "id": "verification", "displayName": "快速验证", "description": "运行约定的验证并由维护者确认结果。", "exitCondition": "验证证据可读取且维护者接受结果。", "requiredInputs": ["verification"], "humanJudgment": true }
   ]
 }

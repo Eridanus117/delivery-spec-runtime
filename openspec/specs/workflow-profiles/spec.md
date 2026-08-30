@@ -78,3 +78,31 @@ Workflow System SHALL 支持调用方在没有全局索引或其他仓库扫描�
 
 - **WHEN** 新 profile selection 或 core 实现失败
 - **THEN** 现有 `delivery-change` 入口 SHALL 仍可独立运行，系统 SHALL NOT 通过修改旧合同或放宽旧 fail-closed 检查来掩盖失败
+
+### Requirement: Workflow profiles SHALL expose executable human-readable metadata
+
+每个注册的 profile SHALL 在同一版本化文件中声明用途、适用范围、不适用范围、阶段说明、阶段退出条件和交接动作。Runtime SHALL 提供机器 `list-profiles`、人类 `catalog` 和精确 `describe` 输出；catalog/describe SHALL 直接读取 registry 与 profile 真源。
+
+#### Scenario: 查看 profile catalog
+
+- **WHEN** 调用方执行 `workflow catalog`
+- **THEN** Runtime SHALL 按 registry 顺序输出所有 profile 的身份、用途、阶段流程、退出条件和交接动作
+
+#### Scenario: 查看精确 profile
+
+- **WHEN** 调用方执行 `workflow describe` 并提供 `profileId` 与 `profileVersion`
+- **THEN** Runtime SHALL 只输出该精确版本；未知身份或版本 SHALL fail closed
+
+### Requirement: Requirement analysis SHALL enforce report and round contracts
+
+`requirement-analysis` SHALL 对问题框架、能力核验、方案比较、决策报告、处置和 `analysisRounds` 执行声明式结构检查。`analysisRounds` SHALL 保留调用方累积的轮次记录；Runtime SHALL 检查结构并回显输入，不判断事实真伪或替调用方持久化历史。
+
+#### Scenario: 合法分析链推进
+
+- **WHEN** 调用方提交结构完整的报告、合法处置和至少一项完整轮次记录
+- **THEN** Runtime SHALL 按阶段推进并在 `outputs.publishedInputs` 返回这些输入
+
+#### Scenario: 结构不完整时拒绝
+
+- **WHEN** 报告缺少必需字段、处置不在允许枚举内或轮次记录不完整
+- **THEN** 当前执行结果 SHALL 为 `rejected`，不得仅因输入键存在而推进

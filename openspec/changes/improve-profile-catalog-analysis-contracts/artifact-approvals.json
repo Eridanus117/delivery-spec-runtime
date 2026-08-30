@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "artifacts": {
+    "raw-requirements": {
+      "digest": "sha256:acc04e6d4ca0366fbe20341054b0f9f5e41092e4e4646cafc6f6cf00bca9e39b",
+      "decision": "approved",
+      "approvedBy": "owner",
+      "approvedAt": "2026-08-30T21:25:44.025Z",
+      "migrationSource": null
+    },
+    "specs": {
+      "digest": "sha256:87b89c96d481d5d3ca040a18ba00ae053a4bd34687edb02ee3f05eff532924eb",
+      "decision": "approved",
+      "approvedBy": "owner",
+      "approvedAt": "2026-08-30T21:25:44.606Z",
+      "migrationSource": null
+    },
+    "business-current": {
+      "digest": "sha256:180edb0865c28c65867dcaf1431a642b2a2ff72322096d4418c9354f861d1d6e",
+      "decision": "approved",
+      "approvedBy": "owner",
+      "approvedAt": "2026-08-30T21:25:45.177Z",
+      "migrationSource": null
+    },
+    "technical-current": {
+      "digest": "sha256:b5d0fe71618948dadc50f6b50ed6771821dd20c468150dbe6bd1d77b98db2aa2",
+      "decision": "approved",
+      "approvedBy": "owner",
+      "approvedAt": "2026-08-30T21:25:45.763Z",
+      "migrationSource": null
+    },
+    "solution-proposal": {
+      "digest": "sha256:5db2d7158146bc959bfb81027b0e2afd7963431f69f1e963e6c7261bd13028e4",
+      "decision": "approved",
+      "approvedBy": "owner",
+      "approvedAt": "2026-08-30T21:25:46.382Z",
+      "migrationSource": null
+    },
+    "solution-decision": {
+      "digest": "sha256:d3f904be8a7eca956825f377970e6dd97d42c7ed5c70be1af77e21803160bb87",
+      "decision": "approved",
+      "approvedBy": "owner",
+      "approvedAt": "2026-08-30T21:25:46.965Z",
+      "migrationSource": null
+    },
+    "change-plan": {
+      "digest": "sha256:965f7f85e38c85c2bfd2b9a62003f9991bf738d87d6a8b0f6e530f6f1b3f2bdf",
+      "decision": "approved",
+      "approvedBy": "owner",
+      "approvedAt": "2026-08-30T21:25:47.545Z",
+      "migrationSource": null
+    },
+    "test-plan": {
+      "digest": "sha256:647865fa5423a9ee42cdf0bfb4d5a05de9611ca17ced5376e577fcbedd79bf91",
+      "decision": "approved",
+      "approvedBy": "owner",
+      "approvedAt": "2026-08-30T21:25:48.114Z",
+      "migrationSource": null
+    },
+    "tasks": {
+      "digest": "sha256:c9c567bbe81a092245f6e2e528763bf5fe2f754218e00ae400ba2505d6c211fc",
+      "decision": "approved",
+      "approvedBy": "owner",
+      "approvedAt": "2026-08-30T21:25:48.673Z",
+      "migrationSource": null
+    }
+  }
+}
