@@ -63,6 +63,8 @@ test("OpenSpec升级只允许通过Runtime仓受控Change", () => {
   assert.match(readme, /实时消费仓禁止执行 `openspec update` 或 `runtime-update`/);
   assert.match(upgradeGuide, /临时目录分别生成 current 和 candidate/);
   assert.match(upgradeGuide, /真实消费仓.*只进行前后摘要和 Git 状态核验/);
+  assert.match(upgradeGuide, /public-candidate\.ts generate/);
+  assert.match(upgradeGuide, /candidate-report\.json/);
 });
 
 test("README是Runtime采用与维护的分层入口", () => {
@@ -75,6 +77,7 @@ test("README是Runtime采用与维护的分层入口", () => {
   assert.match(readme, /实时消费仓禁止执行 `openspec update`/);
   assert.doesNotMatch(readme, /\"currentVersion\"/);
   assert.doesNotMatch(readme, /implementation-review\.json/);
+  const linkedPaths = [...readme.matchAll(/(?<!!)\[[^\]]+\]\(([^)#]+)(?:#[^)]*)?\)/g)].map((match) => match[1]);
 
   const guides = {
     "docs/architecture.md": [".delivery-spec-runtime", "fail-closed"],
@@ -84,7 +87,7 @@ test("README是Runtime采用与维护的分层入口", () => {
     "docs/governance.md": ["方案提案", "Trade-off", "implementation-review.json", "acceptance-state.json", "archive-readiness.json"],
   };
   for (const [path, contracts] of Object.entries(guides)) {
-    assert.match(readme, new RegExp(path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    assert.equal(linkedPaths.includes(path), true, `README任务导航缺少链接: ${path}`);
     const guide = readFileSync(join(runtimeRoot, path), "utf8");
     for (const contract of contracts) assert.match(guide, new RegExp(contract.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
