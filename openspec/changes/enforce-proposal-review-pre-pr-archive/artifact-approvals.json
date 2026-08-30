@@ -9,10 +9,10 @@
       "migrationSource": null
     },
     "specs": {
-      "digest": "sha256:1bb0ff2d5874f4edee8261bb3b4e578ae700880a043f2d7dbda9d58d55c333bb",
+      "digest": "sha256:613cfd71ebb4abbf2115a0ca9d3e6a1e37d0f43e4d5dc93152a945c1a5c7e67a",
       "decision": "approved",
-      "approvedBy": "仓库维护者（当前会话）",
-      "approvedAt": "2026-08-30T12:17:41.394Z",
+      "approvedBy": "当前会话维护者",
+      "approvedAt": "2026-08-30T12:39:06.626Z",
       "migrationSource": null
     },
     "business-current": {

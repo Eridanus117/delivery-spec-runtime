@@ -75,6 +75,9 @@ function commit(value: unknown, label: string): string {
   if (!commitPattern.test(result)) fail(`${label} 必须为40位小写Git commit`);
   return result;
 }
+function requirePassConclusion(path: string, label: string): void {
+  if (!existsSync(path) || !/^- 结论：PASS\s*$/m.test(readFileSync(path, "utf8"))) fail(`${label}必须使用模板格式并严格PASS`);
+}
 function sha(value: unknown, label: string): string {
   const result = text(value, label);
   if (!digestPattern.test(result)) fail(`${label} 必须为小写SHA-256`);
@@ -210,6 +213,7 @@ function inspectAcceptanceState(changeRoot: string): Acceptance {
   const review = requireReview(changeRoot);
   const acceptance = parseAcceptance(readJson(acceptancePath(changeRoot)));
   const markdown = join(changeRoot, "08-验收/验收记录.md");
+  requirePassConclusion(markdown, "Acceptance正文");
   const taskState = join(changeRoot, "task-state.json");
   if (acceptance.result !== "PASS" || acceptance.implementationCommit !== review.reviewedCommit || acceptance.reviewDigest !== sha256File(reviewPath(changeRoot)) || !existsSync(taskState) || acceptance.taskStateDigest !== sha256File(taskState) || !existsSync(markdown) || acceptance.acceptanceDigest !== sha256File(markdown)) fail("acceptance-state stale或未PASS");
   return acceptance;
@@ -223,7 +227,9 @@ function inspectReadinessState(changeRoot: string): Readiness {
   if (readiness.result !== "READY" || readiness.acceptanceDigest !== sha256File(acceptancePath(changeRoot)) || readiness.implementationCommit !== acceptance.implementationCommit) fail("archive-readiness stale或未READY");
   const releasePlan = join(changeRoot, "09-发布/发布计划.md");
   if (!existsSync(releasePlan) || readiness.releasePlanDigest !== sha256File(releasePlan)) fail("archive-readiness release plan stale");
-  if (readiness.cleanupEvidence.sha256 !== sha256File(join(repo, readiness.cleanupEvidence.path))) fail("archive-readiness cleanup evidence stale");
+  const cleanup = join(repo, readiness.cleanupEvidence.path);
+  if (readiness.cleanupEvidence.sha256 !== sha256File(cleanup)) fail("archive-readiness cleanup evidence stale");
+  requirePassConclusion(cleanup, "archive-readiness cleanup evidence");
   for (const entry of readiness.specSync) {
     if (entry.deltaSha256 !== sha256File(join(repo, entry.deltaPath)) || entry.mainSha256 !== sha256File(join(repo, entry.mainPath))) fail(`archive-readiness spec sync stale: ${entry.deltaPath}`);
   }
@@ -251,7 +257,7 @@ function acceptanceWrite(changeRoot: string, inputPath: string): void {
   const input = object(readJson(inputPath), "acceptance-input"); exactKeys(input, ["schemaVersion", "acceptedBy", "acceptedAt"], ["schemaVersion", "acceptedBy", "acceptedAt"], "acceptance-input"); if (input.schemaVersion !== 1) fail("acceptance-input.schemaVersion非法");
   const review = requireReview(changeRoot); const tasks = object(readJson(join(changeRoot, "task-state.json")), "task-state");
   if (!Array.isArray(tasks.tasks) || tasks.tasks.some((value) => object(value, "task").state !== "verified")) fail("Acceptance前全部任务必须verified");
-  const markdown = join(changeRoot, "08-验收/验收记录.md"); if (!existsSync(markdown) || !/^- 结论：PASS\s*$/m.test(readFileSync(markdown, "utf8"))) fail("Acceptance正文必须使用模板格式并严格PASS");
+  const markdown = join(changeRoot, "08-验收/验收记录.md"); requirePassConclusion(markdown, "Acceptance正文");
   const taskState = join(changeRoot, "task-state.json");
   const state: Acceptance = { schemaVersion: 1, implementationCommit: review.reviewedCommit, reviewDigest: sha256File(reviewPath(changeRoot)), taskStateDigest: sha256File(taskState), acceptanceDigest: sha256File(markdown), acceptedBy: text(input.acceptedBy, "acceptedBy"), acceptedAt: timestamp(input.acceptedAt, "acceptedAt"), result: "PASS" };
   withFileLock(lockPath(changeRoot), () => atomicWriteJson(acceptancePath(changeRoot), state)); console.log(JSON.stringify(state, null, 2));
@@ -269,6 +275,7 @@ function readinessWrite(changeRoot: string, inputPath: string): void {
   });
   if (!sync.length) fail("archive-readiness至少需要一个spec sync映射");
   const cleanupPath = safeRepoFile(repo, input.cleanupEvidence, "cleanupEvidence"); if (!cleanupPath.startsWith(`${changeRel}/08-验收/`)) fail("cleanupEvidence必须位于当前Change 08-验收");
+  requirePassConclusion(join(repo, cleanupPath), "cleanupEvidence");
   const releasePlan = join(changeRoot, "09-发布/发布计划.md"); if (!existsSync(releasePlan)) fail("缺少09发布计划");
   const migrationSource = input.migrationSource === null ? null : text(input.migrationSource, "migrationSource"); const historicalPr = input.historicalPr === null ? null : text(input.historicalPr, "historicalPr");
   const migration = migrationSource === "pre-v5-merged-change" && historicalPr !== null;

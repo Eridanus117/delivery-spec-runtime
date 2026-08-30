@@ -27,17 +27,17 @@ Review 状态 MUST 绑定 baseline commit、reviewed commit、baseline→reviewe
 
 #### Scenario: Review 后实现变化
 
-- **WHEN** Review PASS 后任一受审路径变化、删除或 HEAD 改变
-- **THEN** Review inspect 和后续 Acceptance 非零拒绝并报告 stale
+- **WHEN** Review PASS 后任一受审实现路径变化、删除，或者 reviewed commit 不再是当前 HEAD 的祖先
+- **THEN** Review inspect 和后续 Acceptance 非零拒绝并报告 stale；只增加当前 Change 生命周期证据或同步后的长期 spec 不使 Review stale
 
-#### Scenario: Critical finding 未解决
+#### Scenario: Finding 未解决
 
-- **WHEN** 存在 OPEN CRITICAL 或 HIGH finding
+- **WHEN** 存在任意 OPEN finding
 - **THEN** Review 不能记录 PASS
 
 ### Requirement: Acceptance 必须内容寻址当前 Review
 
-Acceptance State MUST 绑定 PASS 且未 stale 的 Review 摘要、验收正文摘要和当前 commit。全部任务 verified、Review 当前且验收正文严格 PASS 后才能写入。
+Acceptance State MUST 绑定 PASS 且未 stale 的 Review 摘要、`task-state.json` 摘要、验收正文摘要和 reviewed commit。全部实现任务 verified、Review 当前且验收正文严格 PASS 后才能写入；Review、任务状态或正文后续变化时 MUST stale。
 
 #### Scenario: 验收引用旧 Review
 
