@@ -1,18 +1,22 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { runtimeRoot } from "./helpers.ts";
 
-function digest(path: string): string { return `sha256:${createHash("sha256").update(readFileSync(path)).digest("hex")}`; }
 
 test("runtime manifest、九层schema与九个Commands一致", () => {
   const manifest = JSON.parse(readFileSync(join(runtimeRoot, "runtime-manifest.json"), "utf8"));
+  assert.equal(manifest.schemaVersion, 2);
   assert.equal(manifest.node.minimum, "22.6.0");
   assert.equal(manifest.openspec.required, "1.10.0");
-  assert.equal(manifest.projection.length, 20);
-  for (const item of manifest.projection) assert.equal(digest(join(runtimeRoot, item.source)), item.sha256, item.source);
+  assert.equal(manifest.submodule.path, ".delivery-spec-runtime");
+  assert.deepEqual(manifest.submodule.links, [
+    { link: ".omp/commands", source: ".omp/commands" },
+    { link: "openspec/schemas/delivery-change", source: "openspec/schemas/delivery-change" },
+    { link: "openspec/tools/runtime-entry.ts", source: "openspec/tools/runtime-entry.ts" },
+  ]);
+  for (const item of manifest.submodule.links) assert.equal(existsSync(join(runtimeRoot, item.source)), true, item.source);
   const schema = readFileSync(join(runtimeRoot, "openspec/schemas/delivery-change/schema.yaml"), "utf8");
   for (const path of ["01-原始需求", "02-需求理解", "03-业务现状", "04-技术现状", "05-改造方案", "06-测试方案", "07-实施任务", "08-验收", "09-发布"]) assert.match(schema, new RegExp(path));
   assert.match(schema, /name: delivery-change/);
@@ -22,7 +26,7 @@ test("runtime manifest、九层schema与九个Commands一致", () => {
   for (const command of commands) {
     const content = readFileSync(join(runtimeRoot, ".omp/commands", command), "utf8");
     assert.match(content, /runtime-entry\.ts/);
-    assert.match(content, /runtime lock、commit、manifest 或投影摘要检查/);
+    assert.match(content, /父仓 gitlink、runtime submodule commit、manifest、dirty 状态或相对软链检查/);
   }
 });
 

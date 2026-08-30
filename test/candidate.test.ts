@@ -14,6 +14,9 @@ test("公开候选只复制允许清单且不产生外部副作用", () => {
     const report = JSON.parse(readFileSync(join(output, "candidate-report.json"), "utf8"));
     assert.equal(report.externalEffects, "no remote created; no push performed");
     assert.equal(existsSync(join(output, "openspec/tools/bootstrap.ts")), false);
+    assert.equal(existsSync(join(output, "openspec/tools/runtime-link.ts")), true);
+    assert.equal(existsSync(join(output, "openspec/tools/runtime-install.ts")), false);
+    assert.equal(existsSync(join(output, "openspec/contracts/runtime-lock.schema.json")), false);
     assert.ok(report.files.length > 20);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

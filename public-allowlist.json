@@ -16,7 +16,6 @@
     "openspec/contracts/change-info.schema.json",
     "openspec/contracts/change-mode.schema.json",
     "openspec/contracts/example-provenance.schema.json",
-    "openspec/contracts/runtime-lock.schema.json",
     "openspec/contracts/source-adapters.schema.json",
     "openspec/contracts/sources.schema.json",
     "openspec/contracts/task-state.schema.json",
@@ -33,7 +32,7 @@
     "openspec/tools/delivery-control.ts",
     "openspec/tools/public-candidate.ts",
     "openspec/tools/runtime-entry.ts",
-    "openspec/tools/runtime-install.ts",
+    "openspec/tools/runtime-link.ts",
     "openspec/tools/runtime-lib.ts",
     "runtime-manifest.json"
   ],

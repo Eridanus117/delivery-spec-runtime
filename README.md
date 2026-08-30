@@ -1,18 +1,32 @@
 # delivery-spec-runtime
 
-工作 Spec 与私人 Spec 共用的 OpenSpec delivery 生命周期运行时。
+工作 Spec 与私人 Spec 共用的私有 OpenSpec delivery 生命周期运行时。
 
 ## 内容
 
 - `openspec/schemas/delivery-change/`：九层交付 schema 与模板
 - `.omp/commands/`：九个 `/opsx-*` 生命周期命令
-- `openspec/tools/`：入口、合同控制、安装、迁移和公开候选工具
+- `openspec/tools/`：入口、合同控制、相对软链、迁移和候选审查工具
 - `openspec/contracts/`：机器可校验的状态合同
 - `test/`：Node 合同测试
 
 ## 边界
 
-本仓不保存任何真实 Change、长期业务规范或真实执行证据。安装到资产仓的内容由 `runtime-manifest.json` 唯一允许清单控制，并由资产仓 `openspec/runtime.lock.json` 锁定 commit 与摘要。
+本仓不保存任何真实 Change、长期业务规范或真实执行证据。资产仓通过 `.delivery-spec-runtime` Git submodule 的 gitlink 锁定运行时 commit，并以 `runtime-manifest.json` 声明的三个相对软链暴露 Commands、schema 与入口。`runtime-entry.ts` 对 gitlink、submodule commit、dirty 状态、manifest 和软链 fail closed；不维护第二份 lock 或复制投影。
+
+## 接入
+
+```bash
+git submodule add https://github.com/Eridanus117/delivery-spec-runtime.git .delivery-spec-runtime
+node --experimental-strip-types .delivery-spec-runtime/openspec/tools/runtime-link.ts apply --asset-root .
+git add .gitmodules .delivery-spec-runtime .omp/commands openspec/schemas/delivery-change openspec/tools/runtime-entry.ts
+```
+
+克隆资产仓时必须初始化私有 submodule：
+
+```bash
+git clone --recurse-submodules <asset-repository>
+```
 
 ## 验证
 

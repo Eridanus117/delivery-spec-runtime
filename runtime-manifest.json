@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "schemaName": "delivery-change",
   "node": {
     "minimum": "22.6.0"
@@ -7,108 +7,23 @@
   "openspec": {
     "required": "1.10.0"
   },
-  "projection": [
-    {
-      "source": "openspec/schemas/delivery-change/schema.yaml",
-      "target": "openspec/schemas/delivery-change/schema.yaml",
-      "sha256": "sha256:799a29b8fbcd362a244547c36a4956b17b2a5e205f0acfe3d6b13e69367f7f94"
-    },
-    {
-      "source": "openspec/schemas/delivery-change/templates/acceptance.md",
-      "target": "openspec/schemas/delivery-change/templates/acceptance.md",
-      "sha256": "sha256:79dc5762e1231649db2fccbb5eb43709459c74ca75c6e2852d204317d09fa7ee"
-    },
-    {
-      "source": "openspec/schemas/delivery-change/templates/business-current.md",
-      "target": "openspec/schemas/delivery-change/templates/business-current.md",
-      "sha256": "sha256:24562cae4e41f516b84d7efb66bac49557c2c4cf1442941a04ef1c1f9d2c5e20"
-    },
-    {
-      "source": "openspec/schemas/delivery-change/templates/change-plan.md",
-      "target": "openspec/schemas/delivery-change/templates/change-plan.md",
-      "sha256": "sha256:e888969f3fbb000b5aaad360b863f99130a9c57cea4bd2c7c1a40589de05e262"
-    },
-    {
-      "source": "openspec/schemas/delivery-change/templates/raw-requirements.md",
-      "target": "openspec/schemas/delivery-change/templates/raw-requirements.md",
-      "sha256": "sha256:b1b8cac834e10c86bf6d686da2756121306fa7635a73b8578853e53a6b7a4bf6"
-    },
-    {
-      "source": "openspec/schemas/delivery-change/templates/release-plan.md",
-      "target": "openspec/schemas/delivery-change/templates/release-plan.md",
-      "sha256": "sha256:c5d27c5167d3164d5dd5b1903d947bfdd20f359a6fb2d1f994f27c0bb84e89d8"
-    },
-    {
-      "source": "openspec/schemas/delivery-change/templates/spec.md",
-      "target": "openspec/schemas/delivery-change/templates/spec.md",
-      "sha256": "sha256:60101f77ccff120903ccf92d74573f3f23fa13a8ffb75f09dcf3b9341ed7f17c"
-    },
-    {
-      "source": "openspec/schemas/delivery-change/templates/tasks.md",
-      "target": "openspec/schemas/delivery-change/templates/tasks.md",
-      "sha256": "sha256:4e6aadfaacdb7d687e5c0ae3ece099cbfeb91e99beef71e20de539c22772b446"
-    },
-    {
-      "source": "openspec/schemas/delivery-change/templates/technical-current.md",
-      "target": "openspec/schemas/delivery-change/templates/technical-current.md",
-      "sha256": "sha256:66d926399b3fb548313af89aa5f1990fb829b271a885f56a7d29417720ec17ab"
-    },
-    {
-      "source": "openspec/schemas/delivery-change/templates/test-plan.md",
-      "target": "openspec/schemas/delivery-change/templates/test-plan.md",
-      "sha256": "sha256:cadb719f74c73c8633ffddd8dbbcf84753f9ac1069b386458fcf54509bf1d3db"
-    },
-    {
-      "source": ".omp/commands/opsx-apply.md",
-      "target": ".omp/commands/opsx-apply.md",
-      "sha256": "sha256:ad2627413cbe52acdc0cd29dba74971ae74f008ccd6f60d55ebce193d9cb4bd8"
-    },
-    {
-      "source": ".omp/commands/opsx-archive.md",
-      "target": ".omp/commands/opsx-archive.md",
-      "sha256": "sha256:84cde15d331f7217b895f841e2fb6de3a408dd115ea3e0ac3eee3547a8eb5eac"
-    },
-    {
-      "source": ".omp/commands/opsx-continue.md",
-      "target": ".omp/commands/opsx-continue.md",
-      "sha256": "sha256:ba7801313cd4e39fa547057c645181429e6636a63c9b3f60391b5d733eeb0c3d"
-    },
-    {
-      "source": ".omp/commands/opsx-explore.md",
-      "target": ".omp/commands/opsx-explore.md",
-      "sha256": "sha256:ab0028b04f42e01ded414ebe89ffda2d0984cc440c206eb78a397d7bf79639f1"
-    },
-    {
-      "source": ".omp/commands/opsx-new.md",
-      "target": ".omp/commands/opsx-new.md",
-      "sha256": "sha256:5d318d29a831022245dca10d0dc86132d18bb0e14a74d5330718f8da2959b53e"
-    },
-    {
-      "source": ".omp/commands/opsx-propose.md",
-      "target": ".omp/commands/opsx-propose.md",
-      "sha256": "sha256:c4f938a7eabf25447080a16b91b3e17d7e32608a30715958e234faa93afa29f0"
-    },
-    {
-      "source": ".omp/commands/opsx-sync.md",
-      "target": ".omp/commands/opsx-sync.md",
-      "sha256": "sha256:d151e0d96210c2015eaa0fa5f15bd4dc05452a2653f11c3f3d3080f7e1832339"
-    },
-    {
-      "source": ".omp/commands/opsx-update.md",
-      "target": ".omp/commands/opsx-update.md",
-      "sha256": "sha256:f20b192dd2d7186655ca50412bef5e2d0ac33d7b86f7ec63a03228aa026e76bc"
-    },
-    {
-      "source": ".omp/commands/opsx-verify.md",
-      "target": ".omp/commands/opsx-verify.md",
-      "sha256": "sha256:7281a7a4d62659a44ab000749ade3ae86d5651aa8feac8b7e6378e13e36d45d0"
-    },
-    {
-      "source": "openspec/tools/runtime-entry.ts",
-      "target": "openspec/tools/runtime-entry.ts",
-      "sha256": "sha256:151a4c045f21acd85a258805aaf74d36a446ae05f0449e777673dca7a7acf5d3"
-    }
-  ],
+  "submodule": {
+    "path": ".delivery-spec-runtime",
+    "links": [
+      {
+        "link": ".omp/commands",
+        "source": ".omp/commands"
+      },
+      {
+        "link": "openspec/schemas/delivery-change",
+        "source": "openspec/schemas/delivery-change"
+      },
+      {
+        "link": "openspec/tools/runtime-entry.ts",
+        "source": "openspec/tools/runtime-entry.ts"
+      }
+    ]
+  },
   "forbiddenPathSegments": [
     ".specify",
     ".speckit",
