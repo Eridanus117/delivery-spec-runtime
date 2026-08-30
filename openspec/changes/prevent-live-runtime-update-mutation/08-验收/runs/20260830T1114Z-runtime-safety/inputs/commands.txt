@@ -1,0 +1,4 @@
+node --experimental-strip-types --test test/bootstrap.test.ts test/candidate.test.ts test/contracts.test.ts test/control.test.ts test/digest.test.ts test/submodule.test.ts
+node --experimental-strip-types .delivery-spec-runtime/openspec/tools/runtime-entry.ts runtime-check --change-root .
+node --experimental-strip-types .delivery-spec-runtime/openspec/tools/runtime-entry.ts runtime-check --change-root .
+node --experimental-strip-types .delivery-spec-runtime/openspec/tools/runtime-entry.ts runtime-check --change-root .

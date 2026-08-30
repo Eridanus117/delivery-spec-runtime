@@ -1,0 +1,5 @@
+{
+  "allowed": true,
+  "runtime": "delivery-spec-runtime",
+  "schema": "delivery-change"
+}
