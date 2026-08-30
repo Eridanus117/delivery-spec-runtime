@@ -1,0 +1,11 @@
+Run: 20260830T1352Z-final
+Commit: 8159bdda342b4af390724b922d2e613598438b78
+
+node --experimental-strip-types openspec/tools/render-commands.ts check --runtime-root .
+PASS: files=9, changed=[]
+
+node --experimental-strip-types --test test/*.test.ts
+PASS: tests=24, pass=24, fail=0
+
+openspec validate --all --strict
+PASS: spec/controlled-openspec-upgrades, spec/delivery-lifecycle-governance, change/reorganize-runtime-documentation, spec/runtime-upgrade-safety; totals=4 passed, 0 failed
