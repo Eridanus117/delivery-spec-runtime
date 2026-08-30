@@ -28,6 +28,11 @@ jobs:
         with:
           node-version: 22.6.0
 
+      - name: Install pinned OpenSpec
+        run: |
+          npm install --prefix "$RUNNER_TEMP/openspec" --no-save --no-package-lock --ignore-scripts --no-audit --no-fund @fission-ai/openspec@1.11.0
+          echo "$RUNNER_TEMP/openspec/node_modules/.bin" >> "$GITHUB_PATH"
+
       - name: Check runtime entry
         run: node --experimental-strip-types openspec/tools/runtime-entry.ts runtime-check --change-root .
 
