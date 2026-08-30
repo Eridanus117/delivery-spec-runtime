@@ -57,6 +57,7 @@ test("workflow core 不把继承属性当作输入", () => {
   const profile = parseWorkflowProfile({ schemaVersion: 1, profileId: "prototype-check", profileVersion: "v1.0.0", displayName: "Prototype Check", stages: [{ id: "intake", displayName: "Intake", requiredInputs: ["toString"], humanJudgment: false }] });
   const request = parseWorkflowRequest({ schemaVersion: 1, matterId: "prototype-matter", binding: { schemaVersion: 1, profileId: "prototype-check", profileVersion: "v1.0.0" }, inputs: {}, judgments: {} });
   assert.equal(executeWorkflow(profile, request).status, "blocked");
+  assert.throws(() => parseWorkflowProfile({ schemaVersion: 1, profileId: "demo", profileVersion: "v1.0.0", displayName: "Demo", stages: [{ id: "one", displayName: "One", requiredInputs: ["request", "request"], humanJudgment: false }] }), /requiredInputs 不得重复/);
 });
 
 test("profile 合同拒绝重复阶段和未知字段", () => {

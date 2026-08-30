@@ -109,6 +109,7 @@ function parseStage(value: unknown, index: number): WorkflowStage {
   exactKeys(stage, ["id", "displayName", "requiredInputs", "humanJudgment"], ["id", "displayName", "requiredInputs", "humanJudgment"], `profile.stages[${index}]`);
   const requiredInputs = stringArray(stage.requiredInputs, `profile.stages[${index}].requiredInputs`);
   if (requiredInputs.some((key) => key.length === 0)) fail(`profile.stages[${index}].requiredInputs 不得为空`);
+  if (new Set(requiredInputs).size !== requiredInputs.length) fail(`profile.stages[${index}].requiredInputs 不得重复`);
   if (typeof stage.humanJudgment !== "boolean") fail(`profile.stages[${index}].humanJudgment 必须是布尔值`);
   return {
     id: assertId(stage.id, `profile.stages[${index}].id`),
