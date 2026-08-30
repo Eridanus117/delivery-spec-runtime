@@ -17,6 +17,13 @@ test("公开候选只复制允许清单且不产生外部副作用", () => {
     assert.equal(existsSync(join(output, "openspec/tools/runtime-link.ts")), true);
     assert.equal(existsSync(join(output, "openspec/tools/runtime-install.ts")), false);
     assert.equal(existsSync(join(output, "openspec/contracts/runtime-lock.schema.json")), false);
+    for (const path of [
+      "docs/architecture.md",
+      "docs/consumer-guide.md",
+      "docs/governance.md",
+      "docs/maintainer-guide.md",
+      "docs/openspec-upgrade.md",
+    ]) assert.equal(existsSync(join(output, path)), true, `公开候选缺少README导航目标: ${path}`);
     assert.ok(report.files.length > 20);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

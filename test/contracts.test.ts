@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { runtimeRoot } from "./helpers.ts";
 
 
@@ -59,34 +59,57 @@ test("OpenSpec升级只允许通过Runtime仓受控Change", () => {
   assert.match(updateCommand, /独立的受控升级 Change/);
 
   const readme = readFileSync(join(runtimeRoot, "README.md"), "utf8");
-  assert.match(readme, /`runtime-entry\.ts runtime-update` 在启动 OpenSpec CLI 前稳定拒绝/);
-  assert.match(readme, /官方 current\/candidate 在隔离根生成/);
+  const upgradeGuide = readFileSync(join(runtimeRoot, "docs/openspec-upgrade.md"), "utf8");
+  assert.match(readme, /实时消费仓禁止执行 `openspec update` 或 `runtime-update`/);
+  assert.match(upgradeGuide, /临时目录分别生成 current 和 candidate/);
+  assert.match(upgradeGuide, /真实消费仓.*只进行前后摘要和 Git 状态核验/);
+  assert.match(upgradeGuide, /public-candidate\.ts generate/);
+  assert.match(upgradeGuide, /candidate-report\.json/);
 });
 
-test("README是Runtime采用与维护的可执行入口", () => {
-  const readme = readFileSync(join(runtimeRoot, "README.md"), "utf8");
-  assert.ok((readme.match(/```mermaid/g) ?? []).length >= 3);
-  for (const contract of [
-    ".delivery-spec-runtime",
-    ".omp/commands",
-    "openspec/schemas/delivery-change",
-    "openspec/tools/runtime-entry.ts",
-    "render-commands.ts",
-    "openspec-upgrade.ts",
-    "currentVersion",
-    "candidateVersion",
-    "upstream、current-local、candidate-local",
-    "Runtime 自治理",
-    "方案提案",
-    "Trade-off",
-    "implementation-review.json",
-    "acceptance-state.json",
-    "archive-readiness.json",
-    "Archive",
-    "FinalValidation",
-  ]) assert.match(readme, new RegExp(contract.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-  assert.doesNotMatch(readme, /本仓不保存任何真实 Change/);
+test("README是Runtime采用与维护的分层入口", () => {
+  const readmePath = join(runtimeRoot, "README.md");
+  const readme = readFileSync(readmePath, "utf8");
+  assert.ok((readme.match(/```mermaid/g) ?? []).length >= 1);
+  assert.match(readme, /## 五分钟接入/);
+  assert.match(readme, /## 按任务阅读/);
+  assert.match(readme, /## 信息权威边界/);
   assert.match(readme, /实时消费仓禁止执行 `openspec update`/);
+  assert.doesNotMatch(readme, /\"currentVersion\"/);
+  assert.doesNotMatch(readme, /implementation-review\.json/);
+  const linkedPaths = [...readme.matchAll(/(?<!!)\[[^\]]+\]\(([^)#]+)(?:#[^)]*)?\)/g)].map((match) => match[1]);
+
+  const guides = {
+    "docs/architecture.md": [".delivery-spec-runtime", "fail-closed"],
+    "docs/consumer-guide.md": ["runtime-check", ".omp/commands"],
+    "docs/maintainer-guide.md": ["render-commands.ts", "changed: []"],
+    "docs/openspec-upgrade.md": ["currentVersion", "candidateVersion", "upstream、current-local、candidate-local"],
+    "docs/governance.md": ["方案提案", "Trade-off", "implementation-review.json", "acceptance-state.json", "archive-readiness.json"],
+  };
+  for (const [path, contracts] of Object.entries(guides)) {
+    assert.equal(linkedPaths.includes(path), true, `README任务导航缺少链接: ${path}`);
+    const guide = readFileSync(join(runtimeRoot, path), "utf8");
+    for (const contract of contracts) assert.match(guide, new RegExp(contract.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+});
+
+test("README与专题文档的仓库内链接全部有效", () => {
+  const paths = ["README.md", ...readdirSync(join(runtimeRoot, "docs")).filter((name) => name.endsWith(".md")).map((name) => `docs/${name}`)];
+  for (const path of paths) {
+    const source = join(runtimeRoot, path);
+    const content = readFileSync(source, "utf8");
+    for (const match of content.matchAll(/(?<!!)\[[^\]]+\]\(([^)]+)\)/g)) {
+      if (/^[a-z]+:/i.test(match[1])) continue;
+      const [relativePath, fragment] = match[1].split("#", 2);
+      const target = relativePath ? resolve(dirname(source), relativePath) : source;
+      assert.equal(existsSync(target), true, `${path} 链接目标不存在: ${match[1]}`);
+      if (!fragment) continue;
+      const anchors = [...readFileSync(target, "utf8").matchAll(/^#{1,6}\s+(.+?)\s*$/gm)].map((heading) =>
+        heading[1].toLowerCase().replace(/`/g, "").replace(/[^\p{L}\p{N}\s-]/gu, "").trim().replace(/\s+/g, "-")
+      );
+      assert.equal(anchors.includes(decodeURIComponent(fragment).toLowerCase()), true, `${path} 链接锚点不存在: ${match[1]}`);
+    }
+  }
 });
 
 test("runtime树不含禁用资产路径段", () => {

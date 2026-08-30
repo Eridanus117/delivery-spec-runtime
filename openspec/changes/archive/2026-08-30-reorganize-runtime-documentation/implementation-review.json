@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "42d6f1e93e361d6c45646526999a9f2352455d47",
+  "reviewedCommit": "8159bdda342b4af390724b922d2e613598438b78",
+  "reviewedPaths": [
+    {
+      "path": "README.md",
+      "exists": true,
+      "sha256": "sha256:77a175e5c66a43c9e288915313b7c5a1fff96624bb881601f167aeda94c8bc10"
+    },
+    {
+      "path": "docs/architecture.md",
+      "exists": true,
+      "sha256": "sha256:7b33bbfcf589858313a2d205ff89f3e9210d62f210ac04e7b489399ac3aa3608"
+    },
+    {
+      "path": "docs/consumer-guide.md",
+      "exists": true,
+      "sha256": "sha256:c0cb32bfd5b55d67d9f4523d3a20c11899347b6493c5ad6f08079ed40742b90e"
+    },
+    {
+      "path": "docs/governance.md",
+      "exists": true,
+      "sha256": "sha256:8fe4940a9b2166bba2733f0c24c7c60c7c70b4d446c410ffbaf4669988bfba99"
+    },
+    {
+      "path": "docs/maintainer-guide.md",
+      "exists": true,
+      "sha256": "sha256:33d7c03100245cd09fb7f7229746ce6671fe270c7f3ccb7db06b1cebe7a9be72"
+    },
+    {
+      "path": "docs/openspec-upgrade.md",
+      "exists": true,
+      "sha256": "sha256:d48a9760ef538f1a1655265d94b534758d04a626cf4ed60ab6723f14622a7b92"
+    },
+    {
+      "path": "public-allowlist.json",
+      "exists": true,
+      "sha256": "sha256:daff68e6c958990b598e72015fbc8a5c330afa6a1f3914859206286b54f95545"
+    },
+    {
+      "path": "test/candidate.test.ts",
+      "exists": true,
+      "sha256": "sha256:b9f61ba904902763e54d76bc297eea39b67badc3e7c13a333cdd8e7d5e9f19da"
+    },
+    {
+      "path": "test/contracts.test.ts",
+      "exists": true,
+      "sha256": "sha256:fae5d4712d34d86d46ab03ee8481dbff22fc460faa9763e33fc7dc002410577a"
+    }
+  ],
+  "reviewedDigest": "sha256:d88c247f58ecdd5bc6a48afb4e0a7c033dc907c362d1e5fe647c80be67636955",
+  "reviewer": "主会话（依据两轮 fresh reviewer findings 完成修复闭环；维护者取消额外复审）",
+  "reviewedAt": "2026-08-30T13:52:40Z",
+  "findings": [
+    {
+      "id": "REV-001",
+      "severity": "HIGH",
+      "path": "docs/consumer-guide.md",
+      "line": null,
+      "summary": "首次接入必须在父仓提交后运行 runtime-check",
+      "status": "RESOLVED",
+      "resolution": "首次接入命令现在先提交 gitlink 和三条软链，并明确 runtime-check 以父仓 HEAD 与 clean 状态为准。"
+    },
+    {
+      "id": "REV-002",
+      "severity": "HIGH",
+      "path": "docs/consumer-guide.md",
+      "line": null,
+      "summary": "Runtime gitlink 更新必须先提交父仓记录再检查",
+      "status": "RESOLVED",
+      "resolution": "更新流程改为 checkout、git add、git commit、runtime-check，并说明暂存状态不能通过。"
+    },
+    {
+      "id": "REV-003",
+      "severity": "MEDIUM",
+      "path": "docs/consumer-guide.md",
+      "line": null,
+      "summary": "漂移软链修复需要 replace-managed",
+      "status": "RESOLVED",
+      "resolution": "区分缺失和漂移；漂移在确认无本地内容后使用 --replace-managed。"
+    },
+    {
+      "id": "REV-004",
+      "severity": "HIGH",
+      "path": "public-allowlist.json",
+      "line": null,
+      "summary": "公开候选必须包含五份专题文档",
+      "status": "RESOLVED",
+      "resolution": "五份 docs 文件加入 allowlist，并由 candidate 合同测试验证输出存在。"
+    },
+    {
+      "id": "REV-005",
+      "severity": "HIGH",
+      "path": "docs/openspec-upgrade.md",
+      "line": null,
+      "summary": "升级放行必须包含 public candidate",
+      "status": "RESOLVED",
+      "resolution": "流程图、执行命令、门禁和证据要求均加入 public-candidate 与 candidate-report.json。"
+    },
+    {
+      "id": "REV-006",
+      "severity": "HIGH",
+      "path": "docs/governance.md",
+      "line": null,
+      "summary": "Proposal 与 Decision 字段必须匹配 guard",
+      "status": "RESOLVED",
+      "resolution": "指南补全推荐、未决问题、APPROVED、决策人和决策时间等必需字段。"
+    },
+    {
+      "id": "REV-007",
+      "severity": "HIGH",
+      "path": "docs/governance.md",
+      "line": null,
+      "summary": "Review finding 字段必须匹配严格合同",
+      "status": "RESOLVED",
+      "resolution": "指南补全 id、resolution 及 OPEN/RESOLVED/ACCEPTED 规则，并链接 schema。"
+    },
+    {
+      "id": "REV-008",
+      "severity": "HIGH",
+      "path": "docs/governance.md",
+      "line": null,
+      "summary": "Change 指南必须包含机器合同初始化",
+      "status": "RESOLVED",
+      "resolution": "指南加入 delivery-control init/inspect、task write/render 和聚焦 validate 命令。"
+    },
+    {
+      "id": "REV-009",
+      "severity": "LOW",
+      "path": "test/contracts.test.ts",
+      "line": null,
+      "summary": "README 任务导航测试必须验证真实 Markdown 链接",
+      "status": "RESOLVED",
+      "resolution": "测试解析 Markdown 链接目标并逐项断言五份专题文档。"
+    },
+    {
+      "id": "REV-010",
+      "severity": "LOW",
+      "path": "test/contracts.test.ts",
+      "line": null,
+      "summary": "升级文档测试必须锁定 public candidate 门禁",
+      "status": "RESOLVED",
+      "resolution": "测试明确断言 public-candidate.ts generate 和 candidate-report.json。"
+    }
+  ],
+  "result": "PASS"
+}

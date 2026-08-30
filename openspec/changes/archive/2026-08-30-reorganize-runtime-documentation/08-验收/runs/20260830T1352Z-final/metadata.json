@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "runId": "20260830T1352Z-final",
+  "implementationCommit": "8159bdda342b4af390724b922d2e613598438b78",
+  "executedAt": "2026-08-30T13:52:40Z",
+  "commands": [
+    "node --experimental-strip-types openspec/tools/render-commands.ts check --runtime-root .",
+    "node --experimental-strip-types --test test/*.test.ts",
+    "openspec validate --all --strict"
+  ]
+}

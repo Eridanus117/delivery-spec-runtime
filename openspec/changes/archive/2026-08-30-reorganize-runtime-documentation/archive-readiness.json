@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "implementationCommit": "8159bdda342b4af390724b922d2e613598438b78",
+  "acceptanceDigest": "sha256:56b6d097e4cbaca6867791cf6e039af20be5cb4f779281681086d568855280d4",
+  "releasePlanDigest": "sha256:9eb75529824b17c812110138e12ebe61c83e0f9f0e51d223177d20642daffe6a",
+  "specSync": [
+    {
+      "deltaPath": "openspec/changes/reorganize-runtime-documentation/specs/controlled-openspec-upgrades/spec.md",
+      "deltaSha256": "sha256:9658f7064bb0c94bd4937ceeadd491dbfdcc334f63ddcc0055011ca0fd5c22db",
+      "mainPath": "openspec/specs/controlled-openspec-upgrades/spec.md",
+      "mainSha256": "sha256:468aeaf176c6473429e00519952b73130e6e0c282e7182cde305a506bebf8987"
+    }
+  ],
+  "strictValidation": "PASS",
+  "cleanupEvidence": {
+    "path": "openspec/changes/reorganize-runtime-documentation/08-验收/cleanup/cleanup.md",
+    "sha256": "sha256:1111a676ce5665bc0878d0e9798159f021dc7b7e77a2d2e7fbe198111722a582"
+  },
+  "prStarted": false,
+  "migrationSource": null,
+  "historicalPr": null,
+  "attestedBy": "仓库维护者（当前会话）",
+  "attestedAt": "2026-08-30T13:55:14Z",
+  "result": "READY"
+}
