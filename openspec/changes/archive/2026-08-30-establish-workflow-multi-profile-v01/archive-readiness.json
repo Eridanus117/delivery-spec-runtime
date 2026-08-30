@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "implementationCommit": "bdaead9e78ca4dc18a5e4e69c91532cb8b4d1e02",
+  "acceptanceDigest": "sha256:b485d18385c98e75515f78d83f17de366ebdad170acab55a38d9764ade19b494",
+  "releasePlanDigest": "sha256:38ac7611e477791a4c3398984cc58477069bab3d7cdac2c11db77b1020f03ed6",
+  "specSync": [
+    {
+      "deltaPath": "openspec/changes/establish-workflow-multi-profile-v01/specs/workflow-profiles/spec.md",
+      "deltaSha256": "sha256:6ee2be73e9c8dff8d200dc0bbfd72cd17a02f3b3752fdc85a3d93fb70ec2ee3d",
+      "mainPath": "openspec/specs/workflow-profiles/spec.md",
+      "mainSha256": "sha256:e5373450d955747c6c4911769dad6905dc625e7e982a1dcb1ec7646814e8f293"
+    }
+  ],
+  "strictValidation": "PASS",
+  "cleanupEvidence": {
+    "path": "openspec/changes/establish-workflow-multi-profile-v01/08-验收/runs/20260830T193041Z/cleanup/conclusion.md",
+    "sha256": "sha256:9e17b0214b547050f457b6ebbe217e9d23655a8692e043edccfe1ac186445521"
+  },
+  "prStarted": false,
+  "migrationSource": null,
+  "historicalPr": null,
+  "attestedBy": "release-readiness-session",
+  "attestedAt": "2026-08-30T19:40:00.000Z",
+  "result": "READY"
+}
