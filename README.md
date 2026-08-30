@@ -1,6 +1,6 @@
 # delivery-spec-runtime
 
-工作 Spec 与私人 Spec 共用的私有 OpenSpec delivery 生命周期运行时。
+工作 Spec、私人 Spec 与公开项目仓共用的公共 OpenSpec delivery 生命周期运行时。
 
 ## 内容
 
@@ -22,7 +22,7 @@ node --experimental-strip-types .delivery-spec-runtime/openspec/tools/runtime-li
 git add .gitmodules .delivery-spec-runtime .omp/commands openspec/schemas/delivery-change openspec/tools/runtime-entry.ts
 ```
 
-克隆资产仓时必须初始化私有 submodule：
+克隆资产仓或项目仓时必须初始化 runtime submodule：
 
 ```bash
 git clone --recurse-submodules <asset-repository>
