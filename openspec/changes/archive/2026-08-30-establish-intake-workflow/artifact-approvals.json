@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "artifacts": {
+    "raw-requirements": {
+      "digest": "sha256:d1e024985c2b8ff27215051ca9c45461a01b430bcbdc31324d0b474c396590df",
+      "decision": "approved",
+      "approvedBy": "Runtime maintainer authorization",
+      "approvedAt": "2026-08-30T22:56:59.016Z",
+      "migrationSource": null
+    },
+    "specs": {
+      "digest": "sha256:fe6bec9a3e7be59decc28e5a9e2c3a786622d70e2ab150bd4e16e80307a2b12f",
+      "decision": "approved",
+      "approvedBy": "Runtime maintainer authorization",
+      "approvedAt": "2026-08-30T22:56:59.138Z",
+      "migrationSource": null
+    },
+    "business-current": {
+      "digest": "sha256:1138445408b1a715f55cf1006e4d15ce133027a00d2a640f688a1ec4eafd305c",
+      "decision": "approved",
+      "approvedBy": "Runtime maintainer authorization",
+      "approvedAt": "2026-08-30T22:56:59.265Z",
+      "migrationSource": null
+    },
+    "technical-current": {
+      "digest": "sha256:823272f30d0b6e0d1bdf32cd813d83c7e23214cf4416b8e0d82fef60ad256ea6",
+      "decision": "approved",
+      "approvedBy": "Runtime maintainer authorization",
+      "approvedAt": "2026-08-30T22:56:59.395Z",
+      "migrationSource": null
+    },
+    "solution-proposal": {
+      "digest": "sha256:2869e4b35cc59db43fc82fa1208d8227bcd92dd32d2ecc44114ed668929aba89",
+      "decision": "approved",
+      "approvedBy": "Runtime maintainer authorization",
+      "approvedAt": "2026-08-30T22:56:59.518Z",
+      "migrationSource": null
+    },
+    "solution-decision": {
+      "digest": "sha256:3b6d6b96749845ad813cfec66b1e12d6a4edd7eef663eec351ac960796772a4c",
+      "decision": "approved",
+      "approvedBy": "Runtime maintainer authorization",
+      "approvedAt": "2026-08-30T22:56:59.652Z",
+      "migrationSource": null
+    },
+    "change-plan": {
+      "digest": "sha256:0c7942bd4a4de99beed4b7a25206405eee28dc5e034ed56c35d749a52e23cf4b",
+      "decision": "approved",
+      "approvedBy": "Runtime maintainer authorization",
+      "approvedAt": "2026-08-30T22:56:59.783Z",
+      "migrationSource": null
+    },
+    "test-plan": {
+      "digest": "sha256:cfa5b02ae543bf534fc8c11a119b9408d8698651caeede1923829ffa16fa6610",
+      "decision": "approved",
+      "approvedBy": "Runtime maintainer authorization",
+      "approvedAt": "2026-08-30T22:56:59.920Z",
+      "migrationSource": null
+    },
+    "tasks": {
+      "digest": "sha256:8a11e17e085de634d9abb5638b43b5e042574f626d60a4634a993d9e88d65d5f",
+      "decision": "approved",
+      "approvedBy": "Runtime maintainer authorization",
+      "approvedAt": "2026-08-30T23:07:20.418Z",
+      "migrationSource": null
+    }
+  }
+}

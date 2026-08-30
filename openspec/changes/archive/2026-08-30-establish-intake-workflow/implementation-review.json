@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "54562ffa28cab6f53ff2e3650a523eac04b0d531",
+  "reviewedCommit": "7c4804f851606ec5c671371c011d985b947049b1",
+  "reviewedPaths": [
+    {
+      "path": "docs/consumer-guide.md",
+      "exists": true,
+      "sha256": "sha256:be58a8eb100a57b827941808445bd1ca6df879ec687a8e297437351c4198d9e1"
+    },
+    {
+      "path": "docs/governance.md",
+      "exists": true,
+      "sha256": "sha256:b86cc9650ac67335417b62a43f043e44bd5068161f5a121abe9c6e086ade5e9f"
+    },
+    {
+      "path": "docs/workflow-guide.md",
+      "exists": true,
+      "sha256": "sha256:8ce2a3100a5bf2cad0b00dec322218e09843b5e88af9c1aa72da99534f962a06"
+    },
+    {
+      "path": "openspec/contracts/intake-state.schema.json",
+      "exists": true,
+      "sha256": "sha256:abee16b307f90278d6ff9b9c3cd999d6453a17c7e274725bec914ef76c2d8e3a"
+    },
+    {
+      "path": "openspec/intake/INT-20260830-004-runtime-metrics-and-options.md",
+      "exists": true,
+      "sha256": "sha256:466c8b40bf50869c254215e341554cbe2ed2d3e7908e318a2c9445610fc0f7ad"
+    },
+    {
+      "path": "openspec/intake/README.md",
+      "exists": true,
+      "sha256": "sha256:8f1fbed0ce1a0d57fe0ef89c0d6d05ae64f099c3440d11a92cb588c10cd734b8"
+    },
+    {
+      "path": "openspec/intake/stages.json",
+      "exists": true,
+      "sha256": "sha256:230788ec249262d436745943f1295d91783a7f85dd5082306633d382347ce1b7"
+    },
+    {
+      "path": "openspec/intake/template.md",
+      "exists": true,
+      "sha256": "sha256:5161d3852e17c9bf639b3d69a50abe106902d9a8007d958486052581beadbb18"
+    },
+    {
+      "path": "openspec/tools/intake-control.ts",
+      "exists": true,
+      "sha256": "sha256:b4ea13c3fb47ab6c4bedbe3d7872d78bf637109ac4089f42d49913ba9391928c"
+    },
+    {
+      "path": "openspec/tools/runtime-entry.ts",
+      "exists": true,
+      "sha256": "sha256:23ce5c3aa3d68758cf62a1958b94b3dc97d418b7f25d4d98b89b3048e56e4ea5"
+    },
+    {
+      "path": "public-allowlist.json",
+      "exists": true,
+      "sha256": "sha256:951d01da50e3cf8320bb7c3e869ff6217318ef79cdc044e639b053b0d3d149a4"
+    },
+    {
+      "path": "test/intake.test.ts",
+      "exists": true,
+      "sha256": "sha256:8f136a5cb1feafb97b471bca27d1cf322d8635f314aa3bb297dc38f5da558413"
+    }
+  ],
+  "reviewedDigest": "sha256:c7446b5b97aebc80b3c0596ed3ed2658d5858bd7ced884f0f9f9a83cd7d1c39b",
+  "reviewer": "Runtime maintainer review",
+  "reviewedAt": "2026-08-30T23:08:00Z",
+  "findings": [],
+  "result": "PASS"
+}
