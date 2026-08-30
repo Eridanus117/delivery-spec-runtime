@@ -60,22 +60,30 @@ test("OpenSpec升级只允许通过Runtime仓受控Change", () => {
 
   const readme = readFileSync(join(runtimeRoot, "README.md"), "utf8");
   const upgradeGuide = readFileSync(join(runtimeRoot, "docs/openspec-upgrade.md"), "utf8");
-  assert.match(readme, /实时消费仓禁止执行 `openspec update` 或 `runtime-update`/);
+  assert.match(readme, /不要在项目仓运行 `openspec update` 或 `runtime-update`/);
   assert.match(upgradeGuide, /临时目录分别生成 current 和 candidate/);
   assert.match(upgradeGuide, /真实消费仓.*只进行前后摘要和 Git 状态核验/);
   assert.match(upgradeGuide, /public-candidate\.ts generate/);
   assert.match(upgradeGuide, /candidate-report\.json/);
 });
 
-test("README是Runtime采用与维护的分层入口", () => {
+test("README引导首次采用者完成接入并开始Change", () => {
   const readmePath = join(runtimeRoot, "README.md");
   const readme = readFileSync(readmePath, "utf8");
+  const opening = readme.split("\n").slice(0, 16).join("\n");
+  assert.match(opening, /可版本锁定的 `\/opsx-\*` 交付工作流/);
+  assert.match(opening, /Git submodule/);
   assert.ok((readme.match(/```mermaid/g) ?? []).length >= 1);
-  assert.match(readme, /## 五分钟接入/);
-  assert.match(readme, /## 按任务阅读/);
-  assert.match(readme, /## 信息权威边界/);
-  assert.match(readme, /实时消费仓禁止执行 `openspec update`/);
-  assert.doesNotMatch(readme, /\"currentVersion\"/);
+  for (const heading of ["## 快速开始", "## 开始第一个 Change", "## 三条安全边界", "## 进一步阅读"]) {
+    assert.match(readme, new RegExp(heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+  assert.ok(readme.indexOf("git submodule add") < readme.indexOf("runtime-link.ts apply"));
+  assert.ok(readme.indexOf("runtime-link.ts apply") < readme.indexOf("git commit -m"));
+  assert.ok(readme.indexOf("git commit -m") < readme.indexOf("runtime-check --change-root"));
+  assert.ok(readme.indexOf("runtime-check --change-root") < readme.indexOf("/opsx-new add-order-export"));
+  assert.equal((readme.match(/^\d\. \*\*/gm) ?? []).length, 3);
+  assert.doesNotMatch(readme, /## 信息权威边界/);
+  assert.doesNotMatch(readme, /## 开发验证/);
   assert.doesNotMatch(readme, /implementation-review\.json/);
   const linkedPaths = [...readme.matchAll(/(?<!!)\[[^\]]+\]\(([^)#]+)(?:#[^)]*)?\)/g)].map((match) => match[1]);
 
