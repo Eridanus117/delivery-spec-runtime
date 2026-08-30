@@ -155,8 +155,9 @@ function main(): void {
   if (openspecVersion !== manifest.openspec.required) fail(`OpenSpec版本不满足运行时合同: ${openspecVersion}`);
   const lifecycle = argv[0] === "lifecycle";
   const workflow = argv[0] === "workflow";
-  const tool = workflow ? "workflow-control.ts" : lifecycle ? "delivery-lifecycle.ts" : "delivery-control.ts";
-  const forwarded = workflow || lifecycle ? argv.slice(1) : argv;
+  const intake = argv[0] === "intake";
+  const tool = workflow ? "workflow-control.ts" : lifecycle ? "delivery-lifecycle.ts" : intake ? "intake-control.ts" : "delivery-control.ts";
+  const forwarded = workflow || lifecycle || intake ? argv.slice(1) : argv;
   const internalArgs = workflow ? ["--runtime-root", runtimeRoot] : [];
   const result = spawnSync(process.execPath, ["--experimental-strip-types", join(runtimeRoot, `openspec/tools/${tool}`), ...forwarded, ...internalArgs, "--asset-root", assetRoot], { cwd: assetRoot, stdio: "inherit" });
   if (result.error) throw result.error;

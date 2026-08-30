@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "runId": "20260830-intake-contract",
+  "change": "establish-intake-workflow",
+  "implementationCommit": "7c4804f851606ec5c671371c011d985b947049b1",
+  "environment": "Runtime source root; Node experimental strip types",
+  "startedAt": "2026-08-30T23:04:00Z",
+  "endedAt": "2026-08-30T23:05:00Z",
+  "inputKind": "synthetic",
+  "commands": [
+    "node --experimental-strip-types --test test/intake.test.ts",
+    "openspec validate establish-intake-workflow --strict",
+    "node --experimental-strip-types openspec/tools/runtime-entry.ts intake init/inspect"
+  ],
+  "result": "PASS",
+  "cleanup": "PASS",
+  "scopeNote": "No real business input, account, environment, request response, trace, run-id or release-id was stored."
+}

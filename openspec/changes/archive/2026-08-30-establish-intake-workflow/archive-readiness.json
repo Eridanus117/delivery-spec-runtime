@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "implementationCommit": "7c4804f851606ec5c671371c011d985b947049b1",
+  "acceptanceDigest": "sha256:a39d50b37f8a4101cd6b979e8b717fc7c8a4d0b04efefa5f44ef7ebed38481ab",
+  "releasePlanDigest": "sha256:194b62535948bc1d0c826cafb37ad752a5d472f7fcedf0daa0811d0667c30683",
+  "specSync": [
+    {
+      "deltaPath": "openspec/changes/establish-intake-workflow/specs/intake-workflow/spec.md",
+      "deltaSha256": "sha256:8165f1660bcca398173390c90f8ec06063c8fa5740906a08e53c3bde43042270",
+      "mainPath": "openspec/specs/intake-workflow/spec.md",
+      "mainSha256": "sha256:3a57d91829a264a082e79c397273088b7126b5c271a43b66bc3969abb88ae0d5"
+    }
+  ],
+  "strictValidation": "PASS",
+  "cleanupEvidence": {
+    "path": "openspec/changes/establish-intake-workflow/08-验收/验收记录.md",
+    "sha256": "sha256:431ada32dec0f0e419c9774f6e63ff42694bbd7fad3455ffea5951978c30aa9a"
+  },
+  "prStarted": false,
+  "migrationSource": null,
+  "historicalPr": null,
+  "attestedBy": "Runtime maintainer archive readiness",
+  "attestedAt": "2026-08-30T23:12:00Z",
+  "result": "READY"
+}

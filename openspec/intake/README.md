@@ -50,3 +50,17 @@ INT-<YYYYMMDD>-<三位序号>-<简短主题>.md
 ## 提升为 Change
 
 统一 triage 后，只有明确决定实施的项目才创建 Change。Change 的原始需求索引引用 intake 文件，保留外部输入到内部 Requirement 的转化链；不要复制并分叉原始正文。
+
+## Runtime 工作流入口
+
+新 Intake 通过 Runtime 入口创建和推进：
+
+```bash
+node --experimental-strip-types openspec/tools/runtime-entry.ts intake init \
+  --intake-root . --id INT-YYYYMMDD-001-slug \
+  --source "<来源>" --issue "<原始问题>"
+node --experimental-strip-types openspec/tools/runtime-entry.ts intake inspect \
+  --intake-root . --file openspec/intake/INT-YYYYMMDD-001-slug.md
+```
+
+阶段顺序固定为 `capture → triage → evidence → options → disposition`。只有人工在 `disposition` 选择后，才能执行 `promote`、`hold` 或 `close`。Promote 只关联已存在的 Change，不隐式创建 Change；legacy 条目必须先由 `inspect` 报告缺口。
