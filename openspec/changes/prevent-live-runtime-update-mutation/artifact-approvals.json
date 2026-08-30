@@ -44,10 +44,10 @@
       "migrationSource": null
     },
     "tasks": {
-      "digest": "sha256:ee10e55b83534494f7c76223ee79e1016f3616aef7eb5c7f79d18010a5e75162",
+      "digest": "sha256:656bbb8d8bbfe0465ce831ff1efcbfb708e3a2fcc3d8ddfe97d7872e3a63af6c",
       "decision": "approved",
       "approvedBy": "仓库维护者（当前会话）",
-      "approvedAt": "2026-08-30T11:08:45.259Z",
+      "approvedAt": "2026-08-30T11:12:52.292Z",
       "migrationSource": null
     }
   }

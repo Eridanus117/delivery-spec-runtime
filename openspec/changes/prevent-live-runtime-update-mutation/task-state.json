@@ -76,7 +76,7 @@
     },
     {
       "id": "4.1",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
         "agent-system、webcoding-spec、work-spec 只读 smoke 结果",
         "功能分支与 PR"
@@ -84,7 +84,9 @@
       "verification": [
         "三个消费仓 runtime-check 无新增失败；功能分支推送并创建中文 PR，默认分支无直接 push"
       ],
-      "evidence": [],
+      "evidence": [
+        "agent-system、webcoding-spec、work-spec runtime-check 均 allowed=true；功能分支已推送并创建 PR #1：https://github.com/Eridanus117/delivery-spec-runtime/pull/1"
+      ],
       "blocker": null
     }
   ]
