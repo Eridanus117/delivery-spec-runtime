@@ -110,17 +110,11 @@ function main(): void {
   verifyLinks(assetRoot, runtimeRoot, manifest.submodule.links);
   verifyBootstrapState(assetRoot);
   if (!atLeast(process.versions.node, manifest.node.minimum)) fail(`Node版本不满足运行时合同: ${process.versions.node}`);
+  if (argv[0] === "runtime-update") {
+    fail("实时资产仓禁止执行 runtime-update；请在 delivery-spec-runtime 仓内建立受控升级 Change，隔离生成并验证后再交付");
+  }
   const openspecVersion = execFileSync("openspec", ["--version"], { encoding: "utf8" }).trim().replace(/^v/, "");
   if (openspecVersion !== manifest.openspec.required) fail(`OpenSpec版本不满足运行时合同: ${openspecVersion}`);
-  if (argv[0] === "runtime-update") {
-    const update = spawnSync("openspec", ["update"], { cwd: assetRoot, encoding: "utf8" });
-    const relink = spawnSync(process.execPath, ["--experimental-strip-types", join(runtimeRoot, "openspec/tools/runtime-link.ts"), "apply", "--asset-root", assetRoot, "--replace-managed"], { cwd: assetRoot, encoding: "utf8" });
-    if (relink.status !== 0) fail(`OpenSpec update后相对软链恢复失败: ${relink.stderr}`);
-    if (update.status !== 0) fail(`OpenSpec update失败，runtime相对软链已恢复: ${update.stderr}`);
-    process.stdout.write(update.stdout);
-    process.stdout.write(relink.stdout);
-    return;
-  }
   const result = spawnSync(process.execPath, ["--experimental-strip-types", join(runtimeRoot, "openspec/tools/delivery-control.ts"), ...argv, "--asset-root", assetRoot], { cwd: assetRoot, stdio: "inherit" });
   if (result.error) throw result.error;
   process.exitCode = result.status ?? 1;

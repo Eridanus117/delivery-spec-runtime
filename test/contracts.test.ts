@@ -30,6 +30,17 @@ test("runtime manifest、九层schema与九个Commands一致", () => {
   }
 });
 
+test("OpenSpec升级只允许通过Runtime仓受控Change", () => {
+  const updateCommand = readFileSync(join(runtimeRoot, ".omp/commands/opsx-update.md"), "utf8");
+  assert.doesNotMatch(updateCommand, /runtime-entry\.ts["']?\s+runtime-update/);
+  assert.match(updateCommand, /不得在实时资产仓调用 `openspec update` 或 `runtime-update`/);
+  assert.match(updateCommand, /独立的受控升级 Change/);
+
+  const readme = readFileSync(join(runtimeRoot, "README.md"), "utf8");
+  assert.match(readme, /runtime-entry\.ts runtime-update` 会在启动官方生成器前直接拒绝/);
+  assert.match(readme, /使用隔离目录生成候选资产/);
+});
+
 test("runtime树不含禁用资产路径段", () => {
   const forbidden = new Set([".specify", ".speckit", "speckit"]);
   function walk(path: string): void {

@@ -1,8 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { appendFileSync, cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { createHash } from "node:crypto";
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { runtimeRoot } from "./helpers.ts";
 
@@ -54,6 +55,20 @@ function check(asset: string): SpawnSyncReturns<string> {
   return node(asset, join(asset, ".delivery-spec-runtime/openspec/tools/runtime-entry.ts"), ["runtime-check", "--change-root", asset]);
 }
 
+function runtimeUpdate(asset: string): SpawnSyncReturns<string> {
+  return node(asset, join(asset, ".delivery-spec-runtime/openspec/tools/runtime-entry.ts"), ["runtime-update", "--asset-root", asset]);
+}
+
+function commandDigests(asset: string): Record<string, string> {
+  const root = join(asset, ".delivery-spec-runtime/.omp/commands");
+  return Object.fromEntries(
+    readdirSync(root)
+      .filter((name) => /^opsx-.*\.md$/.test(name))
+      .sort()
+      .map((name) => [name, createHash("sha256").update(readFileSync(join(root, name))).digest("hex")]),
+  );
+}
+
 test("gitlink、相对软链与递归克隆形成唯一运行时绑定", () => {
   const fixture = prepareFixture();
   try {
@@ -71,6 +86,27 @@ test("gitlink、相对软链与递归克隆形成唯一运行时绑定", () => {
     git(root, ["clone", "-q", "--recurse-submodules", asset, clone]);
     result = check(clone);
     assert.equal(result.status, 0, result.stderr);
+  } finally {
+    rmSync(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("实时资产仓拒绝runtime-update且不修改Runtime", () => {
+  const fixture = prepareFixture();
+  try {
+    const { asset } = fixture;
+    const links = [".omp/commands", "openspec/schemas/delivery-change", "openspec/tools/runtime-entry.ts"];
+    const beforeDigests = commandDigests(asset);
+    const beforeLinks = Object.fromEntries(links.map((link) => [link, readlinkSync(join(asset, link))]));
+
+    const result = runtimeUpdate(asset);
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /实时资产仓禁止执行 runtime-update.*受控升级 Change/);
+    assert.deepEqual(commandDigests(asset), beforeDigests);
+    assert.equal(git(join(asset, ".delivery-spec-runtime"), ["status", "--porcelain"]), "");
+    assert.equal(git(asset, ["status", "--porcelain", "--", ".delivery-spec-runtime"]), "");
+    assert.deepEqual(Object.fromEntries(links.map((link) => [link, readlinkSync(join(asset, link))])), beforeLinks);
   } finally {
     rmSync(fixture.root, { recursive: true, force: true });
   }
