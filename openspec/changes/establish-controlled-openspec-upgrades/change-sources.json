@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "maintainer-session",
+      "kind": "user",
+      "authority": 1,
+      "locator": "current-session:2026-08-30",
+      "adapter": "builtin:user"
+    },
+    {
+      "id": "runtime-repository",
+      "kind": "repository",
+      "authority": 2,
+      "locator": "delivery-spec-runtime@b8efa99f4adf3d735e19007b2ab3d9739fead433",
+      "adapter": "builtin:repository"
+    },
+    {
+      "id": "openspec-v1.11-release",
+      "kind": "url",
+      "authority": 3,
+      "locator": "https://github.com/Fission-AI/OpenSpec/releases/tag/v1.11.0",
+      "adapter": "builtin:url"
+    },
+    {
+      "id": "openspec-v1.11-update-source",
+      "kind": "url",
+      "authority": 3,
+      "locator": "https://github.com/Fission-AI/OpenSpec/blob/v1.11.0/src/core/update.ts",
+      "adapter": "builtin:url"
+    },
+    {
+      "id": "openspec-v1.11-omp-adapter",
+      "kind": "url",
+      "authority": 3,
+      "locator": "https://github.com/Fission-AI/OpenSpec/blob/v1.11.0/src/core/command-generation/adapters/oh-my-pi.ts",
+      "adapter": "builtin:url"
+    }
+  ]
+}

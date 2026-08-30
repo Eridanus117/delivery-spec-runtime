@@ -9,7 +9,7 @@ test("runtime manifest、九层schema与九个Commands一致", () => {
   const manifest = JSON.parse(readFileSync(join(runtimeRoot, "runtime-manifest.json"), "utf8"));
   assert.equal(manifest.schemaVersion, 2);
   assert.equal(manifest.node.minimum, "22.6.0");
-  assert.equal(manifest.openspec.required, "1.10.0");
+  assert.equal(manifest.openspec.required, "1.11.0");
   assert.equal(manifest.submodule.path, ".delivery-spec-runtime");
   assert.deepEqual(manifest.submodule.links, [
     { link: ".omp/commands", source: ".omp/commands" },
@@ -28,6 +28,14 @@ test("runtime manifest、九层schema与九个Commands一致", () => {
     assert.match(content, /runtime-entry\.ts/);
     assert.match(content, /父仓 gitlink、runtime submodule commit、manifest、dirty 状态或相对软链检查/);
   }
+  const sourceBodies = readdirSync(join(runtimeRoot, ".omp/command-sources/bodies")).filter((name) => /^opsx-.*\.md$/.test(name)).sort();
+  assert.deepEqual(sourceBodies, commands);
+  const explore = readFileSync(join(runtimeRoot, ".omp/commands/opsx-explore.md"), "utf8");
+  assert.match(explore, /写入必须单独确认/);
+  assert.match(explore, /配置文件和其他磁盘内容都算写入/);
+  assert.match(explore, /```mermaid/);
+  assert.match(explore, /图示优先 Mermaid/);
+  assert.doesNotMatch(explore, /[┌┐└┘├┤┬┴┼─│▶]/);
 });
 
 test("OpenSpec升级只允许通过Runtime仓受控Change", () => {
@@ -37,8 +45,27 @@ test("OpenSpec升级只允许通过Runtime仓受控Change", () => {
   assert.match(updateCommand, /独立的受控升级 Change/);
 
   const readme = readFileSync(join(runtimeRoot, "README.md"), "utf8");
-  assert.match(readme, /runtime-entry\.ts runtime-update` 会在启动官方生成器前直接拒绝/);
-  assert.match(readme, /使用隔离目录生成候选资产/);
+  assert.match(readme, /`runtime-entry\.ts runtime-update` 在启动 OpenSpec CLI 前稳定拒绝/);
+  assert.match(readme, /官方 current\/candidate 在隔离根生成/);
+});
+
+test("README是Runtime采用与维护的可执行入口", () => {
+  const readme = readFileSync(join(runtimeRoot, "README.md"), "utf8");
+  assert.equal((readme.match(/```mermaid/g) ?? []).length, 2);
+  for (const contract of [
+    ".delivery-spec-runtime",
+    ".omp/commands",
+    "openspec/schemas/delivery-change",
+    "openspec/tools/runtime-entry.ts",
+    "render-commands.ts",
+    "openspec-upgrade.ts",
+    "currentVersion",
+    "candidateVersion",
+    "upstream、current-local、candidate-local",
+    "Runtime 自治理",
+  ]) assert.match(readme, new RegExp(contract.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.doesNotMatch(readme, /本仓不保存任何真实 Change/);
+  assert.match(readme, /实时消费仓禁止执行 `openspec update`/);
 });
 
 test("runtime树不含禁用资产路径段", () => {

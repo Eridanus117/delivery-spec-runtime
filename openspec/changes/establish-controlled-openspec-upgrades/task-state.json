@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "tasks": [
+    {
+      "id": "1.1",
+      "state": "verified",
+      "deliverables": [
+        "openspec/changes/establish-controlled-openspec-upgrades 的 01-07 规划产物"
+      ],
+      "verification": [
+        "OpenSpec 默认使用 delivery-change，strict validate 通过，delivery-control guard apply allowed"
+      ],
+      "evidence": [
+        "OpenSpec 1.11.0 strict validate PASS；guard apply allowed"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.1",
+      "state": "verified",
+      "deliverables": [
+        ".omp/command-sources/manifest.json、runtime-preamble.md 与九个 bodies",
+        "openspec/tools/render-commands.ts",
+        "test/command-renderer.test.ts"
+      ],
+      "verification": [
+        "首次迁移 byte-identical；write/check 确定；漂移和恶意 manifest fail closed"
+      ],
+      "evidence": [
+        "renderer合同测试3/3 PASS；check返回9 files且changed为空"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.2",
+      "state": "verified",
+      "deliverables": [
+        "openspec/contracts/openspec-upgrade-request.schema.json",
+        "openspec/contracts/openspec-upgrade-report.schema.json",
+        "openspec/contracts/openspec-cli-probes.json"
+      ],
+      "verification": [
+        "exact keys、SemVer、路径、probe required fields 和脱敏报告合同均由负向测试覆盖"
+      ],
+      "evidence": [
+        "请求负例在npm启动前拒绝；真实报告通过内置exact-key与结构校验"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.3",
+      "state": "verified",
+      "deliverables": [
+        "openspec/tools/openspec-upgrade.ts 的隔离生成、probe、三类 delta 与清理流程",
+        "test/openspec-upgrade.test.ts"
+      ],
+      "verification": [
+        "fake npm fixture 证明 current/candidate 只在临时根运行，报告确定且 Runtime source 零写入"
+      ],
+      "evidence": [
+        "openspec-upgrade.test.ts 2/2 PASS；真实1.10.0→1.11.0评估PASS"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.4",
+      "state": "verified",
+      "deliverables": [
+        "空白 candidate fixture 和消费仓临时副本 smoke runner",
+        "真实仓摘要与报告脱敏合同测试"
+      ],
+      "verification": [
+        "candidate Runtime/CLI 仅注入临时 Git 副本；敏感哨兵不进入报告；真实仓前后状态不变"
+      ],
+      "evidence": [
+        "最终报告blankFixture与三个consumer均PASS、摘要不变、真实仓未改"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.5",
+      "state": "verified",
+      "deliverables": [
+        "public-candidate allowlist 与面向采用者/维护者重写的 Runtime README"
+      ],
+      "verification": [
+        "README 的 Mermaid 架构、接入、不变量、升级请求/报告和验证合同通过；公开候选包含 sources、renderer、evaluator 和合同"
+      ],
+      "evidence": [
+        "README合同PASS；public candidate生成并通过路径、秘密、熵审计"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "3.1",
+      "state": "verified",
+      "deliverables": [
+        "1.10.0→1.11.0 正式评估报告",
+        "通过门禁后的 1.11 写入规则、OMP Mermaid explore fragment 与 runtime-manifest pin"
+      ],
+      "verification": [
+        "真实包版本、九 Commands、三类 delta、JSON probes、空白 fixture 和三消费仓 smoke 全部通过；Explore 使用 Mermaid 适配 OMP"
+      ],
+      "evidence": [
+        "20260830T1151Z真实升级报告PASS；pin为1.11.0；Explore渲染为Mermaid策略"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "3.2",
+      "state": "verified",
+      "deliverables": [
+        "Runtime 完整合同、renderer check、public candidate 和 strict Change 校验结果"
+      ],
+      "verification": [
+        "全部永久合同测试通过；candidate OpenSpec 版本注入验证 pin；无真实仓写入"
+      ],
+      "evidence": [
+        "node test/*.test.ts 21/21 PASS；strict validate 2/2；renderer check无漂移"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "4.1",
+      "state": "planned",
+      "deliverables": [
+        "08 验收 run、09 发布计划、功能分支和中文 PR"
+      ],
+      "verification": [
+        "全部任务 verified、验收严格 PASS、release guard allowed、PR 只通过功能分支交付"
+      ],
+      "evidence": [],
+      "blocker": null
+    }
+  ]
+}

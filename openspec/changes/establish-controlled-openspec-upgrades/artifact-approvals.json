@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "artifacts": {
+    "raw-requirements": {
+      "digest": "sha256:14fd4a29a7390dd8677813a0b935e05f8db076cb7e8afa98207b8b8f6f0fd6cc",
+      "decision": "approved",
+      "approvedBy": "仓库维护者（当前会话）",
+      "approvedAt": "2026-08-30T11:46:29.163Z",
+      "migrationSource": null
+    },
+    "specs": {
+      "digest": "sha256:66cbf6ac5dfd37407f15bf7e20e72026a89516507d717927cae46988184216b8",
+      "decision": "approved",
+      "approvedBy": "仓库维护者（当前会话）",
+      "approvedAt": "2026-08-30T11:46:29.298Z",
+      "migrationSource": null
+    },
+    "business-current": {
+      "digest": "sha256:3ef59130ee0d645344fac7524699abf7b8aafe10686a054d6245cee83f5bf693",
+      "decision": "approved",
+      "approvedBy": "仓库维护者（当前会话）",
+      "approvedAt": "2026-08-30T11:33:35.961Z",
+      "migrationSource": null
+    },
+    "technical-current": {
+      "digest": "sha256:a62ed4a037688383bcda59a1c42d04cb4fa544aa4bc185d0512f589a9bb2aad9",
+      "decision": "approved",
+      "approvedBy": "仓库维护者（当前会话）",
+      "approvedAt": "2026-08-30T11:33:36.094Z",
+      "migrationSource": null
+    },
+    "change-plan": {
+      "digest": "sha256:763a2275a04854c99d79b3adc85a710d7e8d2c1f6164e8cc3a053c696d454a06",
+      "decision": "approved",
+      "approvedBy": "仓库维护者（当前会话）",
+      "approvedAt": "2026-08-30T11:46:29.432Z",
+      "migrationSource": null
+    },
+    "test-plan": {
+      "digest": "sha256:a5ab747db765c94528602bad869c60daeefac1d809501a099a72b2d790623636",
+      "decision": "approved",
+      "approvedBy": "仓库维护者（当前会话）",
+      "approvedAt": "2026-08-30T11:46:29.546Z",
+      "migrationSource": null
+    },
+    "tasks": {
+      "digest": "sha256:fe7e388f5133e99c4fb1f27212035de0454eb61175bf5e7cdeb3f9e54864d796",
+      "decision": "approved",
+      "approvedBy": "仓库维护者（当前会话）",
+      "approvedAt": "2026-08-30T11:53:46.355Z",
+      "migrationSource": null
+    }
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Eridanus117/delivery-spec-runtime/contracts/openspec-upgrade-report.schema.json",
+  "title": "OpenSpec upgrade evaluation report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "currentVersion", "candidateVersion", "runtimeBaselineCommit", "startedAt", "endedAt", "generations", "deltas", "probes", "blankFixture", "consumers", "realRepositoriesUnchanged", "temporaryRootsCleaned", "result"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "currentVersion": { "type": "string" },
+    "candidateVersion": { "type": "string" },
+    "runtimeBaselineCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "startedAt": { "type": "string", "format": "date-time" },
+    "endedAt": { "type": "string", "format": "date-time" },
+    "generations": { "$ref": "#/$defs/generations" },
+    "deltas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["upstream", "currentLocal", "candidateLocal"],
+      "properties": {
+        "upstream": { "$ref": "#/$defs/delta" },
+        "currentLocal": { "$ref": "#/$defs/delta" },
+        "candidateLocal": { "$ref": "#/$defs/delta" }
+      }
+    },
+    "probes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["current", "candidate"],
+      "properties": {
+        "current": { "type": "array", "items": { "$ref": "#/$defs/probe" } },
+        "candidate": { "type": "array", "items": { "$ref": "#/$defs/probe" } }
+      }
+    },
+    "blankFixture": { "$ref": "#/$defs/check" },
+    "consumers": { "type": "array", "items": { "$ref": "#/$defs/consumer" } },
+    "realRepositoriesUnchanged": { "type": "boolean" },
+    "temporaryRootsCleaned": { "type": "boolean" },
+    "result": { "enum": ["PASS", "FAIL"] }
+  },
+  "$defs": {
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "pattern": "^opsx-[a-z0-9-]+\\.md$" },
+        "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      }
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requestedVersion", "actualVersion", "commands"],
+      "properties": {
+        "requestedVersion": { "type": "string" },
+        "actualVersion": { "type": "string" },
+        "commands": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/file" } }
+      }
+    },
+    "generations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["current", "candidate"],
+      "properties": {
+        "current": { "$ref": "#/$defs/generation" },
+        "candidate": { "$ref": "#/$defs/generation" }
+      }
+    },
+    "deltaEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "changeType", "beforeSha256", "afterSha256", "additions", "deletions"],
+      "properties": {
+        "path": { "type": "string" },
+        "changeType": { "enum": ["added", "removed", "modified", "unchanged"] },
+        "beforeSha256": { "type": ["string", "null"] },
+        "afterSha256": { "type": ["string", "null"] },
+        "additions": { "type": "integer", "minimum": 0 },
+        "deletions": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "files"],
+      "properties": {
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "files": { "type": "array", "items": { "$ref": "#/$defs/deltaEntry" } }
+      }
+    },
+    "probeField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "type"],
+      "properties": {
+        "path": { "type": "string" },
+        "type": { "enum": ["array", "boolean", "null", "number", "object", "string"] }
+      }
+    },
+    "probe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "argv", "status", "fields", "structureSha256", "result"],
+      "properties": {
+        "id": { "type": "string" },
+        "argv": { "type": "array", "items": { "type": "string" } },
+        "status": { "type": "integer" },
+        "fields": { "type": "array", "items": { "$ref": "#/$defs/probeField" } },
+        "structureSha256": { "type": ["string", "null"] },
+        "result": { "enum": ["PASS", "FAIL", "SKIP"] }
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "result"],
+      "properties": {
+        "status": { "type": "integer" },
+        "result": { "enum": ["PASS", "FAIL"] }
+      }
+    },
+    "consumer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "head", "beforeDigest", "afterDigest", "runtimeStatus", "probeStatus", "result"],
+      "properties": {
+        "name": { "type": "string" },
+        "head": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "beforeDigest": { "type": "string" },
+        "afterDigest": { "type": "string" },
+        "runtimeStatus": { "type": "integer" },
+        "probeStatus": { "type": "integer" },
+        "result": { "enum": ["PASS", "FAIL"] }
+      }
+    }
+  }
+}

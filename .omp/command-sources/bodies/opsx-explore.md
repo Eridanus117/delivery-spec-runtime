@@ -1,14 +1,3 @@
----
-description: "进入探索模式——深入思考想法、调查问题、明确需求"
----
-
-**统一运行时入口（必须先执行）：** 使用状态输出中的 `planningHome.root`；尚未选择 Change 时使用当前资产仓根。
-```bash
-node --experimental-strip-types "<planningHome.root>/.delivery-spec-runtime/openspec/tools/runtime-entry.ts" runtime-check --change-root "<planningHome.root>"
-```
-入口非零时立即停止；不得绕过父仓 gitlink、runtime submodule commit、manifest、dirty 状态或相对软链检查。
-选择、列出或报告 active Change 时，必须对每个候选运行 `runtime-entry.ts inspect --change-root "<changeRoot>"`，显示 `displayName (slug)`；sidecar 缺失或无效时停止，机器选择键与 OpenSpec 参数只能使用slug。
-
 进入探索模式。深入思考，自由地进行可视化，让对话自然发展，无论它走向何方。
 
 **重要：探索模式用于思考，而非实施。** 你可以读取文件、搜索代码并调查代码库，但绝不能编写代码或实现功能。如果用户要求你实现某项内容，请提醒他们先退出探索模式并创建变更提案。如果用户提出请求，你可以创建 OpenSpec 工件（提案、设计、规格说明）——这属于记录思考，而不是实施。对于新的变更，请先按照下文所述搭建基础结构。
