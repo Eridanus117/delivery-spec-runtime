@@ -90,6 +90,12 @@ openspec validate --all --strict
 - 所有 active Change 和长期 specs 严格校验通过；
 - 实际升级 Change 还保存完整升级 run、空白 fixture、消费仓隔离 smoke、public candidate 和清理证据。
 
+## CI 门禁
+
+仓库提供 `.github/workflows/ci.yml` 作为低频率 PR/main 验证：每个指向 `main` 的 Pull Request、`main` push 和手动触发各运行一次。它固定 Node `22.6.0`，通过 `npm exec --package=@fission-ai/openspec@1.11.0` 调用精确版本的 OpenSpec，并执行 `runtime-check`、Command drift check、全量合同测试和 strict validation。
+
+CI 不使用定时任务、矩阵或外部消费仓；并启用同一 PR 的旧运行取消和 `contents: read` 最小权限，以减少无必要运行和网络访问。CI 只验证，不执行 renderer write、OpenSpec update、Runtime update、Change archive、PR 操作或部署。
+
 ## 失败处理
 
 | 失败 | 处理 |

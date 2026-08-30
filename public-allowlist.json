@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "paths": [
+    ".github/workflows/ci.yml",
     ".omp/command-sources/bodies/opsx-apply.md",
     ".omp/command-sources/bodies/opsx-archive.md",
     ".omp/command-sources/bodies/opsx-continue.md",
