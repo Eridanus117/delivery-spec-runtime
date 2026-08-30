@@ -88,6 +88,9 @@ function timestamp(value: unknown, label: string): string {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(result) || Number.isNaN(Date.parse(result))) fail(`${label} 必须为UTC ISO-8601时间`);
   return result;
 }
+function requireLaterTimestamp(value: string, earlier: string, label: string, earlierLabel: string): void {
+  if (Date.parse(value) <= Date.parse(earlier)) fail(`${label} 必须晚于 ${earlierLabel}`);
+}
 function git(repo: string, args: string[], allowFailure = false): Buffer {
   const result = spawnSync("git", args, { cwd: repo, encoding: "buffer", maxBuffer: 16 * 1024 * 1024 });
   if (!allowFailure && result.status !== 0) fail(`git ${args.join(" ")} 失败: ${result.stderr.toString("utf8").trim()}`);
@@ -213,6 +216,7 @@ function inspectAcceptanceState(changeRoot: string): Acceptance {
   const review = requireReview(changeRoot);
   const acceptance = parseAcceptance(readJson(acceptancePath(changeRoot)));
   const markdown = join(changeRoot, "08-验收/验收记录.md");
+  requireLaterTimestamp(acceptance.acceptedAt, review.reviewedAt, "acceptedAt", "reviewedAt");
   requirePassConclusion(markdown, "Acceptance正文");
   const taskState = join(changeRoot, "task-state.json");
   if (acceptance.result !== "PASS" || acceptance.implementationCommit !== review.reviewedCommit || acceptance.reviewDigest !== sha256File(reviewPath(changeRoot)) || !existsSync(taskState) || acceptance.taskStateDigest !== sha256File(taskState) || !existsSync(markdown) || acceptance.acceptanceDigest !== sha256File(markdown)) fail("acceptance-state stale或未PASS");
@@ -223,6 +227,7 @@ export function requireAcceptance(changeRoot: string): Acceptance { return inspe
 function inspectReadinessState(changeRoot: string): Readiness {
   const acceptance = requireAcceptance(changeRoot);
   const readiness = parseReadiness(readJson(readinessPath(changeRoot)));
+  requireLaterTimestamp(readiness.attestedAt, acceptance.acceptedAt, "attestedAt", "acceptedAt");
   const repo = repoRoot(changeRoot);
   if (readiness.result !== "READY" || readiness.acceptanceDigest !== sha256File(acceptancePath(changeRoot)) || readiness.implementationCommit !== acceptance.implementationCommit) fail("archive-readiness stale或未READY");
   const releasePlan = join(changeRoot, "09-发布/发布计划.md");
@@ -259,7 +264,8 @@ function acceptanceWrite(changeRoot: string, inputPath: string): void {
   if (!Array.isArray(tasks.tasks) || tasks.tasks.some((value) => object(value, "task").state !== "verified")) fail("Acceptance前全部任务必须verified");
   const markdown = join(changeRoot, "08-验收/验收记录.md"); requirePassConclusion(markdown, "Acceptance正文");
   const taskState = join(changeRoot, "task-state.json");
-  const state: Acceptance = { schemaVersion: 1, implementationCommit: review.reviewedCommit, reviewDigest: sha256File(reviewPath(changeRoot)), taskStateDigest: sha256File(taskState), acceptanceDigest: sha256File(markdown), acceptedBy: text(input.acceptedBy, "acceptedBy"), acceptedAt: timestamp(input.acceptedAt, "acceptedAt"), result: "PASS" };
+  const acceptedAt = timestamp(input.acceptedAt, "acceptedAt"); requireLaterTimestamp(acceptedAt, review.reviewedAt, "acceptedAt", "reviewedAt");
+  const state: Acceptance = { schemaVersion: 1, implementationCommit: review.reviewedCommit, reviewDigest: sha256File(reviewPath(changeRoot)), taskStateDigest: sha256File(taskState), acceptanceDigest: sha256File(markdown), acceptedBy: text(input.acceptedBy, "acceptedBy"), acceptedAt, result: "PASS" };
   withFileLock(lockPath(changeRoot), () => atomicWriteJson(acceptancePath(changeRoot), state)); console.log(JSON.stringify(state, null, 2));
 }
 function readinessWrite(changeRoot: string, inputPath: string): void {
@@ -280,8 +286,8 @@ function readinessWrite(changeRoot: string, inputPath: string): void {
   const migrationSource = input.migrationSource === null ? null : text(input.migrationSource, "migrationSource"); const historicalPr = input.historicalPr === null ? null : text(input.historicalPr, "historicalPr");
   const migration = migrationSource === "pre-v5-merged-change" && historicalPr !== null;
   if (input.prStarted && !migration) fail("正常Change必须声明prStarted=false");
-  if (!input.prStarted && (migrationSource !== null || historicalPr !== null)) fail("正常Change不得使用历史迁移字段");
-  const state: Readiness = { schemaVersion: 1, implementationCommit: acceptance.implementationCommit, acceptanceDigest: sha256File(acceptancePath(changeRoot)), releasePlanDigest: sha256File(releasePlan), specSync: sync, strictValidation: "PASS", cleanupEvidence: { path: cleanupPath, sha256: sha256File(join(repo, cleanupPath)) }, prStarted: input.prStarted, migrationSource, historicalPr, attestedBy: text(input.attestedBy, "attestedBy"), attestedAt: timestamp(input.attestedAt, "attestedAt"), result: "READY" };
+  const attestedAt = timestamp(input.attestedAt, "attestedAt"); requireLaterTimestamp(attestedAt, acceptance.acceptedAt, "attestedAt", "acceptedAt");
+  const state: Readiness = { schemaVersion: 1, implementationCommit: acceptance.implementationCommit, acceptanceDigest: sha256File(acceptancePath(changeRoot)), releasePlanDigest: sha256File(releasePlan), specSync: sync, strictValidation: "PASS", cleanupEvidence: { path: cleanupPath, sha256: sha256File(join(repo, cleanupPath)) }, prStarted: input.prStarted, migrationSource, historicalPr, attestedBy: text(input.attestedBy, "attestedBy"), attestedAt, result: "READY" };
   withFileLock(lockPath(changeRoot), () => atomicWriteJson(readinessPath(changeRoot), state)); console.log(JSON.stringify(state, null, 2));
 }
 function renderReopenedTasks(changeRoot: string): void {

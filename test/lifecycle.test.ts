@@ -61,6 +61,8 @@ test("Acceptance与Archive Readiness取代Markdown关键词并支持受控reopen
     const reviewInput = join(change, "review-input.json"); write(reviewInput, JSON.stringify({ schemaVersion: 1, baselineCommit: baseline, reviewedCommit: reviewed, reviewer: "reviewer", reviewedAt: "2026-08-30T12:00:00Z", findings: [] }));
     let result = runTool("delivery-lifecycle.ts", ["review", "write", "--change-root", change, "--file", reviewInput], { cwd: repo }); assert.equal(result.status, 0, result.stderr);
     write(join(change, "08-验收/验收记录.md"), "# 验收\n- 结论：PASS\n"); write(join(change, "08-验收/cleanup/cleanup.md"), "- 结论：PASS\n");
+    const earlyAcceptanceInput = join(change, "acceptance-early.json"); write(earlyAcceptanceInput, JSON.stringify({ schemaVersion: 1, acceptedBy: "maintainer", acceptedAt: "2026-08-30T11:59:00Z" }));
+    result = runTool("delivery-lifecycle.ts", ["acceptance", "write", "--change-root", change, "--file", earlyAcceptanceInput], { cwd: repo }); assert.notEqual(result.status, 0); assert.match(result.stderr, /acceptedAt.*reviewedAt/);
     const acceptanceInput = join(change, "acceptance-input.json"); write(acceptanceInput, JSON.stringify({ schemaVersion: 1, acceptedBy: "maintainer", acceptedAt: "2026-08-30T12:01:00Z" }));
     result = runTool("delivery-lifecycle.ts", ["acceptance", "write", "--change-root", change, "--file", acceptanceInput], { cwd: repo }); assert.equal(result.status, 0, result.stderr);
     const taskStatePath = join(change, "task-state.json"); const originalTaskState = readFileSync(taskStatePath, "utf8");
@@ -74,6 +76,9 @@ test("Acceptance与Archive Readiness取代Markdown关键词并支持受控reopen
     write(join(change, "08-验收/cleanup/cleanup.md"), "- 结论：FAIL\n");
     result = runTool("delivery-lifecycle.ts", ["readiness", "write", "--change-root", change, "--file", readinessInput], { cwd: repo }); assert.notEqual(result.status, 0); assert.match(result.stderr, /cleanupEvidence.*PASS/);
     write(join(change, "08-验收/cleanup/cleanup.md"), "- 结论：PASS\n");
+    const earlyReadinessInput = join(change, "readiness-early.json");
+    write(earlyReadinessInput, JSON.stringify({ ...JSON.parse(readFileSync(readinessInput, "utf8")), attestedAt: "2026-08-30T12:00:30Z" }));
+    result = runTool("delivery-lifecycle.ts", ["readiness", "write", "--change-root", change, "--file", earlyReadinessInput], { cwd: repo }); assert.notEqual(result.status, 0); assert.match(result.stderr, /attestedAt.*acceptedAt/);
     result = runTool("delivery-lifecycle.ts", ["readiness", "write", "--change-root", change, "--file", readinessInput], { cwd: repo }); assert.equal(result.status, 0, result.stderr);
     result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "archive"], { cwd: repo }); assert.equal(result.status, 0, result.stderr);
     write(join(repo, main), "drift\n"); result = runTool("delivery-lifecycle.ts", ["readiness", "inspect", "--change-root", change], { cwd: repo }); assert.notEqual(result.status, 0); assert.match(result.stderr, /spec sync stale/); write(join(repo, main), readFileSync(join(repo, delta), "utf8"));

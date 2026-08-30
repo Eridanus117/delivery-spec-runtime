@@ -37,7 +37,7 @@ Review 状态 MUST 绑定 baseline commit、reviewed commit、baseline→reviewe
 
 ### Requirement: Acceptance 必须内容寻址当前 Review
 
-Acceptance State MUST 绑定 PASS 且未 stale 的 Review 摘要、`task-state.json` 摘要、验收正文摘要和 reviewed commit。全部实现任务 verified、Review 当前且验收正文严格 PASS 后才能写入；Review、任务状态或正文后续变化时 MUST stale。
+Acceptance State MUST 绑定 PASS 且未 stale 的 Review 摘要、`task-state.json` 摘要、验收正文摘要和 reviewed commit。全部实现任务 verified、Review 当前且验收正文严格 PASS 后才能写入；Review、任务状态或正文后续变化时 MUST stale。`acceptedAt` MUST 晚于 `reviewedAt`。
 
 #### Scenario: 验收引用旧 Review
 
@@ -46,7 +46,7 @@ Acceptance State MUST 绑定 PASS 且未 stale 的 Review 摘要、`task-state.j
 
 ### Requirement: Archive 必须在 PR 前由严格状态放行
 
-Archive Readiness MUST 绑定当前 Acceptance、Spec Sync 输入输出摘要、strict validation、cleanup 证据和 `prStarted=false` 维护者声明。Archive guard MUST 只接受当前 `READY` 状态，不得依赖 09 Markdown 关键词或 PR URL。
+Archive Readiness MUST 绑定当前 Acceptance、Spec Sync 输入输出摘要、strict validation、cleanup PASS 证据和 `prStarted=false` 维护者声明，且 `attestedAt` MUST 晚于 `acceptedAt`。Archive guard MUST 只接受当前 `READY` 状态，不得依赖 09 Markdown 关键词或 PR URL。
 
 #### Scenario: 归档准备完整
 
