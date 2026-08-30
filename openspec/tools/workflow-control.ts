@@ -9,6 +9,8 @@ import {
   parseWorkflowBinding,
   readWorkflowRequest,
   type WorkflowBinding,
+  type WorkflowRequest,
+  type WorkflowResult,
 } from "./workflow-core.ts";
 
 function runtimeRoot(options: Map<string, string>): string {
@@ -31,8 +33,22 @@ function listProfiles(options: Map<string, string>): void {
     profileId: profile.profileId,
     profileVersion: profile.profileVersion,
     displayName: profile.displayName,
-    stages: profile.stages.map((stage) => stage.id),
+    stages: profile.stages,
   })), null, 2));
+}
+
+function rejectedResult(request: WorkflowRequest | null, binding: WorkflowBinding | null, reason: string): WorkflowResult {
+  return {
+    schemaVersion: 1,
+    matterId: request?.matterId ?? "unknown",
+    profileId: request?.binding.profileId ?? binding?.profileId ?? "unknown",
+    profileVersion: request?.binding.profileVersion ?? binding?.profileVersion ?? "v0.0.0",
+    status: "rejected",
+    currentStageId: null,
+    nextStageId: null,
+    outputs: {},
+    reason,
+  };
 }
 
 function bindChange(options: Map<string, string>): void {
@@ -55,23 +71,22 @@ function bindChange(options: Map<string, string>): void {
 }
 
 function runWorkflow(options: Map<string, string>): void {
-  const request = readWorkflowRequest(resolve(requiredOption(options, "request-file")));
-  let result;
+  let request: WorkflowRequest | null = null;
+  let binding: WorkflowBinding | null = null;
+  let result: WorkflowResult;
   try {
-    const profile = loadWorkflowProfile(runtimeRoot(options), request.binding, options.get("registry"));
-    result = executeWorkflow(profile, request);
+    const changeRoot = resolve(requiredOption(options, "change-root"));
+    const changeBinding = parseWorkflowBinding(readJson(join(changeRoot, "workflow-binding.json")), "Change workflow binding");
+    binding = changeBinding;
+    const parsedRequest = readWorkflowRequest(resolve(requiredOption(options, "request-file")));
+    request = parsedRequest;
+    if (parsedRequest.binding.profileId !== changeBinding.profileId || parsedRequest.binding.profileVersion !== changeBinding.profileVersion) {
+      fail(`workflow request binding ${parsedRequest.binding.profileId}@${parsedRequest.binding.profileVersion} 与 Change binding ${changeBinding.profileId}@${changeBinding.profileVersion} 不一致`);
+    }
+    const profile = loadWorkflowProfile(runtimeRoot(options), changeBinding, options.get("registry"));
+    result = executeWorkflow(profile, parsedRequest);
   } catch (error) {
-    result = {
-      schemaVersion: 1 as const,
-      matterId: request.matterId,
-      profileId: request.binding.profileId,
-      profileVersion: request.binding.profileVersion,
-      status: "rejected" as const,
-      currentStageId: null,
-      nextStageId: null,
-      outputs: {},
-      reason: (error as Error).message,
-    };
+    result = rejectedResult(request, binding, (error as Error).message);
   }
   const output = options.get("output-file");
   if (output) atomicWriteJson(resolve(output), result);

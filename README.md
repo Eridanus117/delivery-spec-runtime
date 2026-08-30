@@ -65,6 +65,12 @@ node --experimental-strip-types \
 
 通过标准：命令退出码为 0；父仓 gitlink、Runtime submodule、Node/OpenSpec 版本和三条受管软链全部满足合同。
 
+## 需求进入后的处理边界
+
+需求尚未承诺实施时，先在项目自己的 Intake、Issue 或分析记录中澄清问题、来源、影响、边界和候选方向；可使用 `/opsx-explore` 调查代码与现有 spec，但不修改项目实现。决定进入正式交付后，再使用 `/opsx-new` 或 `/opsx-propose` 建立 Change。
+
+Change 是正式交付的审计对象，不是聊天记录的替代品，也不要求另造一个统一的“需求分析.md”。它应按工件记录原始需求索引、正式 Requirement、业务/技术现状、方案决策、测试方案和实施任务；实现开始后，再追加任务状态、验证、Review、Acceptance、Spec Sync 和归档证据。具体边界和工件映射见[从需求到归档](docs/workflow-guide.md)。
+
 ## 开始第一个 Change
 
 接入检查通过后，在 OMP 中创建项目自己的 Change：
@@ -73,9 +79,9 @@ node --experimental-strip-types \
 /opsx-new add-order-export
 ```
 
-随后使用 `/opsx-continue` 生成下一项规划工件；方案批准后由 `/opsx-apply` 实施，完成后使用 `/opsx-verify` 验收，并由 `/opsx-archive` 同步长期 spec 和归档证据。
+随后使用 `/opsx-continue` 生成下一项规划工件；方案批准后由 `/opsx-apply` 实施，完成后使用 `/opsx-verify` 进入 Review 与验收，并由 `/opsx-archive` 完成长期 spec 同步和归档门禁。
 
-Workflow System 支持同一仓库的多套 profile。可先执行 `runtime-entry.ts workflow list-profiles`，再在 Change 根执行 `workflow bind --profile-id <id> --profile-version <version>`；`workflow run --request-file <file>` 只使用 Change 请求中固定的 profile 版本。未绑定、版本不存在、缺少阶段输入或缺少人工判断时，Runtime 返回明确的阻塞结果，不自动回退到其他 profile。
+Workflow System 支持同一仓库的多套 profile。先执行 `runtime-entry.ts workflow list-profiles` 查看完整阶段合同，再在 Change 根执行 `workflow bind --profile-id <id> --profile-version <version>`；`workflow run` 必须同时指定该 Change 根和 request 文件，并校验 request 中的绑定与 Change 持久绑定一致。未绑定、版本不存在、请求不匹配、阶段越序、缺少阶段输入或缺少人工判断时，Runtime 返回机器可读的拒绝或阻塞结果，不自动回退到其他 profile。
 
 ## 三条安全边界
 

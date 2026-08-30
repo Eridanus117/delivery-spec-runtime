@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { exactKeys, fail, object, readJson, stringArray, text } from "./runtime-lib.ts";
 
@@ -108,7 +108,7 @@ function parseStage(value: unknown, index: number): WorkflowStage {
   const stage = object(value, `profile.stages[${index}]`);
   exactKeys(stage, ["id", "displayName", "requiredInputs", "humanJudgment"], ["id", "displayName", "requiredInputs", "humanJudgment"], `profile.stages[${index}]`);
   const requiredInputs = stringArray(stage.requiredInputs, `profile.stages[${index}].requiredInputs`);
-  if (new Set(requiredInputs).size !== requiredInputs.length) fail(`profile.stages[${index}].requiredInputs 不得重复`);
+  if (requiredInputs.some((key) => key.length === 0)) fail(`profile.stages[${index}].requiredInputs 不得为空`);
   if (typeof stage.humanJudgment !== "boolean") fail(`profile.stages[${index}].humanJudgment 必须是布尔值`);
   return {
     id: assertId(stage.id, `profile.stages[${index}].id`),
@@ -172,7 +172,11 @@ export function loadWorkflowProfile(runtimeRoot: string, binding: WorkflowBindin
   if (!entry) fail(`未注册 workflow profile: ${binding.profileId}@${binding.profileVersion}`);
   const profilePath = resolveRegistryProfilePath(registryPath, entry.path);
   if (!existsSync(profilePath)) fail(`workflow profile 文件不存在: ${profilePath}`);
-  const profile = parseWorkflowProfile(readJson(profilePath));
+  const registryDir = realpathSync(dirname(registryPath));
+  const resolvedProfilePath = realpathSync(profilePath);
+  const rel = relative(registryDir, resolvedProfilePath);
+  if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) fail(`workflow profile 路径越出 registry 目录: ${entry.path}`);
+  const profile = parseWorkflowProfile(readJson(resolvedProfilePath));
   if (profile.profileId !== entry.profileId || profile.profileVersion !== entry.profileVersion) fail(`workflow profile 身份与 registry 不一致: ${entry.path}`);
   return profile;
 }
@@ -197,17 +201,30 @@ function resultBase(request: WorkflowRequest, profile: WorkflowProfile, status: 
 }
 
 export function executeWorkflow(profile: WorkflowProfile, request: WorkflowRequest): WorkflowResult {
-  const stageIds = new Set(profile.stages.map((stage) => stage.id));
   const completed = request.completedStages ?? [];
-  for (const stageId of completed) if (!stageIds.has(stageId)) return resultBase(request, profile, "rejected", null, null, `completedStages 包含未知阶段: ${stageId}`);
-  const completedSet = new Set(completed);
-  const currentIndex = profile.stages.findIndex((stage) => !completedSet.has(stage.id));
-  if (currentIndex < 0) return resultBase(request, profile, "completed", null, null, null, { completedStages: completed });
+  for (let index = 0; index < completed.length; index += 1) {
+    const stage = profile.stages[index];
+    const stageId = completed[index];
+    if (!stage || stage.id !== stageId) {
+      return resultBase(request, profile, "rejected", null, null, `completedStages 必须是 profile 阶段的连续前缀: ${stageId}`);
+    }
+    const missing = stage.requiredInputs.filter((key) => !Object.hasOwn(request.inputs, key));
+    if (missing.length > 0) {
+      return resultBase(request, profile, "rejected", null, null, `已完成阶段 ${stage.id} 缺少输入: ${missing.join(", ")}`);
+    }
+    if (stage.humanJudgment && (!Object.hasOwn(request.judgments, stage.id) || !request.judgments[stage.id])) {
+      return resultBase(request, profile, "rejected", null, null, `已完成阶段 ${stage.id} 缺少人工判断`);
+    }
+  }
+  const currentIndex = completed.length;
+  if (currentIndex >= profile.stages.length) {
+    return resultBase(request, profile, "completed", null, null, null, { completedStages: completed });
+  }
   const current = profile.stages[currentIndex];
-  const missing = current.requiredInputs.filter((key) => !(key in request.inputs));
+  const missing = current.requiredInputs.filter((key) => !Object.hasOwn(request.inputs, key));
   const next = profile.stages[currentIndex + 1]?.id ?? null;
   if (missing.length > 0) return resultBase(request, profile, "blocked", current.id, null, `阶段 ${current.id} 缺少输入: ${missing.join(", ")}`, { missingInputs: missing, completedStages: completed });
-  if (current.humanJudgment && !request.judgments[current.id]) return resultBase(request, profile, "waiting_human_judgment", current.id, null, `阶段 ${current.id} 需要人工判断`, { completedStages: completed });
+  if (current.humanJudgment && (!Object.hasOwn(request.judgments, current.id) || !request.judgments[current.id])) return resultBase(request, profile, "waiting_human_judgment", current.id, null, `阶段 ${current.id} 需要人工判断`, { completedStages: completed });
   const advanced = [...completed, current.id];
   return resultBase(request, profile, next ? "in_progress" : "completed", current.id, next, null, { completedStages: advanced, completedStage: current.id });
 }

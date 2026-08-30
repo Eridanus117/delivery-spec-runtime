@@ -9,8 +9,9 @@ import { runTool, runtimeRoot } from "./helpers.ts";
 test("registry 提供两个 profile 且 profile 版本必须精确匹配", () => {
   const result = runTool("workflow-control.ts", ["list-profiles", "--runtime-root", runtimeRoot]);
   assert.equal(result.status, 0, result.stderr);
-  const profiles = JSON.parse(result.stdout) as Array<{ profileId: string; profileVersion: string }>;
+  const profiles = JSON.parse(result.stdout) as Array<{ profileId: string; profileVersion: string; stages: unknown[] }>;
   assert.deepEqual(profiles.map((profile) => `${profile.profileId}@${profile.profileVersion}`), ["delivery-change@v1.0.0", "light-change@v1.0.0"]);
+  assert.deepEqual(profiles[1].stages[2], { id: "verification", displayName: "快速验证", requiredInputs: ["verification"], humanJudgment: true });
   assert.throws(() => loadWorkflowProfile(runtimeRoot, { schemaVersion: 1, profileId: "delivery-change", profileVersion: "v9.0.0" }), /未注册 workflow profile/);
 });
 
@@ -43,9 +44,25 @@ test("workflow core 按阶段返回 blocked、waiting、in_progress 和 complete
   assert.equal(result.status, "rejected");
 });
 
+test("workflow core 拒绝跳阶段和伪造完成阶段", () => {
+  const profile = loadWorkflowProfile(runtimeRoot, { schemaVersion: 1, profileId: "light-change", profileVersion: "v1.0.0" });
+  const request = parseWorkflowRequest({ schemaVersion: 1, matterId: "bypass-matter", binding: { schemaVersion: 1, profileId: "light-change", profileVersion: "v1.0.0" }, inputs: { request: "captured", implementation: "changed", verification: "checked" }, judgments: { verification: "owner-approved" } });
+  let result = executeWorkflow(profile, { ...request, completedStages: ["implementation"] });
+  assert.equal(result.status, "rejected");
+  result = executeWorkflow(profile, { ...request, inputs: {}, judgments: {}, completedStages: ["intake", "implementation", "verification"] });
+  assert.equal(result.status, "rejected");
+});
+
+test("workflow core 不把继承属性当作输入", () => {
+  const profile = parseWorkflowProfile({ schemaVersion: 1, profileId: "prototype-check", profileVersion: "v1.0.0", displayName: "Prototype Check", stages: [{ id: "intake", displayName: "Intake", requiredInputs: ["toString"], humanJudgment: false }] });
+  const request = parseWorkflowRequest({ schemaVersion: 1, matterId: "prototype-matter", binding: { schemaVersion: 1, profileId: "prototype-check", profileVersion: "v1.0.0" }, inputs: {}, judgments: {} });
+  assert.equal(executeWorkflow(profile, request).status, "blocked");
+});
+
 test("profile 合同拒绝重复阶段和未知字段", () => {
   assert.throws(() => parseWorkflowProfile({ schemaVersion: 1, profileId: "demo", profileVersion: "v1.0.0", displayName: "Demo", stages: [{ id: "one", displayName: "One", requiredInputs: [], humanJudgment: false }, { id: "one", displayName: "Again", requiredInputs: [], humanJudgment: false }] }), /stages.id 不得重复/);
   assert.throws(() => parseWorkflowProfile({ schemaVersion: 1, profileId: "demo", profileVersion: "v1.0.0", displayName: "Demo", extra: true, stages: [{ id: "one", displayName: "One", requiredInputs: [], humanJudgment: false }] }), /未知字段 extra/);
+  assert.throws(() => parseWorkflowProfile({ schemaVersion: 1, profileId: "demo", profileVersion: "v1.0.0", displayName: "Demo", stages: [{ id: "one", displayName: "One", requiredInputs: [""], humanJudgment: false }] }), /requiredInputs 不得为空/);
 });
 
 test("workflow CLI 固定 Change binding 并拒绝静默切换", () => {
@@ -63,9 +80,19 @@ test("workflow CLI 固定 Change binding 并拒绝静默切换", () => {
     assert.match(switchAttempt.stderr, /拒绝静默切换/);
 
     writeFileSync(requestFile, JSON.stringify({ schemaVersion: 1, matterId: "cli-matter", binding: { schemaVersion: 1, profileId: "light-change", profileVersion: "v1.0.0" }, inputs: { request: "captured" }, judgments: {} }));
-    const run = runTool("workflow-control.ts", ["run", "--runtime-root", runtimeRoot, "--request-file", requestFile, "--output-file", outputFile]);
-    assert.equal(run.status, 0, run.stderr);
+    const run = runTool("workflow-control.ts", ["run", "--runtime-root", runtimeRoot, "--change-root", change, "--request-file", requestFile, "--output-file", outputFile]);
+    assert.equal(run.status, 0, JSON.stringify({ error: run.error?.message, signal: run.signal, stderr: run.stderr, stdout: run.stdout, output: existsSync(outputFile) ? readFileSync(outputFile, "utf8") : null }));
     assert.equal(JSON.parse(readFileSync(outputFile, "utf8")).status, "in_progress");
+
+    writeFileSync(requestFile, JSON.stringify({ schemaVersion: 1, matterId: "wrong-binding", binding: { schemaVersion: 1, profileId: "delivery-change", profileVersion: "v1.0.0" }, inputs: {}, judgments: {} }));
+    const mismatch = runTool("workflow-control.ts", ["run", "--runtime-root", runtimeRoot, "--change-root", change, "--request-file", requestFile, "--output-file", outputFile]);
+    assert.notEqual(mismatch.status, 0);
+    assert.equal(JSON.parse(readFileSync(outputFile, "utf8")).status, "rejected");
+
+    writeFileSync(requestFile, "{");
+    const malformed = runTool("workflow-control.ts", ["run", "--runtime-root", runtimeRoot, "--change-root", change, "--request-file", requestFile]);
+    assert.notEqual(malformed.status, 0);
+    assert.equal(JSON.parse(malformed.stdout).status, "rejected");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
