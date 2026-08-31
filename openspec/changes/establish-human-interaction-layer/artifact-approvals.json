@@ -58,10 +58,10 @@
       "migrationSource": null
     },
     "tasks": {
-      "digest": "sha256:45eb2dde99810f109b2dcfaac9e94ca21dcdfcc40789e47ff34291ea996c374b",
+      "digest": "sha256:85dfd2a15ed048788254853a082e3e232be0ea58cc2c5b68ef3612d0ef1c2efa",
       "decision": "approved",
-      "approvedBy": "Runtime 维护者（门2 同意候选A，Claude 代笔）",
-      "approvedAt": "2026-08-31T18:07:49.636Z",
+      "approvedBy": "Runtime 维护者（验证证据回填后重批准，Claude 代笔）",
+      "approvedAt": "2026-08-31T18:35:42.877Z",
       "migrationSource": null
     }
   }
