@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "delivery-change/metrics-event.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "eventId", "runId", "profileId", "profileVersion", "itemHash", "stage", "event", "status", "startedAt", "endedAt", "retryCount", "slotCount", "activeCount", "queueDepth", "qualityGate"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "eventId": { "type": "string", "pattern": "^[A-Za-z0-9._-]{1,128}$" },
+    "runId": { "type": "string", "pattern": "^[A-Za-z0-9._-]{1,128}$" },
+    "profileId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "profileVersion": { "type": "string", "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "itemHash": { "type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$" },
+    "stage": { "enum": ["capture", "triage", "evidence", "options", "disposition", "implementation", "review", "acceptance", "sync", "archive"] },
+    "event": { "enum": ["eligible", "started", "useful-output", "completed", "blocked", "failed", "cancelled", "resumed", "conflict", "rework", "quality-gate"] },
+    "status": { "enum": ["active", "completed", "failed", "not-run"] },
+    "startedAt": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$" },
+    "endedAt": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$" },
+    "retryCount": { "type": "integer", "minimum": 0 },
+    "slotCount": { "type": "integer", "minimum": 0 },
+    "activeCount": { "type": ["integer", "null"], "minimum": 0 },
+    "queueDepth": { "type": "integer", "minimum": 0 },
+    "qualityGate": { "enum": ["pass", "fail", "not-run"] },
+    "failureCategory": { "enum": ["input", "tool", "conflict", "timeout", "dependency", "environment", "unknown"] },
+    "humanOutcome": { "enum": ["none", "useful", "not-useful", "accepted", "rejected", "deferred"] }
+  }
+}

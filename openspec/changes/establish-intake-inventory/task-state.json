@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "tasks": [
+    {
+      "id": "1.1",
+      "state": "verified",
+      "deliverables": [
+        "openspec/contracts/intake-inventory.schema.json"
+      ],
+      "verification": [
+        "inventory 报告字段、分类和重复 ID 结构符合合同"
+      ],
+      "evidence": [
+        "test/intake.test.ts"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.1",
+      "state": "verified",
+      "deliverables": [
+        "openspec/tools/intake-control.ts：intake list 目录扫描、排序和 ID 分组"
+      ],
+      "verification": [
+        "current/legacy/invalid/duplicate/empty-root 场景输出确定性 JSON 且不写文件"
+      ],
+      "evidence": [
+        "runtime-entry.ts intake list; test/intake.test.ts"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.2",
+      "state": "verified",
+      "deliverables": [
+        "openspec/tools/intake-control.ts：legacy inspect 结构化报告"
+      ],
+      "verification": [
+        "legacy 返回缺失字段和迁移建议，原文件内容不变"
+      ],
+      "evidence": [
+        "runtime-entry.ts intake inspect; test/intake.test.ts"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "3.1",
+      "state": "verified",
+      "deliverables": [
+        "test/intake.test.ts：inventory、duplicate、legacy 和 invalid 场景"
+      ],
+      "verification": [
+        "node --experimental-strip-types --test test/intake.test.ts"
+      ],
+      "evidence": [
+        "node --experimental-strip-types --test test/intake.test.ts: 6 passed"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "4.1",
+      "state": "verified",
+      "deliverables": [
+        "现有 legacy/invalid Intake 的人工规范化和唯一主题 slug"
+      ],
+      "verification": [
+        "真实仓库 inventory 全部条目具备当前合同且 duplicateIds 为空"
+      ],
+      "evidence": [
+        "runtime-entry.ts intake list: 6 current entries, duplicateIds empty"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "5.1",
+      "state": "implemented_unverified",
+      "deliverables": [
+        "public-allowlist.json、docs/workflow-guide.md 和 Change 交付证据"
+      ],
+      "verification": [
+        "全量合同测试和 openspec validate --all --strict 通过"
+      ],
+      "evidence": [],
+      "blocker": null
+    }
+  ]
+}

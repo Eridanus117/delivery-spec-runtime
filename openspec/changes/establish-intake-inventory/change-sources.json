@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "RAW-001",
+      "kind": "maintainer-confirmation",
+      "authority": 1,
+      "locator": "current-change-session-2026-08-30",
+      "adapter": "manual"
+    },
+    {
+      "id": "RAW-002",
+      "kind": "repository-inspection",
+      "authority": 1,
+      "locator": "openspec/intake",
+      "adapter": "manual"
+    },
+    {
+      "id": "RAW-003",
+      "kind": "intake-record",
+      "authority": 1,
+      "locator": "openspec/intake/INT-20260830-005-metrics-concurrency.md",
+      "adapter": "manual"
+    }
+  ]
+}

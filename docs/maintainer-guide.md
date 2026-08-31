@@ -43,6 +43,45 @@ node --experimental-strip-types \
 
 消费仓仍通过 `.delivery-spec-runtime/openspec/tools/runtime-entry.ts` 执行；两种入口都必须先通过 `runtime-check`。
 
+## 本地效率指标基线
+
+指标记录器只用于维护者明确指定的本地私有 state 目录，不把原始事件写入 Runtime 仓库、消费仓或远程服务：
+
+```bash
+node --experimental-strip-types \
+  openspec/tools/metrics-control.ts append \
+  --state-root <private-state-root> \
+  --event-file <redacted-event.json>
+
+node --experimental-strip-types \
+  openspec/tools/metrics-control.ts summary \
+  --state-root <private-state-root> \
+  --profile-id <profile-id> \
+  --profile-version <profile-version> \
+  --window-start <UTC-start> \
+  --window-end <UTC-end>
+```
+
+完成两轮汇总后，用 `compare` 生成 C/C+1 对照；它只接受候选 `slotCount` 比基线大 1 的报告：
+
+```bash
+node --experimental-strip-types \
+  openspec/tools/metrics-control.ts compare \
+  --baseline-file <c-summary.json> \
+  --candidate-file <c-plus-one-summary.json>
+```
+
+按保留规则清理过期事件；`--before` 为不包含当天的 UTC 日期：
+
+```bash
+node --experimental-strip-types \
+  openspec/tools/metrics-control.ts cleanup \
+  --state-root <private-state-root> \
+  --before <YYYY-MM-DD>
+```
+
+先记录当前并发 `C`，再考虑 `C+1`。对照只能改变 `slotCount`；不得把 `slotCount` 当作不可观测时的 `activeCount`，不得由记录器自动修改调度配置。原始事件应按本地保留规则清理，公共仓只保留合同、工具和合成测试。
+
 ## 修改 Commands
 
 只修改 `.omp/command-sources/`。完成后执行：

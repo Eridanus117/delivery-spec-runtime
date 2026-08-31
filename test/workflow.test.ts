@@ -179,15 +179,81 @@ test("workflow CLI 固定 Change binding 并拒绝静默切换", () => {
   }
 });
 
+test("standalone workflow entry 自推进到人工门并返回可恢复结果", () => {
+  const root = mkdtempSync(join(tmpdir(), "workflow-entry-"));
+  try {
+    const requestFile = join(root, "request.json");
+    const outputFile = join(root, "result.json");
+    writeFileSync(requestFile, JSON.stringify({
+      schemaVersion: 1,
+      matterId: "standalone-matter",
+      binding: { schemaVersion: 1, profileId: "light-change", profileVersion: "v1.0.0" },
+      inputs: { request: "captured", implementation: "changed", verification: "checked" },
+      judgments: {},
+    }));
+    const advanced = runTool("workflow-entry.ts", ["run", "--runtime-root", runtimeRoot, "--input", requestFile, "--output-file", outputFile]);
+    assert.notEqual(advanced.status, 0);
+    assert.deepEqual(JSON.parse(readFileSync(outputFile, "utf8")), {
+      schemaVersion: 1,
+      matterId: "standalone-matter",
+      profileId: "light-change",
+      profileVersion: "v1.0.0",
+      status: "waiting_human_judgment",
+      currentStageId: "verification",
+      nextStageId: null,
+      outputs: { completedStages: ["intake", "implementation"], publishedInputs: {} },
+      reason: "阶段 verification 需要人工判断",
+    });
+
+    writeFileSync(requestFile, JSON.stringify({
+      schemaVersion: 1,
+      matterId: "standalone-matter",
+      binding: { schemaVersion: 1, profileId: "light-change", profileVersion: "v1.0.0" },
+      inputs: { request: "captured", implementation: "changed", verification: "checked" },
+      judgments: {},
+      completedStages: ["intake", "implementation"],
+    }));
+    const waiting = runTool("workflow-entry.ts", ["run", "--runtime-root", runtimeRoot, "--input", requestFile, "--output-file", outputFile]);
+    assert.notEqual(waiting.status, 0);
+    assert.equal(JSON.parse(readFileSync(outputFile, "utf8")).status, "waiting_human_judgment");
+    writeFileSync(requestFile, JSON.stringify({
+      schemaVersion: 1,
+      matterId: "standalone-matter",
+      binding: { schemaVersion: 1, profileId: "light-change", profileVersion: "v1.0.0" },
+      inputs: { request: "captured", implementation: "changed", verification: "checked" },
+      judgments: { verification: "owner-approved" },
+      completedStages: ["intake", "implementation"],
+    }));
+    const completed = runTool("workflow-entry.ts", ["run", "--runtime-root", runtimeRoot, "--input", requestFile, "--output-file", outputFile]);
+    assert.equal(completed.status, 0, completed.stderr);
+    assert.equal(JSON.parse(readFileSync(outputFile, "utf8")).status, "completed");
+    const stdoutRun = runTool("workflow-entry.ts", ["run", "--runtime-root", runtimeRoot, "--input", requestFile]);
+    assert.equal(stdoutRun.status, 0, stdoutRun.stderr);
+    assert.equal(JSON.parse(stdoutRun.stdout).status, "completed");
+
+    writeFileSync(requestFile, "{");
+    const malformed = runTool("workflow-entry.ts", ["run", "--runtime-root", runtimeRoot, "--input", requestFile, "--output-file", outputFile]);
+    assert.notEqual(malformed.status, 0);
+    assert.equal(JSON.parse(readFileSync(outputFile, "utf8")).status, "rejected");
+
+    const previous = readFileSync(outputFile, "utf8");
+    const missing = runTool("workflow-entry.ts", ["run", "--runtime-root", runtimeRoot, "--output-file", outputFile]);
+    assert.notEqual(missing.status, 0);
+    assert.match(missing.stderr, /缺少 --input/);
+    assert.equal(readFileSync(outputFile, "utf8"), previous);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("runtime-entry 暴露 workflow 命令且保持入口校验", () => {
   const result = runTool("runtime-entry.ts", ["workflow", "list-profiles"]);
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /light-change/);
 });
-
 test("公开候选清单包含 workflow runtime 资产", () => {
   const allowlist = JSON.parse(readFileSync(join(runtimeRoot, "public-allowlist.json"), "utf8")) as { paths: string[] };
-  for (const path of ["openspec/contracts/workflow-binding.schema.json", "openspec/contracts/workflow-request.schema.json", "openspec/contracts/workflow-result.schema.json", "openspec/profiles/registry.json", "openspec/tools/workflow-core.ts", "openspec/tools/workflow-control.ts"]) {
+  for (const path of ["openspec/contracts/workflow-binding.schema.json", "openspec/contracts/workflow-request.schema.json", "openspec/contracts/workflow-result.schema.json", "openspec/profiles/registry.json", "openspec/tools/workflow-core.ts", "openspec/tools/workflow-control.ts", "openspec/tools/workflow-entry.ts"]) {
     assert.equal(allowlist.paths.includes(path), true, path);
     assert.equal(existsSync(join(runtimeRoot, path)), true, path);
   }
