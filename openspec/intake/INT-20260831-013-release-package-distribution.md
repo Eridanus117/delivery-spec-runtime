@@ -1,11 +1,11 @@
 ---
 schemaVersion: 1
 id: INT-20260831-013-release-package-distribution
-state: triaged
-phase: options
+state: promoted
+phase: disposition
 source: maintainer-direction
 capturedAt: 2026-08-31
-promotedTo: null
+promotedTo: replace-symlinks-with-verified-copies
 ---
 
 # Intake
@@ -56,9 +56,9 @@ promotedTo: null
 
 ## Disposition
 
-决定：
-理由：
-下一步：
+决定：promote
+理由：维护者门1批准两阶段路线（先复制校验替换软链，后评估 Release 制品整体替换）。
+下一步：第一阶段由 Change replace-symlinks-with-verified-copies 交付；第二阶段视其验证结果另立 Change。
 
 ## History
 
@@ -66,3 +66,5 @@ promotedTo: null
 - 2026-08-31T19:36:17.556Z advanced to triage
 - 2026-08-31T19:36:18.263Z advanced to evidence
 - 2026-08-31T19:36:19.002Z advanced to options
+- 2026-08-31T19:49:09.612Z advanced to disposition
+- 2026-08-31T19:49:10.290Z promoted to replace-symlinks-with-verified-copies

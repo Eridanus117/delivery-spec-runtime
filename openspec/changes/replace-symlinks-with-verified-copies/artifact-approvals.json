@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "artifacts": {
+    "raw-requirements": {
+      "digest": "sha256:880a598bfd78da5b1c244df9837c8bcabbeaf663cb2010128b35d0a7f3982ac6",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者会话（门1 批准两阶段路线，Claude 代笔）",
+      "approvedAt": "2026-08-31T19:49:39.274Z",
+      "migrationSource": null
+    },
+    "specs": {
+      "digest": "sha256:deba1863f082e34901c7dff2509bae4d1c21d6e2ea8c6011bfea02421b1801dd",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者会话（门1 批准两阶段路线，Claude 代笔）",
+      "approvedAt": "2026-08-31T19:49:39.450Z",
+      "migrationSource": null
+    },
+    "business-current": {
+      "digest": "sha256:94addf5191c80e30b0006825649d42684873b728fd1beaa960d7c93f4c327d15",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者会话（门1 批准两阶段路线，Claude 代笔）",
+      "approvedAt": "2026-08-31T19:49:05.289Z",
+      "migrationSource": null
+    },
+    "technical-current": {
+      "digest": "sha256:9ddbd102aa672c365fada7a0eca758c4cf95fbd714a0eb188da69ab283fe9c49",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者会话（门1 批准两阶段路线，Claude 代笔）",
+      "approvedAt": "2026-08-31T19:49:05.437Z",
+      "migrationSource": null
+    },
+    "solution-proposal": {
+      "digest": "sha256:39844b8a1e9198cd330957367474a3a07845de9d0765b00c9bc1a6ec88df28e7",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者会话（门1 批准两阶段路线，Claude 代笔）",
+      "approvedAt": "2026-08-31T19:49:05.602Z",
+      "migrationSource": null
+    }
+  }
+}

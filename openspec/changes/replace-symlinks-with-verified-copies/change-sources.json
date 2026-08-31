@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    { "id": "RAW-001", "kind": "intake-item", "authority": 1, "locator": "openspec/intake/INT-20260831-013-release-package-distribution.md", "adapter": "manual" },
+    { "id": "RAW-002", "kind": "maintainer-confirmation", "authority": 2, "locator": "current-change-session-2026-08-31", "adapter": "manual" }
+  ]
+}
