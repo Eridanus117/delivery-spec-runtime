@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "7aab08740a96075841b29a845c0523c625003484",
+  "reviewedCommit": "bad6b8eecca802d856157807497c75c7fcdcb127",
+  "reviewedPaths": [
+    {
+      "path": ".claude/skills/delivery-pilot/SKILL.md",
+      "exists": true,
+      "sha256": "sha256:ff29c5de18791824c07b1f09534ca72a69c8bc6d64ecfec1ea6186db527e8695"
+    },
+    {
+      "path": ".omp/command-sources/bodies/opsx-update.md",
+      "exists": true,
+      "sha256": "sha256:967696cf14d89689fd73a3f2410679848b6a8712c9255fcb1dff00a54e633998"
+    },
+    {
+      "path": ".omp/command-sources/runtime-preamble.md",
+      "exists": true,
+      "sha256": "sha256:9505f271ba04ec2773e8a734a6960a48a4092a40d586fb1068a47454967e2f6f"
+    },
+    {
+      "path": ".omp/commands/opsx-apply.md",
+      "exists": true,
+      "sha256": "sha256:4468985ebcc84e1ca5653437c1edffe2755c67465abb33585c362f825dbc9991"
+    },
+    {
+      "path": ".omp/commands/opsx-archive.md",
+      "exists": true,
+      "sha256": "sha256:09592b3d05586faf316e6015630dc5ac2074d6ff9159249293e12f322eee79ed"
+    },
+    {
+      "path": ".omp/commands/opsx-continue.md",
+      "exists": true,
+      "sha256": "sha256:e2ab7941e50fb7557d0b8ade46bd179993ef992e7ecc12c4a392c875c849776b"
+    },
+    {
+      "path": ".omp/commands/opsx-explore.md",
+      "exists": true,
+      "sha256": "sha256:ba6872bb6e1d0c6fe2bda81b4d58d1eeefcb29c634a47823a66a6f9610db8dd5"
+    },
+    {
+      "path": ".omp/commands/opsx-new.md",
+      "exists": true,
+      "sha256": "sha256:390a58da4d1b075cefae6bab0de3c83c8e06e58cd98ac2b2d92b8531f1a81c09"
+    },
+    {
+      "path": ".omp/commands/opsx-propose.md",
+      "exists": true,
+      "sha256": "sha256:8807cb4e37758fec890e6cd1db2edd925aa533bdfe6b7ccdc6a0335e12791709"
+    },
+    {
+      "path": ".omp/commands/opsx-sync.md",
+      "exists": true,
+      "sha256": "sha256:1ebf0528748eb5b723c690365c42bb1a773de6a6fb58d5beac253a97b61facce"
+    },
+    {
+      "path": ".omp/commands/opsx-update.md",
+      "exists": true,
+      "sha256": "sha256:02f6f336cbebadb73203957ee41cf99887e5e6a9f1c28ee8e843731875b9f453"
+    },
+    {
+      "path": ".omp/commands/opsx-verify.md",
+      "exists": true,
+      "sha256": "sha256:a7659121f96c7535b9e4a662c6b308f93e9a6129cf30e6254964b91852250a80"
+    },
+    {
+      "path": "AGENTS.md",
+      "exists": true,
+      "sha256": "sha256:8adffaa589e563167e8c92cd578c4ca08bf5bff32cf8038e9d178043c5dc8a6d"
+    },
+    {
+      "path": "README.md",
+      "exists": true,
+      "sha256": "sha256:ac766a0bfebe96de6bd34e363d194aaee014f4008146704e169f06b32525a6da"
+    },
+    {
+      "path": "docs/architecture.md",
+      "exists": true,
+      "sha256": "sha256:29425ba48328025c8ce61bb8d8b050450710cfdd7628a6ce6638a0bb699f5170"
+    },
+    {
+      "path": "docs/consumer-guide.md",
+      "exists": true,
+      "sha256": "sha256:a4df2255ea9ecceaaf01eeaf32e07cda653419e9201038b21e4ec928759e0da7"
+    },
+    {
+      "path": "docs/maintainer-guide.md",
+      "exists": true,
+      "sha256": "sha256:2f58fc02e9f62be5532240b4c7c823a9899ae3644655867bf5bf84c6e3c876a3"
+    },
+    {
+      "path": "docs/openspec-upgrade.md",
+      "exists": true,
+      "sha256": "sha256:f8367d6619924322aeb7f82f591b7a12f05aa49a2dbd108c1d538d6aeeac19d8"
+    },
+    {
+      "path": "docs/workflow-guide.md",
+      "exists": true,
+      "sha256": "sha256:1f08fbeda5d7a13e5c29b1e7ee6a9277ad607d9cf062ed8e23a878489437cdea"
+    },
+    {
+      "path": "openspec/tools/openspec-upgrade.ts",
+      "exists": true,
+      "sha256": "sha256:8d0a51cf8193aaff0c0dffd8bfe163c20810cfc03985656b0b18b9073892a636"
+    },
+    {
+      "path": "openspec/tools/runtime-entry.ts",
+      "exists": true,
+      "sha256": "sha256:f9ca2eecad00a8226173e5db20097647d04ff98ff562c35fd4c96d22d4786f7a"
+    },
+    {
+      "path": "openspec/tools/runtime-link.ts",
+      "exists": true,
+      "sha256": "sha256:56a4b3358e644ecfc6319c812d699d8a25c0798a5412af8dc31ee21ce49857c2"
+    },
+    {
+      "path": "test/contracts.test.ts",
+      "exists": true,
+      "sha256": "sha256:fe517a0ed3f64d4d352fd0584dfd639a5da8a1bd7ddb60a960bfa76d18cbf38a"
+    },
+    {
+      "path": "test/submodule.test.ts",
+      "exists": true,
+      "sha256": "sha256:a7d22b82b6f6c8abda6ef15900d8b5dcb5168c07f39ecf63f89835d7cd0e3d21"
+    }
+  ],
+  "reviewedDigest": "sha256:fd4c3feb12559de1bfa2fd7090b2c98eccc5782957a4b27a92e887d48d3e5cf4",
+  "reviewer": "独立 fresh reviewer 会话（Claude 派发，2026-08-31；首轮 5 条 finding，复核确认全部修复，含两条 HIGH 的原始利用场景重放）",
+  "reviewedAt": "2026-08-31T23:40:00.000Z",
+  "findings": [
+    {
+      "id": "REV-001",
+      "severity": "HIGH",
+      "path": "openspec/tools/runtime-link.ts",
+      "line": 60,
+      "summary": "committedAndClean 将 .gitignore 覆盖或配置隐藏的未提交内容误判为干净，plain apply 会静默销毁不可恢复的本地改动",
+      "status": "RESOLVED",
+      "resolution": "bad6b8ee：改为双重判定（git ls-files 追踪非空 + status --porcelain -uall --ignored 为空）；spec 补判定语义；reviewer 重放原始利用场景确认被拒且本地编辑保留"
+    },
+    {
+      "id": "REV-002",
+      "severity": "HIGH",
+      "path": "openspec/tools/runtime-entry.ts",
+      "line": 99,
+      "summary": "跨仓 git 行尾策略不同时 treeDigest 字节比对永久误报受管投影漂移",
+      "status": "RESOLVED",
+      "resolution": "bad6b8ee：两处 treeDigest 统一加 CRLF→LF 归一化（latin1 字节安全）；spec 新增行尾场景；reviewer 重放原始 repro 确认通过且真实改动仍被拒"
+    },
+    {
+      "id": "REV-003",
+      "severity": "MEDIUM",
+      "path": "test/submodule.test.ts",
+      "line": 248,
+      "summary": "「加入多余文件」漂移形态无测试承接",
+      "status": "RESOLVED",
+      "resolution": "bad6b8ee：新增 extra.md 写入后 check 拒绝并指名 .omp/commands 的断言，实测通过"
+    },
+    {
+      "id": "REV-004",
+      "severity": "MEDIUM",
+      "path": "test/submodule.test.ts",
+      "line": 258,
+      "summary": "升级自动刷新分支（committedAndClean=true）与 VC-003 全流程零测试覆盖",
+      "status": "RESOLVED",
+      "resolution": "bad6b8ee：新增 gitlink 升级全流程测试（拒绝→自动刷新→通过），覆盖该分支，实测通过"
+    },
+    {
+      "id": "REV-005",
+      "severity": "LOW",
+      "path": ".claude/skills/delivery-pilot/SKILL.md",
+      "line": 31,
+      "summary": "受管资产与三篇文档残留「软链」描述受管路径",
+      "status": "RESOLVED",
+      "resolution": "bad6b8ee：SKILL 与 maintainer/workflow/openspec-upgrade 文档全部改为受管投影；grep 复核仅剩合法语境（旧软链迁移、历史归档、待 sync 主 spec、真实符号链接检查）"
+    }
+  ],
+  "result": "PASS"
+}

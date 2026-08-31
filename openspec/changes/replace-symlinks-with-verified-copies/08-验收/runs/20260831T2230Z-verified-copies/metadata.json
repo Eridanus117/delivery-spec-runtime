@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "runId": "20260831T2230Z-verified-copies",
-  "implementationCommit": "adc9afddc6e5278557e551499449ca63fe8b6ee7",
+  "implementationCommit": "bad6b8eecca802d856157807497c75c7fcdcb127",
   "baselineCommit": "7aab08740a96075841b29a845c0523c625003484",
   "environment": {
     "os": "Windows 11 Pro 10.0.26200",
@@ -10,7 +10,7 @@
     "executionContext": "临时 LF 克隆（core.autocrlf=false；未启用 core.symlinks，以验证无软链依赖）"
   },
   "startedAt": "2026-08-31T22:30:00.000Z",
-  "endedAt": "2026-08-31T22:45:00.000Z",
+  "endedAt": "2026-08-31T23:20:00.000Z",
   "commands": [
     "node --experimental-strip-types openspec/tools/render-commands.ts check --runtime-root .",
     "node --experimental-strip-types --test test/*.test.ts",
