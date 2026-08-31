@@ -44,7 +44,8 @@ function nonNegative(value: unknown, label: string): number {
 
 function utc(value: unknown, label: string): string {
   const text = stringField(value, label, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
-  if (Number.isNaN(Date.parse(text))) fail(`${label} 不是有效 UTC 时间`);
+  const milliseconds = Date.parse(text);
+  if (Number.isNaN(milliseconds) || new Date(milliseconds).toISOString() !== text) fail(`${label} 不是有效 UTC 时间`);
   return text;
 }
 
@@ -208,7 +209,10 @@ function buildSummary(options: Map<string, string>): Summary {
   const slotValues = [...new Set(within.map((event) => event.slotCount))];
   const activeValues = within.flatMap((event) => event.activeCount === null ? [] : [event.activeCount]);
   const byItem = new Map<string, Event[]>();
-  for (const event of within) byItem.set(event.itemHash, [...(byItem.get(event.itemHash) ?? []), event]);
+  for (const event of within) {
+    const key = `${event.runId}\u0000${event.itemHash}`;
+    byItem.set(key, [...(byItem.get(key) ?? []), event]);
+  }
   const durations: number[] = [];
   const queueWait: number[] = [];
   const usefulOutput: number[] = [];
@@ -255,11 +259,15 @@ const summaryFields = ["profileId", "profileVersion", "windowStart", "windowEnd"
 function readSummary(path: string, label: string): Summary {
   const value = object(readJson(path), label);
   exactKeys(value, summaryFields, summaryFields, label);
+  stringField(value.profileId, `${label}.profileId`, /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+  stringField(value.profileVersion, `${label}.profileVersion`, /^v[0-9]+\.[0-9]+\.[0-9]+$/);
+  utc(value.windowStart, `${label}.windowStart`);
+  utc(value.windowEnd, `${label}.windowEnd`);
   for (const key of ["eligibleCount", "startedCount", "completedCount", "blockedCount", "failedCount", "conflictCount", "reworkCount"]) {
-    if (!Number.isInteger(value[key])) fail(`${label}.${key} 必须是整数`);
+    if (!Number.isInteger(value[key]) || (value[key] as number) < 0) fail(`${label}.${key} 必须是非负整数`);
   }
   for (const key of ["slotCount", "activeCountMax", "throughput", "durationSeconds", "queueWaitSeconds", "usefulOutputSeconds", "dataCompleteness", "conflictRate", "reworkRate", "qualityGateFailureRate"]) {
-    if (value[key] !== null && typeof value[key] !== "number") fail(`${label}.${key} 必须是数字或 null`);
+    if (value[key] !== null && (typeof value[key] !== "number" || !Number.isFinite(value[key]) || (value[key] as number) < 0)) fail(`${label}.${key} 必须是非负数字或 null`);
   }
   return value as unknown as Summary;
 }
@@ -271,6 +279,7 @@ function percentageDelta(baseline: number | null, candidate: number | null): num
 function compare(options: Map<string, string>): void {
   const baseline = readSummary(requiredOption(options, "baseline-file"), "baseline summary");
   const candidate = readSummary(requiredOption(options, "candidate-file"), "candidate summary");
+  if (baseline.profileId !== candidate.profileId || baseline.profileVersion !== candidate.profileVersion) fail("C+1 对照必须使用同一个 Profile");
   if (!Number.isInteger(baseline.slotCount) || !Number.isInteger(candidate.slotCount) || candidate.slotCount !== (baseline.slotCount as number) + 1) fail("C+1 对照必须只增加一个 slotCount");
   if (baseline.completedCount < 8 || candidate.completedCount < 8) {
     console.log(JSON.stringify({ baseline, candidate, decision: "insufficient-data", reason: "可计算完成事项少于 8" }, null, 2));
