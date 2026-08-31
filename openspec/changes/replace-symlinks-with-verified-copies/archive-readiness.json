@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "implementationCommit": "bad6b8eecca802d856157807497c75c7fcdcb127",
+  "acceptanceDigest": "sha256:2517989191d3fcaa4f26bfb0fd7ce4de7f0111314d8ac7ce89d7e5bc230a4032",
+  "releasePlanDigest": "sha256:da5823a2a575d3d4afd119ae7a7a256cf5f578d82779ae77723cc14ce9788788",
+  "specSync": [
+    {
+      "deltaPath": "openspec/changes/replace-symlinks-with-verified-copies/specs/runtime-distribution/spec.md",
+      "deltaSha256": "sha256:72a52e56e5734ed3bf5dcb49984035960d0b4ec265f5813dfd891a0c5b82ba75",
+      "mainPath": "openspec/specs/runtime-distribution/spec.md",
+      "mainSha256": "sha256:763a6d6f7e3f156fdbefc54aad97e6d6012ca305ab4852cd2ff43b0ff9121e1b"
+    },
+    {
+      "deltaPath": "openspec/changes/replace-symlinks-with-verified-copies/specs/runtime-upgrade-safety/spec.md",
+      "deltaSha256": "sha256:587ce14d4481191de8808f5af396f018422b4e3b05cf599a8dfb302ed442e369",
+      "mainPath": "openspec/specs/runtime-upgrade-safety/spec.md",
+      "mainSha256": "sha256:8b8d36d70ea2c4b2f47632712b3e9f8e90546d80253b70ec0492e0828e4ff608"
+    }
+  ],
+  "strictValidation": "PASS",
+  "cleanupEvidence": {
+    "path": "openspec/changes/replace-symlinks-with-verified-copies/08-验收/runs/20260831T2230Z-verified-copies/cleanup/cleanup-pass.md",
+    "sha256": "sha256:6880718780efdda6e8d1af9d707cf1e4198a6d5b836450ed0e0bf420147b942e"
+  },
+  "prStarted": false,
+  "migrationSource": null,
+  "historicalPr": null,
+  "attestedBy": "Runtime 维护者（Eridanus 授权，Claude 代笔）",
+  "attestedAt": "2026-09-01T00:20:00.000Z",
+  "result": "READY"
+}
