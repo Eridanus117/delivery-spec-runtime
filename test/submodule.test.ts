@@ -48,6 +48,7 @@ function prepareFixture(): { root: string; runtime: string; asset: string } {
   const asset = join(root, "asset");
   mkdirSync(runtime, { recursive: true });
   cpSync(join(runtimeRoot, ".omp"), join(runtime, ".omp"), { recursive: true });
+  cpSync(join(runtimeRoot, ".claude"), join(runtime, ".claude"), { recursive: true });
   cpSync(join(runtimeRoot, "openspec"), join(runtime, "openspec"), { recursive: true });
   cpSync(join(runtimeRoot, "runtime-manifest.json"), join(runtime, "runtime-manifest.json"));
   git(runtime, ["init", "-q"]);
@@ -118,7 +119,7 @@ test("gitlink、相对软链与递归克隆形成唯一运行时绑定", () => {
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /implementation-review\.json/);
     assert.equal(existsSync(join(asset, "openspec/runtime-lock.json")), false);
-    for (const link of [".omp/commands", "openspec/schemas/delivery-change", "openspec/tools/runtime-entry.ts"]) {
+    for (const link of [".omp/commands", "openspec/schemas/delivery-change", "openspec/tools/runtime-entry.ts", ".claude/skills/delivery-pilot"]) {
       const path = join(asset, link);
       assert.equal(lstatSync(path).isSymbolicLink(), true, link);
       assert.equal(readlinkSync(path).startsWith("/"), false, `${link} 必须使用相对目标`);
@@ -133,6 +134,12 @@ test("gitlink、相对软链与递归克隆形成唯一运行时绑定", () => {
     assert.equal(result.status, 0, result.stderr);
     result = check(clone);
     assert.equal(result.status, 0, result.stderr);
+
+    rmSync(join(clone, ".claude/skills/delivery-pilot"), { recursive: true, force: true });
+    writeFileSync(join(clone, ".claude/skills/delivery-pilot"), "not a managed link");
+    result = check(clone);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /delivery-pilot/);
   } finally {
     rmSync(fixture.root, { recursive: true, force: true });
   }
@@ -142,7 +149,7 @@ test("实时资产仓拒绝runtime-update且不修改Runtime", () => {
   const fixture = prepareFixture();
   try {
     const { asset } = fixture;
-    const links = [".omp/commands", "openspec/schemas/delivery-change", "openspec/tools/runtime-entry.ts"];
+    const links = [".omp/commands", "openspec/schemas/delivery-change", "openspec/tools/runtime-entry.ts", ".claude/skills/delivery-pilot"];
     const beforeDigests = commandDigests(asset);
     const beforeLinks = Object.fromEntries(links.map((link) => [link, readlinkSync(join(asset, link))]));
 

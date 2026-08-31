@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "tasks": [
+    {
+      "id": "1.1",
+      "state": "verified",
+      "deliverables": [
+        ".claude/skills/delivery-pilot/SKILL.md：交互合同资产（发起识别、门口一屏停靠、三动词、沉默=缓、在途提醒、单事项在线、CLI 驾驶指引）"
+      ],
+      "verification": [
+        "frontmatter 含 name 与触发 description；正文覆盖五项合同要素与不替人过门约定"
+      ],
+      "evidence": [
+        "LF 克隆全量验证：52/52 tests 通过；render check 0 漂移；interaction/submodule 聚焦测试通过（2026-08-31 会话）"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.1",
+      "state": "verified",
+      "deliverables": [
+        "runtime-manifest.json links 新增 .claude/skills/delivery-pilot 第四条受管软链",
+        "test/submodule.test.ts 硬编码链清单同步为四条"
+      ],
+      "verification": [
+        "临时 consumer 经 runtime-link.ts apply 建出四条链；破坏第四条链时 runtime-check 非零退出"
+      ],
+      "evidence": [
+        "LF 克隆全量验证：52/52 tests 通过；render check 0 漂移；interaction/submodule 聚焦测试通过（2026-08-31 会话）"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "3.1",
+      "state": "verified",
+      "deliverables": [
+        "test/interaction.test.ts：skill 存在性、frontmatter 与五项合同要素完整性断言"
+      ],
+      "verification": [
+        "node --experimental-strip-types --test test/interaction.test.ts 通过；移除任一要素时对应断言失败"
+      ],
+      "evidence": [
+        "LF 克隆全量验证：52/52 tests 通过；render check 0 漂移；interaction/submodule 聚焦测试通过（2026-08-31 会话）"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "4.1",
+      "state": "verified",
+      "deliverables": [
+        "README.md、docs/consumer-guide.md、docs/architecture.md 的软链数量、接入命令与升级说明更新",
+        "public-allowlist.json 按既有机制补充新资产路径"
+      ],
+      "verification": [
+        "文档描述与 manifest 实际一致；candidate 相关测试通过"
+      ],
+      "evidence": [
+        "LF 克隆全量验证：52/52 tests 通过；render check 0 漂移；interaction/submodule 聚焦测试通过（2026-08-31 会话）"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "5.1",
+      "state": "verified",
+      "deliverables": [
+        "全量回归证据清单"
+      ],
+      "verification": [
+        "node --experimental-strip-types --test test/*.test.ts",
+        "node --experimental-strip-types openspec/tools/render-commands.ts check --runtime-root .",
+        "openspec validate --all --strict"
+      ],
+      "evidence": [
+        "LF 克隆全量验证：52/52 tests 通过；render check 0 漂移；interaction/submodule 聚焦测试通过（2026-08-31 会话）"
+      ],
+      "blocker": null
+    }
+  ]
+}

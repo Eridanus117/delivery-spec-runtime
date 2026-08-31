@@ -21,6 +21,10 @@
       {
         "link": "openspec/tools/runtime-entry.ts",
         "source": "openspec/tools/runtime-entry.ts"
+      },
+      {
+        "link": ".claude/skills/delivery-pilot",
+        "source": ".claude/skills/delivery-pilot"
       }
     ]
   },

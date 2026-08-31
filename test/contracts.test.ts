@@ -15,6 +15,7 @@ test("runtime manifest、九层schema与九个Commands一致", () => {
     { link: ".omp/commands", source: ".omp/commands" },
     { link: "openspec/schemas/delivery-change", source: "openspec/schemas/delivery-change" },
     { link: "openspec/tools/runtime-entry.ts", source: "openspec/tools/runtime-entry.ts" },
+    { link: ".claude/skills/delivery-pilot", source: ".claude/skills/delivery-pilot" },
   ]);
   for (const item of manifest.submodule.links) assert.equal(existsSync(join(runtimeRoot, item.source)), true, item.source);
   const schema = readFileSync(join(runtimeRoot, "openspec/schemas/delivery-change/schema.yaml"), "utf8");

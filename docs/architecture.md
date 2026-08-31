@@ -60,7 +60,7 @@ Workflow profile 只描述阶段合同，不替代 `delivery-change` 的 artifac
 1. 父仓 `.gitmodules` 唯一登记 `.delivery-spec-runtime`；
 2. submodule 当前 commit 等于父仓 `HEAD` 记录的 gitlink；
 3. submodule 工作树和父仓 gitlink 状态均 clean；
-4. manifest、Node/OpenSpec 版本和三条相对软链满足合同；
+4. manifest、Node/OpenSpec 版本和四条相对软链满足合同；
 5. bootstrap 不处于未完成事务。
 
 任一条件失败时命令非零退出，不复制文件、不切换版本、不提供兼容旁路。
@@ -69,9 +69,10 @@ Workflow profile 只描述阶段合同，不替代 `delivery-change` 的 artifac
 
 | 路径 | 职责 | 是否直接编辑 |
 |---|---|---|
-| `runtime-manifest.json` | Node 最低版本、OpenSpec 精确版本和三条软链合同 | 仅受控 Runtime Change |
+| `runtime-manifest.json` | Node 最低版本、OpenSpec 精确版本和四条软链合同 | 仅受控 Runtime Change |
 | `.omp/command-sources/` | Commands manifest、公共 preamble 和 body 真源 | 是 |
 | `.omp/commands/` | 九个确定性渲染物 | 否 |
+| `.claude/skills/delivery-pilot/` | Claude Code 载体的人机交互指引（skill） | 是 |
 | `openspec/schemas/delivery-change/` | 九层交付 schema 与模板 | 是 |
 | `openspec/tools/runtime-entry.ts` | 消费仓统一 fail-closed 入口 | 是 |
 | `openspec/tools/runtime-link.ts` | 建立和修复 manifest 托管软链 | 是 |
@@ -84,7 +85,7 @@ Workflow profile 只描述阶段合同，不替代 `delivery-change` 的 artifac
 
 允许：
 
-- 初始化或修复 manifest 托管的三条软链；
+- 初始化或修复 manifest 托管的四条软链；
 - 通过普通 Git 变更更新 `.delivery-spec-runtime` gitlink；
 - 执行 `runtime-check` 和生命周期命令。
 
