@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "implementationCommit": "759d52ede70f497779d3e1223b26787bd9fef637",
+  "acceptanceDigest": "sha256:c159d251a325781e5ec1dac421900088ae3eb708290531443ba6fa5527d89fca",
+  "releasePlanDigest": "sha256:40a8da9b49734c4e4d42785b3e6d3c8ee422f3fcb3470e5f9c2525ef990c196d",
+  "specSync": [
+    {
+      "deltaPath": "openspec/changes/establish-human-interaction-layer/specs/human-interaction/spec.md",
+      "deltaSha256": "sha256:e5fa3a502de09982da68c2b23fe9bba8ac9071eced2f2eb3646be342d23d68c4",
+      "mainPath": "openspec/specs/human-interaction/spec.md",
+      "mainSha256": "sha256:6296ffb0d062112b01e9bdb159cb1f96ad77a1ba0291bd8c27323b1c0cf3011d"
+    }
+  ],
+  "strictValidation": "PASS",
+  "cleanupEvidence": {
+    "path": "openspec/changes/establish-human-interaction-layer/08-验收/runs/20260831T1830Z-human-interaction/cleanup/cleanup-pass.md",
+    "sha256": "sha256:8dd2d578b034ff841d07b2376d47bcf62963a5347d1885fd2145b5db27915064"
+  },
+  "prStarted": false,
+  "migrationSource": null,
+  "historicalPr": null,
+  "attestedBy": "Runtime 维护者（Eridanus 授权，Claude 代笔）",
+  "attestedAt": "2026-08-31T20:45:00.000Z",
+  "result": "READY"
+}
