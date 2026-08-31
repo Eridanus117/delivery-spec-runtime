@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "artifacts": {
+    "raw-requirements": {
+      "digest": "sha256:880a598bfd78da5b1c244df9837c8bcabbeaf663cb2010128b35d0a7f3982ac6",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者会话（门1 批准两阶段路线，Claude 代笔）",
+      "approvedAt": "2026-08-31T19:49:39.274Z",
+      "migrationSource": null
+    },
+    "specs": {
+      "digest": "sha256:1ffe2f89db33fbfee534f2aac56a832ace511b0c463558c1f9fedbeb885da742",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者会话（Review REV-001/002 补定，Claude 代笔）",
+      "approvedAt": "2026-08-31T21:00:08.819Z",
+      "migrationSource": null
+    },
+    "business-current": {
+      "digest": "sha256:94addf5191c80e30b0006825649d42684873b728fd1beaa960d7c93f4c327d15",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者会话（门1 批准两阶段路线，Claude 代笔）",
+      "approvedAt": "2026-08-31T19:49:05.289Z",
+      "migrationSource": null
+    },
+    "technical-current": {
+      "digest": "sha256:9ddbd102aa672c365fada7a0eca758c4cf95fbd714a0eb188da69ab283fe9c49",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者会话（门1 批准两阶段路线，Claude 代笔）",
+      "approvedAt": "2026-08-31T19:49:05.437Z",
+      "migrationSource": null
+    },
+    "solution-proposal": {
+      "digest": "sha256:39844b8a1e9198cd330957367474a3a07845de9d0765b00c9bc1a6ec88df28e7",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者会话（门1 批准两阶段路线，Claude 代笔）",
+      "approvedAt": "2026-08-31T19:49:05.602Z",
+      "migrationSource": null
+    },
+    "solution-decision": {
+      "digest": "sha256:4a92f42c2f4a454623288c57d9cfec09db5c817a82c6b39757bd765008671aad",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者（门2 同意候选A，Claude 代笔）",
+      "approvedAt": "2026-08-31T20:15:27.254Z",
+      "migrationSource": null
+    },
+    "change-plan": {
+      "digest": "sha256:b16298b80f6d20e8909dd84d2d798bbf761f77445934580ed99b4e7b6dc42b22",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者会话（Review REV-001/002 补定，Claude 代笔）",
+      "approvedAt": "2026-08-31T21:00:08.946Z",
+      "migrationSource": null
+    },
+    "test-plan": {
+      "digest": "sha256:7f6e15414477310020fc3d96ac58e7c302c5c0f6d274522a3b866f8a74fd53f6",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者（门2 同意候选A，Claude 代笔）",
+      "approvedAt": "2026-08-31T20:15:27.490Z",
+      "migrationSource": null
+    },
+    "tasks": {
+      "digest": "sha256:6b89d37f67ec41dfd1a5707c7d4029fb60100dde5543ad1dd8044bc017f9748c",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者（验证证据回填后重批准，Claude 代笔）",
+      "approvedAt": "2026-08-31T21:05:36.767Z",
+      "migrationSource": null
+    }
+  }
+}

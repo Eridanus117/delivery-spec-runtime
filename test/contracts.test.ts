@@ -30,7 +30,7 @@ test("runtime manifest、九层schema与九个Commands一致", () => {
   for (const command of commands) {
     const content = readFileSync(join(runtimeRoot, ".omp/commands", command), "utf8");
     assert.match(content, /runtime-entry\.ts/);
-    assert.match(content, /父仓 gitlink、runtime submodule commit、manifest、dirty 状态或相对软链检查/);
+    assert.match(content, /父仓 gitlink、runtime submodule commit、manifest、dirty 状态或受管投影检查/);
   }
   const sourceBodies = readdirSync(join(runtimeRoot, ".omp/command-sources/bodies")).filter((name) => /^opsx-.*\.md$/.test(name)).sort();
   assert.deepEqual(sourceBodies, commands);

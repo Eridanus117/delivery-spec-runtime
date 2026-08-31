@@ -18,7 +18,7 @@ type ProcessResult = { status: number; stdout: string; stderr: string };
 type Generation = { requestedVersion: string; actualVersion: string; commands: Array<{ path: string; sha256: string }>; root: string; commandMap: CommandMap; probes: ProbeResult[] };
 type RepositoryFingerprint = { head: string; status: string; runtimeHead: string | null; runtimeStatus: string | null; links: Record<string, string | null> };
 
-const managedLinks = [".omp/commands", "openspec/schemas/delivery-change", "openspec/tools/runtime-entry.ts"];
+const managedLinks = [".omp/commands", "openspec/schemas/delivery-change", "openspec/tools/runtime-entry.ts", ".claude/skills/delivery-pilot"];
 const commandPattern = /^opsx-[a-z0-9-]+\.md$/;
 const semverPattern = /^\d+\.\d+\.\d+$/;
 
@@ -215,9 +215,17 @@ function baselineCommands(runtimeRoot: string, commit: string, names: string[]):
   return map;
 }
 
+function projectionSample(path: string): string {
+  const stat = lstatSync(path);
+  if (stat.isSymbolicLink()) return `symlink:${readlinkSync(path)}`;
+  if (stat.isFile()) return `file:${sha256File(path)}`;
+  if (!stat.isDirectory()) return "other";
+  const parts = readdirSync(path).sort().map((name) => `${name}=${projectionSample(join(path, name))}`);
+  return `dir:${sha256Buffer(parts.join("\n"))}`;
+}
 function fingerprint(root: string): RepositoryFingerprint {
   const runtime = join(root, ".delivery-spec-runtime"); const links: Record<string, string | null> = {};
-  for (const link of managedLinks) { const path = join(root, link); links[link] = existsSync(path) && lstatSync(path).isSymbolicLink() ? readlinkSync(path) : null; }
+  for (const link of managedLinks) { const path = join(root, link); try { lstatSync(path); links[link] = projectionSample(path); } catch { links[link] = null; } }
   return {
     head: git(root, ["rev-parse", "HEAD"]),
     status: git(root, ["status", "--porcelain"]),

@@ -1,5 +1,7 @@
 #!/usr/bin/env -S node --experimental-strip-types
-import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, realpathSync, renameSync, rmSync, symlinkSync } from "node:fs";
+import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -37,8 +39,30 @@ function parseManifest(runtimeRoot: string): Manifest {
   if (new Set(links.map((item) => item.link)).size !== links.length) fail("runtime-manifest 包含重复 link");
   return { schemaVersion: 2, schemaName: "delivery-change", submodule: { path: ".delivery-spec-runtime", links } };
 }
-function linkType(source: string): "dir" | "file" {
-  return lstatSync(source).isDirectory() ? "dir" : "file";
+function normalizeEol(content: Buffer): Buffer {
+  return Buffer.from(content.toString("latin1").replace(/\r\n/g, "\n"), "latin1");
+}
+function treeDigest(path: string): string {
+  const stat = lstatSync(path);
+  if (stat.isSymbolicLink()) fail(`受管内容不得包含符号链接: ${path}`);
+  const digest = createHash("sha256");
+  if (stat.isFile()) { digest.update("file\0"); digest.update(normalizeEol(readFileSync(path))); return digest.digest("hex"); }
+  if (!stat.isDirectory()) fail(`受管内容类型非法: ${path}`);
+  digest.update("dir\0");
+  for (const name of readdirSync(path).sort()) { digest.update(`${name}\0${treeDigest(join(path, name))}\0`); }
+  return digest.digest("hex");
+}
+function digestOrNull(path: string): string | null {
+  try { return treeDigest(path); } catch { return null; }
+}
+function committedAndClean(assetRoot: string, path: string): boolean {
+  try {
+    const rel = relative(assetRoot, path).split(sep).join("/");
+    const tracked = execFileSync("git", ["ls-files", "--", rel], { cwd: assetRoot, encoding: "utf8" }).trim();
+    if (!tracked) return false;
+    const status = execFileSync("git", ["status", "--porcelain", "-uall", "--ignored", "--", rel], { cwd: assetRoot, encoding: "utf8" }).trim();
+    return status === "";
+  } catch { return false; }
 }
 function apply(assetRoot: string, replaceManaged: boolean): void {
   const runtimeRoot = realpathSync(resolve(fileURLToPath(new URL("../../", import.meta.url))));
@@ -48,26 +72,24 @@ function apply(assetRoot: string, replaceManaged: boolean): void {
     const source = inside(runtimeRoot, contract.source, "source");
     if (!existsSync(source)) fail(`运行时 source 不存在: ${contract.source}`);
     const link = inside(assetRoot, contract.link, "link");
-    const target = (relative(dirname(link), source) || ".").split(sep).join("/");
-    return { ...contract, source, link, target, type: linkType(source) };
+    return { ...contract, source, link, sourceDigest: treeDigest(source) };
   });
   for (const item of prepared) {
-    const current = pathExists(item.link);
-    if (current && lstatSync(item.link).isSymbolicLink()) {
-      const currentTarget = readlinkSync(item.link);
-      if (currentTarget === item.target) continue;
-      if (currentTarget.split(/[\\/]/).join("/") !== item.target && !replaceManaged) fail(`受管路径不是预期相对软链: ${item.link}`);
-    } else if (current && !replaceManaged) {
-      fail(`受管路径不是预期相对软链: ${item.link}`);
+    if (pathExists(item.link)) {
+      const current = lstatSync(item.link);
+      if (!current.isSymbolicLink()) {
+        if (digestOrNull(item.link) === item.sourceDigest) continue;
+        if (!replaceManaged && !committedAndClean(assetRoot, item.link)) fail(`受管路径存在未提交的不一致内容，如确认无需保留请使用 --replace-managed: ${item.link}`);
+      }
     }
     mkdirSync(dirname(item.link), { recursive: true });
     const staged = `${item.link}.runtime-link-${process.pid}`;
     rmSync(staged, { recursive: true, force: true });
-    symlinkSync(item.target, staged, item.type);
+    cpSync(item.source, staged, { recursive: true });
     if (pathExists(item.link)) rmSync(item.link, { recursive: true, force: true });
     renameSync(staged, item.link);
   }
-  console.log(JSON.stringify({ schemaVersion: 1, runtime: manifest.submodule.path, links: prepared.map((item) => ({ link: item.link.slice(assetRoot.length + 1), target: item.target })) }, null, 2));
+  console.log(JSON.stringify({ schemaVersion: 1, runtime: manifest.submodule.path, links: prepared.map((item) => ({ link: item.link.slice(assetRoot.length + 1).split(sep).join("/"), digest: `sha256:${item.sourceDigest}` })) }, null, 2));
 }
 
 function main(): void {

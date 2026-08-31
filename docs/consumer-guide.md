@@ -7,7 +7,7 @@
 - Git 支持 submodule；
 - Node 版本满足 Runtime `runtime-manifest.json`；
 - OpenSpec CLI 版本等于 manifest 锁定的精确版本；
-- 父仓工作树中不存在需要被四条受管软链覆盖的未保存文件。
+- 父仓工作树中不存在需要被四条受管投影覆盖的未保存文件。
 
 ## 需求进入与 Change 边界
 
@@ -46,8 +46,8 @@ node --experimental-strip-types \
 - 命令退出码为 0；
 - `.delivery-spec-runtime` 是父仓登记的 submodule；
 - submodule 当前 commit 与父仓 gitlink 一致；
-- `.omp/commands`、`openspec/schemas/delivery-change`、`openspec/tools/runtime-entry.ts`、`.claude/skills/delivery-pilot` 是 manifest 托管的相对软链；
-- 父仓已将 `.gitmodules`、gitlink 和四条软链作为同一个 Change 提交。
+- `.omp/commands`、`openspec/schemas/delivery-change`、`openspec/tools/runtime-entry.ts`、`.claude/skills/delivery-pilot` 是 manifest 托管的受管投影（普通文件副本，哈希校验防漂移）；
+- 父仓已将 `.gitmodules`、gitlink 和四条受管投影作为同一个 Change 提交。
 
 若验证失败，不要复制 Runtime 文件或建立第二份 lock；按“故障诊断”处理。
 
@@ -65,7 +65,7 @@ git clone --recurse-submodules <consumer-repository>
 git submodule update --init --recursive
 ```
 
-Windows 与 Git 配置可能将目录软链还原为不可用的链接目标；克隆或初始化后，先重新应用受管软链：
+受管投影是普通文件，克隆后即可用。若历史版本曾以软链形态接入，或投影与 pinned Runtime 不一致，先重新应用：
 
 ```bash
 node --experimental-strip-types \
@@ -104,7 +104,7 @@ node --experimental-strip-types \
 
 `runtime-check` 不接受只存在于工作树或暂存区的 gitlink；必须先让父仓 `HEAD` 记录目标 commit。若检查失败，在功能分支修复并 amend/new commit，检查通过后再提交 PR。
 
-升级目标 commit 的受管软链清单可能多于当前父仓已建立的软链（例如新增 `.claude/skills/delivery-pilot`）。升级后先重跑 `runtime-link.ts apply` 建立缺失软链并与 gitlink 一并提交，否则 `runtime-check` 会按 fail-closed 拒绝执行。
+升级目标 commit 的受管投影清单可能多于当前父仓已建立的投影（例如新增资产）。升级后先重跑 `runtime-link.ts apply` 建立缺失投影并与 gitlink 一并提交，否则 `runtime-check` 会按 fail-closed 拒绝执行。
 
 ### 完成标准
 
@@ -114,16 +114,16 @@ node --experimental-strip-types \
 - `runtime-check` 通过；
 - 消费仓自己的聚焦验证通过。
 
-## 修复受管软链
+## 修复受管投影
 
-软链缺失时执行：
+投影缺失、内容漂移或仍为旧软链形态时执行：
 
 ```bash
 node --experimental-strip-types \
   .delivery-spec-runtime/openspec/tools/runtime-link.ts apply --asset-root .
 ```
 
-受管路径已存在但目标漂移时，先确认其中没有需要保留的本地文件，再显式允许替换：
+受管路径存在与源不一致的本地内容时，先确认无需保留，再显式允许替换（旧软链会被自动迁移为副本，无需该参数）：
 
 ```bash
 node --experimental-strip-types \
@@ -140,7 +140,7 @@ node --experimental-strip-types \
 | 未找到 Runtime submodule | clone 未初始化 submodule | `git submodule update --init --recursive` | `runtime-check` |
 | 当前 commit 与 gitlink 不一致 | submodule 被手动切换 | `git submodule update --init --recursive` 恢复父仓记录，或提交受评审 gitlink 变更 | 两侧 commit 一致 |
 | Runtime dirty | submodule 中存在本地修改 | `git -C .delivery-spec-runtime status --short` 定位并人工处理 | 状态 clean |
-| 受管软链缺失或漂移 | 路径被替换或移动 | 缺失时执行 `runtime-link.ts apply`；漂移时核对内容后增加 `--replace-managed` | 提交修复后运行 `runtime-check` |
+| 受管投影缺失、漂移或仍为旧软链 | 内容被改动、路径被替换或未迁移 | 执行 `runtime-link.ts apply`；存在需放弃的本地改动时加 `--replace-managed` | 提交修复后运行 `runtime-check` |
 | Node/OpenSpec 版本不符 | 本机工具版本漂移 | 安装 manifest 要求的 Node 最低版本和 OpenSpec 精确版本 | `runtime-check` |
 | `runtime-update` 被拒绝 | Runtime 的预期安全行为 | 在 Runtime 仓建立独立升级 Change | 不得绕过 |
 
@@ -180,4 +180,4 @@ openspec update
 runtime-entry.ts runtime-update
 ```
 
-以上操作不得在实时消费仓执行。官方生成器即使可用，也不能修改 Runtime submodule 或软链目标。需要升级 OpenSpec 时，由 Runtime 维护者执行[受控 OpenSpec 升级](openspec-upgrade.md)。
+以上操作不得在实时消费仓执行。官方生成器即使可用，也不能修改 Runtime submodule 或受管投影。需要升级 OpenSpec 时，由 Runtime 维护者执行[受控 OpenSpec 升级](openspec-upgrade.md)。

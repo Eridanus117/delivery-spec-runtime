@@ -8,7 +8,7 @@ description: "继续处理一项变更——创建下一个制品（实验性）
 # Runtime 源仓自用：<planningHome.root>/openspec/tools/runtime-entry.ts
 node --experimental-strip-types "<runtime入口路径>" runtime-check --change-root "<planningHome.root>"
 ```
-入口非零时立即停止。消费仓入口不得绕过父仓 gitlink、runtime submodule commit、manifest、dirty 状态或相对软链检查；Runtime 源仓入口执行源仓 manifest、源码路径、版本和 bootstrap 状态检查。
+入口非零时立即停止。消费仓入口不得绕过父仓 gitlink、runtime submodule commit、manifest、dirty 状态或受管投影检查；Runtime 源仓入口执行源仓 manifest、源码路径、版本和 bootstrap 状态检查。
 选择、列出或报告 active Change 时，必须对每个候选运行 `runtime-entry.ts inspect --change-root "<changeRoot>"`，显示 `displayName (slug)`；sidecar 缺失或无效时停止，机器选择键与 OpenSpec 参数只能使用slug。
 
 通过创建下一个制品继续处理一项变更。

@@ -28,7 +28,7 @@ description: 当用户表达一个需求、想法、问题或事项（如「我�
 | ④实施 | opsx 踏板（apply、verify 自查段） | 代码＋自验证据 | 无 |
 | ⑤验收·归档 | opsx 踏板（verify/sync/archive） | 验收报告 | 门3：验收；同意即授权归档 |
 
-各踏板的详细说明书在 `.omp/commands/opsx-*.md`（受管软链，随本 Runtime 分发）；底层 CLI 统一入口为 `openspec/tools/runtime-entry.ts`（在消费仓经 `.delivery-spec-runtime` 前缀访问）。
+各踏板的详细说明书在 `.omp/commands/opsx-*.md`（受管投影，随本 Runtime 分发）；底层 CLI 统一入口为 `openspec/tools/runtime-entry.ts`（在消费仓经 `.delivery-spec-runtime` 前缀访问）。
 
 **重量伸缩**：小事（改错字级）跳过②③，走 light-change 快车道，只留验收一道门。你在登记时建议重量，人在首个门顺带认可。
 

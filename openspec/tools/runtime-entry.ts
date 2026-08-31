@@ -1,5 +1,6 @@
 #!/usr/bin/env -S node --experimental-strip-types
-import { existsSync, lstatSync, readFileSync, readlinkSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync, spawnSync } from "node:child_process";
@@ -95,16 +96,30 @@ function verifySubmoduleRegistration(assetRoot: string, path: string): void {
   const paths = output.split(/\r?\n/).map((line) => line.trim().split(/\s+/).at(-1));
   if (paths.filter((item) => item === path).length !== 1) fail(`.gitmodules 必须唯一登记 ${path}`);
 }
+function normalizeEol(content: Buffer): Buffer {
+  return Buffer.from(content.toString("latin1").replace(/\r\n/g, "\n"), "latin1");
+}
+function treeDigest(path: string): string {
+  const stat = lstatSync(path);
+  if (stat.isSymbolicLink()) fail(`受管投影不得包含符号链接: ${path}`);
+  const digest = createHash("sha256");
+  if (stat.isFile()) { digest.update("file\0"); digest.update(normalizeEol(readFileSync(path))); return digest.digest("hex"); }
+  if (!stat.isDirectory()) fail(`受管投影内容类型非法: ${path}`);
+  digest.update("dir\0");
+  for (const name of readdirSync(path).sort()) { digest.update(`${name}\0${treeDigest(join(path, name))}\0`); }
+  return digest.digest("hex");
+}
 function verifyLinks(assetRoot: string, runtimeRoot: string, links: LinkContract[]): void {
   for (const contract of links) {
     const link = inside(assetRoot, contract.link, "link");
     const source = inside(runtimeRoot, contract.source, "source");
-    const expected = (relative(dirname(link), source) || ".").split(sep).join("/");
-    let linkIsSymlink = false;
-    try { linkIsSymlink = lstatSync(link).isSymbolicLink(); } catch {}
-    const actual = linkIsSymlink ? readlinkSync(link).split(/[\\/]/).join("/") : "";
-    if (!existsSync(source) || !linkIsSymlink || actual !== expected) fail(`运行时相对软链漂移: ${contract.link} expected=${expected} actual=${actual || "-"}`);
-    if (realpathSync(link) !== realpathSync(source)) fail(`运行时软链目标漂移: ${contract.link}`);
+    if (!existsSync(source)) fail(`运行时 source 不存在: ${contract.source}`);
+    let stat;
+    try { stat = lstatSync(link); } catch { fail(`受管投影缺失: ${contract.link}；请执行 runtime-link.ts apply`); }
+    if (stat.isSymbolicLink()) fail(`受管投影仍为旧软链形态: ${contract.link}；请重跑 runtime-link.ts apply 迁移为副本`);
+    let projectionDigest: string;
+    try { projectionDigest = treeDigest(link); } catch { fail(`受管投影漂移: ${contract.link}`); }
+    if (projectionDigest !== treeDigest(source)) fail(`受管投影漂移: ${contract.link}`);
   }
 }
 function verifySourceLinks(runtimeRoot: string, links: LinkContract[]): void {
