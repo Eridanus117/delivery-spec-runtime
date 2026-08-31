@@ -35,6 +35,34 @@
       "approvedBy": "Runtime 维护者会话（Eridanus 授权，Claude 代笔）",
       "approvedAt": "2026-08-31T17:54:58.656Z",
       "migrationSource": null
+    },
+    "solution-decision": {
+      "digest": "sha256:aa51cdb2149371316290d342da7497a26d394a06d9c2a2f07235a62ddcfaa5c8",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者（门2 同意候选A，Claude 代笔）",
+      "approvedAt": "2026-08-31T18:07:23.402Z",
+      "migrationSource": null
+    },
+    "change-plan": {
+      "digest": "sha256:ab007113d3f58f40e96b60429422d2541529039ef09d5573ab57923b632011d5",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者（门2 同意候选A，Claude 代笔）",
+      "approvedAt": "2026-08-31T18:07:23.522Z",
+      "migrationSource": null
+    },
+    "test-plan": {
+      "digest": "sha256:5ec94c54325e6a596f83d171b3635924d6e6887af57ffbeb7ba98ae86bad84c1",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者（门2 同意候选A，Claude 代笔）",
+      "approvedAt": "2026-08-31T18:07:23.656Z",
+      "migrationSource": null
+    },
+    "tasks": {
+      "digest": "sha256:45eb2dde99810f109b2dcfaac9e94ca21dcdfcc40789e47ff34291ea996c374b",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者（门2 同意候选A，Claude 代笔）",
+      "approvedAt": "2026-08-31T18:07:49.636Z",
+      "migrationSource": null
     }
   }
 }

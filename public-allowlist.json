@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "paths": [
+    ".claude/skills/delivery-pilot/SKILL.md",
     ".github/workflows/ci.yml",
     ".omp/command-sources/bodies/opsx-apply.md",
     ".omp/command-sources/bodies/opsx-archive.md",

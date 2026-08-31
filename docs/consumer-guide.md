@@ -7,7 +7,7 @@
 - Git 支持 submodule；
 - Node 版本满足 Runtime `runtime-manifest.json`；
 - OpenSpec CLI 版本等于 manifest 锁定的精确版本；
-- 父仓工作树中不存在需要被三条受管软链覆盖的未保存文件。
+- 父仓工作树中不存在需要被四条受管软链覆盖的未保存文件。
 
 ## 需求进入与 Change 边界
 
@@ -28,7 +28,8 @@ node --experimental-strip-types \
 git add .gitmodules .delivery-spec-runtime \
   .omp/commands \
   openspec/schemas/delivery-change \
-  openspec/tools/runtime-entry.ts
+  openspec/tools/runtime-entry.ts \
+  .claude/skills/delivery-pilot
 git commit -m "chore: adopt delivery spec runtime"
 ```
 
@@ -45,8 +46,8 @@ node --experimental-strip-types \
 - 命令退出码为 0；
 - `.delivery-spec-runtime` 是父仓登记的 submodule；
 - submodule 当前 commit 与父仓 gitlink 一致；
-- `.omp/commands`、`openspec/schemas/delivery-change`、`openspec/tools/runtime-entry.ts` 是 manifest 托管的相对软链；
-- 父仓已将 `.gitmodules`、gitlink 和三条软链作为同一个 Change 提交。
+- `.omp/commands`、`openspec/schemas/delivery-change`、`openspec/tools/runtime-entry.ts`、`.claude/skills/delivery-pilot` 是 manifest 托管的相对软链；
+- 父仓已将 `.gitmodules`、gitlink 和四条软链作为同一个 Change 提交。
 
 若验证失败，不要复制 Runtime 文件或建立第二份 lock；按“故障诊断”处理。
 
@@ -102,6 +103,8 @@ node --experimental-strip-types \
 ```
 
 `runtime-check` 不接受只存在于工作树或暂存区的 gitlink；必须先让父仓 `HEAD` 记录目标 commit。若检查失败，在功能分支修复并 amend/new commit，检查通过后再提交 PR。
+
+升级目标 commit 的受管软链清单可能多于当前父仓已建立的软链（例如新增 `.claude/skills/delivery-pilot`）。升级后先重跑 `runtime-link.ts apply` 建立缺失软链并与 gitlink 一并提交，否则 `runtime-check` 会按 fail-closed 拒绝执行。
 
 ### 完成标准
 

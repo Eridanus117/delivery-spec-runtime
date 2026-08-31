@@ -27,7 +27,7 @@ flowchart LR
     Runtime --> Change
 ```
 
-项目仓的 `.delivery-spec-runtime` gitlink 是唯一版本锁；`.omp/commands`、`openspec/schemas/delivery-change` 和 `openspec/tools/runtime-entry.ts` 是指向该固定 Runtime 的相对软链。执行命令前，Runtime 会核对父仓 `HEAD`、submodule、工具版本、软链和工作树状态；状态不确定时直接拒绝执行。
+项目仓的 `.delivery-spec-runtime` gitlink 是唯一版本锁；`.omp/commands`、`openspec/schemas/delivery-change`、`openspec/tools/runtime-entry.ts` 和 `.claude/skills/delivery-pilot`（Claude Code 交互指引）是指向该固定 Runtime 的相对软链。执行命令前，Runtime 会核对父仓 `HEAD`、submodule、工具版本、软链和工作树状态；状态不确定时直接拒绝执行。
 
 ## 快速开始
 
@@ -45,13 +45,14 @@ node --experimental-strip-types \
 
 ### 2. 提交 Runtime 绑定
 
-`runtime-check` 以父仓 `HEAD` 和 clean 状态为准，因此必须先在功能分支提交 gitlink 和三条软链：
+`runtime-check` 以父仓 `HEAD` 和 clean 状态为准，因此必须先在功能分支提交 gitlink 和四条软链：
 
 ```bash
 git add .gitmodules .delivery-spec-runtime \
   .omp/commands \
   openspec/schemas/delivery-change \
-  openspec/tools/runtime-entry.ts
+  openspec/tools/runtime-entry.ts \
+  .claude/skills/delivery-pilot
 git commit -m "chore: adopt delivery spec runtime"
 ```
 
@@ -63,7 +64,9 @@ node --experimental-strip-types \
   runtime-check --change-root .
 ```
 
-通过标准：命令退出码为 0；父仓 gitlink、Runtime submodule、Node/OpenSpec 版本和三条受管软链全部满足合同。
+通过标准：命令退出码为 0；父仓 gitlink、Runtime submodule、Node/OpenSpec 版本和四条受管软链全部满足合同。
+
+接入后，Claude Code 会话可通过 `delivery-pilot` skill 自动获得交付流水线的驾驶指引：人用自然语言发起事项、在判断门以「同意 / 纠正 / 驳回」表态，其余由 agent 驱动底层 CLI 完成，无需记忆任何命令。
 
 ## 需求进入后的处理边界
 
