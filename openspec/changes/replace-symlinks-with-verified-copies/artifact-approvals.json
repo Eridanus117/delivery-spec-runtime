@@ -9,10 +9,10 @@
       "migrationSource": null
     },
     "specs": {
-      "digest": "sha256:e91fed0a03a35ea07f5b70276ce3f1b9c537799ee94cd481b2d49a1324bc3228",
+      "digest": "sha256:1ffe2f89db33fbfee534f2aac56a832ace511b0c463558c1f9fedbeb885da742",
       "decision": "approved",
-      "approvedBy": "Runtime 维护者会话（实施期升级场景补定，Claude 代笔）",
-      "approvedAt": "2026-08-31T20:27:49.691Z",
+      "approvedBy": "Runtime 维护者会话（Review REV-001/002 补定，Claude 代笔）",
+      "approvedAt": "2026-08-31T21:00:08.819Z",
       "migrationSource": null
     },
     "business-current": {
@@ -44,10 +44,10 @@
       "migrationSource": null
     },
     "change-plan": {
-      "digest": "sha256:8462df37af41c974070d180b27a716557f670b3c98f5a88cca0be9e3b63923f5",
+      "digest": "sha256:b16298b80f6d20e8909dd84d2d798bbf761f77445934580ed99b4e7b6dc42b22",
       "decision": "approved",
-      "approvedBy": "Runtime 维护者会话（实施期升级场景补定，Claude 代笔）",
-      "approvedAt": "2026-08-31T20:27:49.844Z",
+      "approvedBy": "Runtime 维护者会话（Review REV-001/002 补定，Claude 代笔）",
+      "approvedAt": "2026-08-31T21:00:08.946Z",
       "migrationSource": null
     },
     "test-plan": {

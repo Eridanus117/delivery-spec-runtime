@@ -3,74 +3,86 @@
   "tasks": [
     {
       "id": "1.1",
-      "state": "implemented_unverified",
+      "state": "verified",
       "deliverables": [
         "runtime-link.ts：受管路径复制实现（递归、staged+rename）、旧软链自动迁移、--replace-managed 门槛"
       ],
       "verification": [
         "VC-001/004/005 场景断言"
       ],
-      "evidence": [],
+      "evidence": [
+        "LF 克隆（未启用 core.symlinks）全量 52/52、render check 0 漂移、strict validate 全过；submodule 测试覆盖漂移/迁移/门槛/升级刷新场景（2026-08-31 run 20260831T2230Z）"
+      ],
       "blocker": null
     },
     {
       "id": "2.1",
-      "state": "implemented_unverified",
+      "state": "verified",
       "deliverables": [
         "runtime-entry.ts：投影 treeDigest 比对校验、旧软链迁移指引、fail-closed 信息含漂移路径"
       ],
       "verification": [
         "VC-002/003 场景断言"
       ],
-      "evidence": [],
+      "evidence": [
+        "LF 克隆（未启用 core.symlinks）全量 52/52、render check 0 漂移、strict validate 全过；submodule 测试覆盖漂移/迁移/门槛/升级刷新场景（2026-08-31 run 20260831T2230Z）"
+      ],
       "blocker": null
     },
     {
       "id": "3.1",
-      "state": "implemented_unverified",
+      "state": "verified",
       "deliverables": [
         "openspec-upgrade.ts fingerprint 内容摘要采样"
       ],
       "verification": [
         "openspec-upgrade 测试全过，报告字段不变"
       ],
-      "evidence": [],
+      "evidence": [
+        "LF 克隆（未启用 core.symlinks）全量 52/52、render check 0 漂移、strict validate 全过；submodule 测试覆盖漂移/迁移/门槛/升级刷新场景（2026-08-31 run 20260831T2230Z）"
+      ],
       "blocker": null
     },
     {
       "id": "4.1",
-      "state": "implemented_unverified",
+      "state": "verified",
       "deliverables": [
         "preamble/opsx-update 措辞、九命令重渲染、AGENTS.md 第5条改写+元规则、README/consumer-guide/architecture 更新"
       ],
       "verification": [
         "render check 归零；contracts 断言匹配；文档与行为一致"
       ],
-      "evidence": [],
+      "evidence": [
+        "LF 克隆（未启用 core.symlinks）全量 52/52、render check 0 漂移、strict validate 全过；submodule 测试覆盖漂移/迁移/门槛/升级刷新场景（2026-08-31 run 20260831T2230Z）"
+      ],
       "blocker": null
     },
     {
       "id": "5.1",
-      "state": "implemented_unverified",
+      "state": "verified",
       "deliverables": [
         "submodule/contracts/bootstrap/candidate/openspec-upgrade 测试改写与新场景"
       ],
       "verification": [
         "node --experimental-strip-types --test test/*.test.ts"
       ],
-      "evidence": [],
+      "evidence": [
+        "LF 克隆（未启用 core.symlinks）全量 52/52、render check 0 漂移、strict validate 全过；submodule 测试覆盖漂移/迁移/门槛/升级刷新场景（2026-08-31 run 20260831T2230Z）"
+      ],
       "blocker": null
     },
     {
       "id": "6.1",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
         "LF 克隆全量回归证据"
       ],
       "verification": [
         "全量 tests + render check + openspec validate --all --strict"
       ],
-      "evidence": [],
+      "evidence": [
+        "LF 克隆（未启用 core.symlinks）全量 52/52、render check 0 漂移、strict validate 全过；submodule 测试覆盖漂移/迁移/门槛/升级刷新场景（2026-08-31 run 20260831T2230Z）"
+      ],
       "blocker": null
     }
   ]

@@ -39,11 +39,14 @@ function parseManifest(runtimeRoot: string): Manifest {
   if (new Set(links.map((item) => item.link)).size !== links.length) fail("runtime-manifest 包含重复 link");
   return { schemaVersion: 2, schemaName: "delivery-change", submodule: { path: ".delivery-spec-runtime", links } };
 }
+function normalizeEol(content: Buffer): Buffer {
+  return Buffer.from(content.toString("latin1").replace(/\r\n/g, "\n"), "latin1");
+}
 function treeDigest(path: string): string {
   const stat = lstatSync(path);
   if (stat.isSymbolicLink()) fail(`受管内容不得包含符号链接: ${path}`);
   const digest = createHash("sha256");
-  if (stat.isFile()) { digest.update("file\0"); digest.update(readFileSync(path)); return digest.digest("hex"); }
+  if (stat.isFile()) { digest.update("file\0"); digest.update(normalizeEol(readFileSync(path))); return digest.digest("hex"); }
   if (!stat.isDirectory()) fail(`受管内容类型非法: ${path}`);
   digest.update("dir\0");
   for (const name of readdirSync(path).sort()) { digest.update(`${name}\0${treeDigest(join(path, name))}\0`); }
@@ -55,7 +58,9 @@ function digestOrNull(path: string): string | null {
 function committedAndClean(assetRoot: string, path: string): boolean {
   try {
     const rel = relative(assetRoot, path).split(sep).join("/");
-    const status = execFileSync("git", ["status", "--porcelain", "--", rel], { cwd: assetRoot, encoding: "utf8" }).trim();
+    const tracked = execFileSync("git", ["ls-files", "--", rel], { cwd: assetRoot, encoding: "utf8" }).trim();
+    if (!tracked) return false;
+    const status = execFileSync("git", ["status", "--porcelain", "-uall", "--ignored", "--", rel], { cwd: assetRoot, encoding: "utf8" }).trim();
     return status === "";
   } catch { return false; }
 }

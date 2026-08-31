@@ -2,7 +2,7 @@
 
 本文面向准备在项目仓使用 `/opsx-*` 的维护者。它回答三个问题：每条命令会做什么、仓库会发生什么变化、完整流程结束后会得到什么。
 
-首次接入 Runtime 请先阅读 [README](../README.md)；gitlink、软链和故障恢复见[消费仓使用指南](consumer-guide.md)。
+首次接入 Runtime 请先阅读 [README](../README.md)；gitlink、受管投影和故障恢复见[消费仓使用指南](consumer-guide.md)。
 
 ## 使用前后有什么不同
 

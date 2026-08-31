@@ -244,6 +244,51 @@ test("投影漂移必须显式修复且旧软链自动迁移为副本", () => {
     assert.equal(lstatSync(projection).isSymbolicLink(), false);
     result = check(asset);
     assert.equal(result.status, 0, result.stderr);
+
+    const extra = join(asset, ".omp/commands/extra.md");
+    writeFileSync(extra, "extra\n");
+    result = check(asset);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /受管投影漂移: \.omp\/commands/);
+    rmSync(extra);
+  } finally {
+    rmSync(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("gitlink 升级后旧投影被拒并由 apply 自动刷新；行尾差异不算漂移", () => {
+  const fixture = prepareFixture();
+  try {
+    const { runtime, asset } = fixture;
+    const linker = join(asset, ".delivery-spec-runtime/openspec/tools/runtime-link.ts");
+
+    appendFileSync(join(runtime, ".omp/commands/opsx-apply.md"), "upgrade marker v2\n");
+    git(runtime, ["add", "."]);
+    git(runtime, ["commit", "-qm", "runtime v2"]);
+    const sub = join(asset, ".delivery-spec-runtime");
+    git(sub, ["fetch", "-q", "origin"]);
+    git(sub, ["checkout", "-q", "FETCH_HEAD"]);
+    git(asset, ["add", ".delivery-spec-runtime"]);
+    git(asset, ["commit", "-qm", "bump gitlink"]);
+
+    let result = check(asset);
+    assert.notEqual(result.status, 0, "升级后未重跑 apply 必须被拒");
+    assert.match(result.stderr, /受管投影漂移/);
+
+    result = node(asset, linker, ["apply", "--asset-root", asset]);
+    assert.equal(result.status, 0, `已提交旧版投影应自动刷新\n${result.stderr}`);
+    assert.match(readFileSync(join(asset, ".omp/commands/opsx-apply.md"), "utf8"), /upgrade marker v2/);
+    result = check(asset);
+    assert.equal(result.status, 0, result.stderr);
+
+    const target = join(asset, ".omp/commands/opsx-archive.md");
+    writeFileSync(target, readFileSync(target, "utf8").replace(/\r\n/g, "\n"));
+    result = check(asset);
+    assert.equal(result.status, 0, `行尾差异不得判为漂移\n${result.stderr}`);
+
+    appendFileSync(target, "real drift\n");
+    result = check(asset);
+    assert.notEqual(result.status, 0, "真实内容改动仍须被拒");
   } finally {
     rmSync(fixture.root, { recursive: true, force: true });
   }

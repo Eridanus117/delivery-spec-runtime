@@ -6,7 +6,12 @@
 
 ### Requirement: Managed projections SHALL be plain-file copies verified against the pinned submodule
 
-`runtime-link.ts apply` SHALL 按 `runtime-manifest.json` links 清单把 Runtime 源路径**复制**为消费仓中的普通文件或目录，SHALL NOT 创建符号链接。`runtime-check` SHALL 对每条受管投影逐文件计算内容哈希并与 pinned submodule 中对应源文件比对，任一文件缺失、多余或内容不一致时 SHALL fail-closed 拒绝执行，并指明漂移路径。
+`runtime-link.ts apply` SHALL 按 `runtime-manifest.json` links 清单把 Runtime 源路径**复制**为消费仓中的普通文件或目录，SHALL NOT 创建符号链接。`runtime-check` SHALL 对每条受管投影逐文件计算内容哈希并与 pinned submodule 中对应源文件比对，任一文件缺失、多余或内容不一致时 SHALL fail-closed 拒绝执行，并指明漂移路径。哈希计算 SHALL 先将 CRLF 归一化为 LF（理由：消费仓与 submodule 的 git 行尾策略可能不同，纯行尾差异不是内容漂移）。
+
+#### Scenario: 行尾差异不判为漂移
+
+- **WHEN** 受管投影与 submodule 源仅存在 CRLF/LF 行尾差异
+- **THEN** runtime-check SHALL 通过；文件内容的真实改动仍 SHALL 被拒绝
 
 #### Scenario: 无符号链接能力的环境完成接入
 
@@ -29,7 +34,7 @@
 
 ### Requirement: Migration from legacy symlinks SHALL be explicit and safe
 
-apply SHALL 识别受管路径上的既有软链（旧合同产物）并将其替换为副本，视作受管迁移，不要求额外确认。受管路径上存在与源不一致的普通内容时：若该内容已提交且工作树干净（受管历史状态，git 可恢复，典型为 gitlink 升级后的旧版投影），apply SHALL 自动刷新；若存在未提交的本地改动（覆盖即不可恢复），SHALL 保持 fail-closed（需显式 `--replace-managed`）。
+apply SHALL 识别受管路径上的既有软链（旧合同产物）并将其替换为副本，视作受管迁移，不要求额外确认。受管路径上存在与源不一致的普通内容时：若该内容已提交且工作树干净（受管历史状态，git 可恢复，典型为 gitlink 升级后的旧版投影），apply SHALL 自动刷新；若存在未提交的本地改动（覆盖即不可恢复），SHALL 保持 fail-closed（需显式 `--replace-managed`）。「已提交且干净」的判定 SHALL 要求该路径在 git 索引中被追踪，且包含未追踪与被 ignore 文件在内的状态输出为空（理由：被 `.gitignore` 覆盖或配置隐藏的未提交内容同样不可恢复，不得被静默覆盖）。
 
 #### Scenario: 旧消费仓无缝迁移
 

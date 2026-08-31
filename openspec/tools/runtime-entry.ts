@@ -96,11 +96,14 @@ function verifySubmoduleRegistration(assetRoot: string, path: string): void {
   const paths = output.split(/\r?\n/).map((line) => line.trim().split(/\s+/).at(-1));
   if (paths.filter((item) => item === path).length !== 1) fail(`.gitmodules 必须唯一登记 ${path}`);
 }
+function normalizeEol(content: Buffer): Buffer {
+  return Buffer.from(content.toString("latin1").replace(/\r\n/g, "\n"), "latin1");
+}
 function treeDigest(path: string): string {
   const stat = lstatSync(path);
   if (stat.isSymbolicLink()) fail(`受管投影不得包含符号链接: ${path}`);
   const digest = createHash("sha256");
-  if (stat.isFile()) { digest.update("file\0"); digest.update(readFileSync(path)); return digest.digest("hex"); }
+  if (stat.isFile()) { digest.update("file\0"); digest.update(normalizeEol(readFileSync(path))); return digest.digest("hex"); }
   if (!stat.isDirectory()) fail(`受管投影内容类型非法: ${path}`);
   digest.update("dir\0");
   for (const name of readdirSync(path).sort()) { digest.update(`${name}\0${treeDigest(join(path, name))}\0`); }

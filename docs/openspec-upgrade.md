@@ -9,7 +9,7 @@
 1. 在 OS 临时目录分别生成 current 和 candidate，比较上游及本地差异，并执行 fixture 和消费仓隔离 smoke；
 2. Runtime 维护者依据报告修改 command sources 和 `runtime-manifest.json` 精确版本 pin。
 
-官方 OpenSpec 生成器任何时候都不得以 Runtime checkout、真实消费仓或其软链路径为 cwd。
+官方 OpenSpec 生成器任何时候都不得以 Runtime checkout、真实消费仓或其受管投影路径为 cwd。
 
 ## 前置条件
 
@@ -95,7 +95,7 @@ node --experimental-strip-types \
 - 九个官方 OMP Commands 的 current/candidate 生成；
 - upstream、current-local、candidate-local 三类逐文件 delta 和 SHA-256；
 - 声明式 CLI JSON required-fields probes；
-- 空白 Runtime/gitlink/软链 fixture；
+- 空白 Runtime/gitlink/受管投影 fixture；
 - 消费仓临时 Git 副本中的候选 Runtime 与候选 CLI smoke；
 - 真实 Runtime 和消费仓前后 Git 状态、受管链接及摘要核验；
 - 临时根清理和脱敏 `upgrade-report.json`。
