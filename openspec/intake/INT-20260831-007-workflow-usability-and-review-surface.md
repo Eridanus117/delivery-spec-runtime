@@ -72,6 +72,8 @@ requirement-analysis profile 首次真实使用后，维护者反馈使用体验
 - 重量伸缩：小事合并或跳过分析/规划站，仅留验收门；重量由 agent 登记时建议、人于首个门认可。
 - 既有资产全部保留并重新归类：intake CLI、workflow profile、九条 opsx 命令为 agent 内部零件；人的界面由 Claude Code skill 承载。
 
+2026-08-31 维护者确认交互设计方向，并补充约束：同一时间仅一个事项在流水线上，切换事项须明确声明。人视五站为折叠视图，机器站位全景：登记 5（capture/triage/evidence/options/disposition）＋分析 5（capture/clarify↺/discover↺/evaluate↺/decision◆）＋交付 7（proposal/decision◆/implementation/review/acceptance◆/sync/archive◆）；快车道 light-change 3（intake/implementation/verification◆）；opsx-explore 为随时可用的只读侧路。折叠规则：人只见三门（立项=RA decision、方案=DC decision、验收=DC acceptance，验收之同意授权 archive 的机械确认）；RA 各阶段人工判断由「纠正=再走一轮」承载。后续以正式 Change 落地。
+
 ## Disposition
 
 决定：
