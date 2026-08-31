@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineCommit": "51829cc8eef879a30ba22a2430a4f95119e45d6d",
-  "reviewedCommit": "b19f1a514366d4ade7534505099670bb499a283e",
+  "reviewedCommit": "759d52ede70f497779d3e1223b26787bd9fef637",
   "reviewedPaths": [
     {
       "path": ".claude/skills/delivery-pilot/SKILL.md",
@@ -34,6 +34,11 @@
       "sha256": "sha256:508345e89a086fbda0973c3cb904f4f2b00eb1efd5ca58784357e3c55849bd5c"
     },
     {
+      "path": "openspec/intake/INT-20260831-010-upgrade-smoke-flaky-status.md",
+      "exists": true,
+      "sha256": "sha256:976da64ef8e119f44a96ec85875cb68505ef742cd64426d2a13966f7551fb819"
+    },
+    {
       "path": "public-allowlist.json",
       "exists": true,
       "sha256": "sha256:a75267842349028f8ce675a0911d3aff91f92439d264c12e8d13f2ad048d622b"
@@ -59,9 +64,9 @@
       "sha256": "sha256:fd451140048890ab28d4bc05df811acf28a5b2f16a6f6a66e1e03f245e67e4fe"
     }
   ],
-  "reviewedDigest": "sha256:fa7478907bf4a61aceb2010e18060c57058e2f654a341ea78a308dcea4d93091",
-  "reviewer": "独立 fresh reviewer 会话（Claude 派发，2026-08-31，零 OPEN finding）",
-  "reviewedAt": "2026-08-31T19:05:00.000Z",
+  "reviewedDigest": "sha256:4d31352dd3929138967bdd99f38211af29d2e51b5bb766bd924c830aad1b497c",
+  "reviewer": "独立 fresh reviewer 会话（Claude 派发，2026-08-31）；实现路径零 finding。证据卫生类 2 条 LOW finding 已修复并复核，记录于 08-验收/runs/20260831T1830Z-human-interaction/traces/incremental-review-findings.md",
+  "reviewedAt": "2026-08-31T20:05:00.000Z",
   "findings": [],
   "result": "PASS"
 }
