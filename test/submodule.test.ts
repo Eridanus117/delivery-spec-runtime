@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { appendFileSync, chmodSync, cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { createHash } from "node:crypto";
@@ -18,7 +18,7 @@ function must(root: string, executable: string, args: string[]): string {
 }
 
 function git(root: string, args: string[]): string {
-  return must(root, "git", ["-c", "protocol.file.allow=always", "-c", "core.symlinks=true", ...args]);
+  return must(root, "git", ["-c", "protocol.file.allow=always", ...args]);
 }
 
 function node(root: string, script: string, args: string[], env?: NodeJS.ProcessEnv): SpawnSyncReturns<string> {
@@ -97,6 +97,12 @@ function runtimeUpdate(asset: string): SpawnSyncReturns<string> {
   return node(asset, join(asset, ".delivery-spec-runtime/openspec/tools/runtime-entry.ts"), ["runtime-update", "--asset-root", asset]);
 }
 
+function projectionDigest(path: string): string {
+  const stat = lstatSync(path);
+  if (stat.isFile()) return createHash("sha256").update(readFileSync(path)).digest("hex");
+  return createHash("sha256").update(readdirSync(path).sort().map((name) => `${name}=${projectionDigest(join(path, name))}`).join("\n")).digest("hex");
+}
+
 function commandDigests(asset: string): Record<string, string> {
   const root = join(asset, ".delivery-spec-runtime/.omp/commands");
   return Object.fromEntries(
@@ -107,7 +113,7 @@ function commandDigests(asset: string): Record<string, string> {
   );
 }
 
-test("gitlink、相对软链与递归克隆形成唯一运行时绑定", () => {
+test("gitlink、受管投影与递归克隆形成唯一运行时绑定", () => {
   const fixture = prepareFixture();
   try {
     const { asset, root } = fixture;
@@ -121,9 +127,14 @@ test("gitlink、相对软链与递归克隆形成唯一运行时绑定", () => {
     assert.equal(existsSync(join(asset, "openspec/runtime-lock.json")), false);
     for (const link of [".omp/commands", "openspec/schemas/delivery-change", "openspec/tools/runtime-entry.ts", ".claude/skills/delivery-pilot"]) {
       const path = join(asset, link);
-      assert.equal(lstatSync(path).isSymbolicLink(), true, link);
-      assert.equal(readlinkSync(path).startsWith("/"), false, `${link} 必须使用相对目标`);
+      assert.equal(lstatSync(path).isSymbolicLink(), false, `${link} 必须是普通文件副本`);
     }
+    assert.equal(
+      readFileSync(join(asset, "openspec/tools/runtime-entry.ts"), "utf8"),
+      readFileSync(join(asset, ".delivery-spec-runtime/openspec/tools/runtime-entry.ts"), "utf8"),
+      "副本内容必须与 pinned submodule 源一致",
+    );
+    assert.equal(existsSync(join(asset, ".claude/skills/delivery-pilot/SKILL.md")), true);
 
     const clone = join(root, "recursive-clone");
     git(root, ["clone", "-q", "--no-checkout", asset, clone]);
@@ -136,10 +147,16 @@ test("gitlink、相对软链与递归克隆形成唯一运行时绑定", () => {
     assert.equal(result.status, 0, result.stderr);
 
     rmSync(join(clone, ".claude/skills/delivery-pilot"), { recursive: true, force: true });
-    writeFileSync(join(clone, ".claude/skills/delivery-pilot"), "not a managed link");
+    writeFileSync(join(clone, ".claude/skills/delivery-pilot"), "not a managed projection");
     result = check(clone);
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /delivery-pilot/);
+
+    rmSync(join(clone, ".claude/skills/delivery-pilot"), { recursive: true, force: true });
+    appendFileSync(join(clone, ".omp/commands/opsx-apply.md"), "tamper\n");
+    result = check(clone);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /受管投影(漂移|缺失)/);
   } finally {
     rmSync(fixture.root, { recursive: true, force: true });
   }
@@ -151,7 +168,7 @@ test("实时资产仓拒绝runtime-update且不修改Runtime", () => {
     const { asset } = fixture;
     const links = [".omp/commands", "openspec/schemas/delivery-change", "openspec/tools/runtime-entry.ts", ".claude/skills/delivery-pilot"];
     const beforeDigests = commandDigests(asset);
-    const beforeLinks = Object.fromEntries(links.map((link) => [link, readlinkSync(join(asset, link))]));
+    const beforeLinks = Object.fromEntries(links.map((link) => [link, projectionDigest(join(asset, link))]));
 
     const result = runtimeUpdate(asset);
 
@@ -160,7 +177,7 @@ test("实时资产仓拒绝runtime-update且不修改Runtime", () => {
     assert.deepEqual(commandDigests(asset), beforeDigests);
     assert.equal(git(join(asset, ".delivery-spec-runtime"), ["status", "--porcelain"]), "");
     assert.equal(git(asset, ["status", "--porcelain", "--", ".delivery-spec-runtime"]), "");
-    assert.deepEqual(Object.fromEntries(links.map((link) => [link, readlinkSync(join(asset, link))])), beforeLinks);
+    assert.deepEqual(Object.fromEntries(links.map((link) => [link, projectionDigest(join(asset, link))])), beforeLinks);
   } finally {
     rmSync(fixture.root, { recursive: true, force: true });
   }
@@ -194,24 +211,39 @@ test("未初始化、gitlink漂移与dirty submodule均fail closed", () => {
   }
 });
 
-test("软链漂移必须显式修复且只替换manifest托管路径", () => {
+test("投影漂移必须显式修复且旧软链自动迁移为副本", () => {
   const fixture = prepareFixture();
   try {
     const { asset } = fixture;
-    const link = join(asset, "openspec/tools/runtime-entry.ts");
-    rmSync(link);
-    writeFileSync(link, "drift\n");
+    const projection = join(asset, "openspec/tools/runtime-entry.ts");
+    rmSync(projection);
+    writeFileSync(projection, "drift\n");
     let result = check(asset);
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /相对软链漂移/);
+    assert.match(result.stderr, /受管投影漂移/);
 
     const linker = join(asset, ".delivery-spec-runtime/openspec/tools/runtime-link.ts");
     result = node(asset, linker, ["apply", "--asset-root", asset]);
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /受管路径不是预期相对软链/);
+    assert.match(result.stderr, /受管路径存在未提交的不一致内容/);
     result = node(asset, linker, ["apply", "--asset-root", asset, "--replace-managed"]);
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(lstatSync(link).isSymbolicLink(), true);
+    assert.equal(lstatSync(projection).isSymbolicLink(), false);
+    assert.equal(
+      readFileSync(projection, "utf8"),
+      readFileSync(join(asset, ".delivery-spec-runtime/openspec/tools/runtime-entry.ts"), "utf8"),
+    );
+
+    rmSync(projection);
+    symlinkSync("../../.delivery-spec-runtime/openspec/tools/runtime-entry.ts", projection, "file");
+    result = check(asset);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /旧软链形态/);
+    result = node(asset, linker, ["apply", "--asset-root", asset]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(lstatSync(projection).isSymbolicLink(), false);
+    result = check(asset);
+    assert.equal(result.status, 0, result.stderr);
   } finally {
     rmSync(fixture.root, { recursive: true, force: true });
   }

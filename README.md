@@ -10,7 +10,7 @@
 
 - `/opsx-new` 到 `/opsx-archive` 的统一工作流；
 - 九层 `delivery-change` schema；
-- 执行前的 gitlink、软链、版本和工作树完整性检查；
+- 执行前的 gitlink、受管投影、版本和工作树完整性检查；
 - 由项目仓 commit 精确锁定的 Runtime 版本。
 
 ## 它怎么工作
@@ -18,7 +18,7 @@
 ```mermaid
 flowchart LR
     User[用户执行 /opsx-*]
-    Links[项目仓软链入口]
+    Links[项目仓受管投影入口]
     Runtime[固定 commit 的 Runtime]
     Change[项目仓自己的 OpenSpec Change]
 
@@ -27,13 +27,13 @@ flowchart LR
     Runtime --> Change
 ```
 
-项目仓的 `.delivery-spec-runtime` gitlink 是唯一版本锁；`.omp/commands`、`openspec/schemas/delivery-change`、`openspec/tools/runtime-entry.ts` 和 `.claude/skills/delivery-pilot`（Claude Code 交互指引）是指向该固定 Runtime 的相对软链。执行命令前，Runtime 会核对父仓 `HEAD`、submodule、工具版本、软链和工作树状态；状态不确定时直接拒绝执行。
+项目仓的 `.delivery-spec-runtime` gitlink 是唯一版本锁；`.omp/commands`、`openspec/schemas/delivery-change`、`openspec/tools/runtime-entry.ts` 和 `.claude/skills/delivery-pilot`（Claude Code 交互指引）是从该固定 Runtime 复制并受哈希校验的受管投影（普通文件副本）。执行命令前，Runtime 会核对父仓 `HEAD`、submodule、工具版本、受管投影和工作树状态；状态不确定时直接拒绝执行。
 
 ## 快速开始
 
 要求：Git、满足 `runtime-manifest.json` 的 Node 最低版本，以及其中锁定的 OpenSpec 精确版本。
 
-### 1. 添加 Runtime 和受管软链
+### 1. 添加 Runtime 和受管投影
 
 在项目仓根目录执行：
 
@@ -45,7 +45,7 @@ node --experimental-strip-types \
 
 ### 2. 提交 Runtime 绑定
 
-`runtime-check` 以父仓 `HEAD` 和 clean 状态为准，因此必须先在功能分支提交 gitlink 和四条软链：
+`runtime-check` 以父仓 `HEAD` 和 clean 状态为准，因此必须先在功能分支提交 gitlink 和四条受管投影：
 
 ```bash
 git add .gitmodules .delivery-spec-runtime \
@@ -64,7 +64,7 @@ node --experimental-strip-types \
   runtime-check --change-root .
 ```
 
-通过标准：命令退出码为 0；父仓 gitlink、Runtime submodule、Node/OpenSpec 版本和四条受管软链全部满足合同。
+通过标准：命令退出码为 0；父仓 gitlink、Runtime submodule、Node/OpenSpec 版本和四条受管投影全部满足合同（副本与 pinned submodule 逐文件哈希一致）。
 
 接入后，Claude Code 会话可通过 `delivery-pilot` skill 自动获得交付流水线的驾驶指引：人用自然语言发起事项、在判断门以「同意 / 纠正 / 驳回」表态，其余由 agent 驱动底层 CLI 完成，无需记忆任何命令。
 
@@ -92,14 +92,14 @@ Workflow System 支持同一仓库的多套 profile。先执行 `runtime-entry.t
 
 1. **不要在项目仓运行 `openspec update` 或 `runtime-update`。** OpenSpec 升级只能在 Runtime 仓的独立 Change 中评估。
 2. **不要直接编辑 `.omp/commands/opsx-*.md`。** 它们是 Runtime 的确定性渲染物。
-3. **不要复制 Runtime 文件或建立第二份 lock。** 更新版本时，在项目仓 Change 中提交新的 `.delivery-spec-runtime` gitlink，并在提交后重新运行 `runtime-check`。
+3. **不要绕过 apply 手工改动受管投影，或建立第二份 lock。** 更新版本时，在项目仓 Change 中提交新的 `.delivery-spec-runtime` gitlink，并在提交后重新运行 `runtime-check`。
 
 ## 进一步阅读
 
 | 任务 | 文档 |
 |---|---|
 | 了解每条 `/opsx-*` 会做什么以及最终得到什么 | [从需求到归档](docs/workflow-guide.md) |
-| 理解 gitlink、软链和 fail-closed 边界 | [架构与安全边界](docs/architecture.md) |
+| 理解 gitlink、受管投影和 fail-closed 边界 | [架构与安全边界](docs/architecture.md) |
 | 克隆、更新或修复项目仓 Runtime | [消费仓使用指南](docs/consumer-guide.md) |
 | 修改 Commands、schema、contracts 或 Runtime 源码 | [Runtime 维护指南](docs/maintainer-guide.md) |
 | 评估并提升 OpenSpec 版本 | [受控 OpenSpec 升级](docs/openspec-upgrade.md) |

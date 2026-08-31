@@ -9,10 +9,10 @@
       "migrationSource": null
     },
     "specs": {
-      "digest": "sha256:deba1863f082e34901c7dff2509bae4d1c21d6e2ea8c6011bfea02421b1801dd",
+      "digest": "sha256:e91fed0a03a35ea07f5b70276ce3f1b9c537799ee94cd481b2d49a1324bc3228",
       "decision": "approved",
-      "approvedBy": "Runtime 维护者会话（门1 批准两阶段路线，Claude 代笔）",
-      "approvedAt": "2026-08-31T19:49:39.450Z",
+      "approvedBy": "Runtime 维护者会话（实施期升级场景补定，Claude 代笔）",
+      "approvedAt": "2026-08-31T20:27:49.691Z",
       "migrationSource": null
     },
     "business-current": {
@@ -34,6 +34,34 @@
       "decision": "approved",
       "approvedBy": "Runtime 维护者会话（门1 批准两阶段路线，Claude 代笔）",
       "approvedAt": "2026-08-31T19:49:05.602Z",
+      "migrationSource": null
+    },
+    "solution-decision": {
+      "digest": "sha256:4a92f42c2f4a454623288c57d9cfec09db5c817a82c6b39757bd765008671aad",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者（门2 同意候选A，Claude 代笔）",
+      "approvedAt": "2026-08-31T20:15:27.254Z",
+      "migrationSource": null
+    },
+    "change-plan": {
+      "digest": "sha256:8462df37af41c974070d180b27a716557f670b3c98f5a88cca0be9e3b63923f5",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者会话（实施期升级场景补定，Claude 代笔）",
+      "approvedAt": "2026-08-31T20:27:49.844Z",
+      "migrationSource": null
+    },
+    "test-plan": {
+      "digest": "sha256:7f6e15414477310020fc3d96ac58e7c302c5c0f6d274522a3b866f8a74fd53f6",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者（门2 同意候选A，Claude 代笔）",
+      "approvedAt": "2026-08-31T20:15:27.490Z",
+      "migrationSource": null
+    },
+    "tasks": {
+      "digest": "sha256:49ae4632b3b24c82125e659424d5f07a21d23be656914afafc05d79659ca9276",
+      "decision": "approved",
+      "approvedBy": "Runtime 维护者（门2 同意候选A，Claude 代笔）",
+      "approvedAt": "2026-08-31T20:15:27.612Z",
       "migrationSource": null
     }
   }

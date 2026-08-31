@@ -29,9 +29,14 @@
 
 ### Requirement: Migration from legacy symlinks SHALL be explicit and safe
 
-apply SHALL 识别受管路径上的既有软链（旧合同产物）并将其替换为副本，视作受管迁移，不要求额外确认；受管路径上存在**非软链且与源不一致**的既有内容时，SHALL 保持既有 fail-closed 行为（需显式 `--replace-managed`）。
+apply SHALL 识别受管路径上的既有软链（旧合同产物）并将其替换为副本，视作受管迁移，不要求额外确认。受管路径上存在与源不一致的普通内容时：若该内容已提交且工作树干净（受管历史状态，git 可恢复，典型为 gitlink 升级后的旧版投影），apply SHALL 自动刷新；若存在未提交的本地改动（覆盖即不可恢复），SHALL 保持 fail-closed（需显式 `--replace-managed`）。
 
 #### Scenario: 旧消费仓无缝迁移
 
 - **WHEN** 已按旧合同建立四条软链的消费仓升级 gitlink 后重跑 apply
 - **THEN** 四条软链被替换为副本，runtime-check 通过，父仓除受管路径与 gitlink 外无其他变化
+
+#### Scenario: 升级刷新与本地改动的区分
+
+- **WHEN** 消费仓升级 gitlink 后重跑 apply，受管投影为已提交的旧版内容
+- **THEN** apply 自动刷新为新版副本；若投影含未提交的本地改动，apply SHALL 拒绝并要求 `--replace-managed`
