@@ -1,11 +1,11 @@
 ---
 schemaVersion: 1
 id: INT-20260831-007-workflow-usability-and-review-surface
-state: triaged
-phase: options
+state: promoted
+phase: disposition
 source: maintainer-dogfooding-session
 capturedAt: 2026-08-31
-promotedTo: null
+promotedTo: establish-human-interaction-layer
 ---
 
 # Intake
@@ -77,9 +77,9 @@ requirement-analysis profile 首次真实使用后，维护者反馈使用体验
 
 ## Disposition
 
-决定：
-理由：
-下一步：
+决定：promote
+理由：维护者已确认交互设计方向（单向流水线、三门、三动词、单事项在线）并批准按「先交互层、后流程瘦身检查点」顺序立项。
+下一步：由 Change `establish-human-interaction-layer` 交付人机交互层；流水线形状之疑保留在本条目未知节，3 事项复盘检查点触发时评估。缺陷级小刺（DEP0190、run 入口语义）不入本 Change，留待后续顺手处理。
 
 ## History
 
@@ -87,3 +87,5 @@ requirement-analysis profile 首次真实使用后，维护者反馈使用体验
 - 2026-08-31T17:09:57.932Z advanced to triage
 - 2026-08-31T17:09:58.425Z advanced to evidence
 - 2026-08-31T17:09:58.872Z advanced to options
+- 2026-08-31T17:55:26.443Z advanced to disposition
+- 2026-08-31T17:55:38.047Z promoted to establish-human-interaction-layer

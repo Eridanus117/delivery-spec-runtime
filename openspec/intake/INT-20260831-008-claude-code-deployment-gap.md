@@ -1,11 +1,11 @@
 ---
 schemaVersion: 1
 id: INT-20260831-008-claude-code-deployment-gap
-state: triaged
-phase: options
+state: promoted
+phase: disposition
 source: maintainer-session
 capturedAt: 2026-08-31
-promotedTo: null
+promotedTo: establish-human-interaction-layer
 ---
 
 # Intake
@@ -52,9 +52,9 @@ promotedTo: null
 
 ## Disposition
 
-决定：
-理由：
-下一步：
+决定：promote
+理由：维护者确定部署形态走「agent 指引」方向：以 skill 承载交互合同，不为人铺斜杠命令。
+下一步：由 Change `establish-human-interaction-layer` 交付 Claude Code 载体资产（候选 A：静态 skill + 受管软链，待方案门批准）。
 
 ## History
 
@@ -62,3 +62,5 @@ promotedTo: null
 - 2026-08-31T17:16:10.667Z advanced to triage
 - 2026-08-31T17:16:11.158Z advanced to evidence
 - 2026-08-31T17:16:11.614Z advanced to options
+- 2026-08-31T17:55:27.513Z advanced to disposition
+- 2026-08-31T17:55:38.574Z promoted to establish-human-interaction-layer
