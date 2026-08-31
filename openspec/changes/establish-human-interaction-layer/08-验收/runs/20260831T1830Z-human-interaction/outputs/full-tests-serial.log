@@ -1,0 +1,680 @@
+✔ bootstrap stage必须外部批准，activation可恢复且保持受保护树 (1620.0557ms)
+✔ bootstrap拒绝脏工作树和受保护目录漂移 (973.6455ms)
+✔ 公开候选只复制允许清单且不产生外部副作用 (640.6513ms)
+✔ 公开候选拒绝秘密与禁用路径 (214.8575ms)
+✔ 公开候选示例必须有合规provenance (215.0152ms)
+✔ Commands结构化真源与现有九个渲染物逐字节一致 (114.9875ms)
+✔ renderer check报告漂移且write只修复受管Commands (109.5703ms)
+✔ renderer在恶意manifest下fail closed且不改渲染物 (67.6742ms)
+✔ runtime manifest、九层schema与九个Commands一致 (4.3809ms)
+✔ OpenSpec升级只允许通过Runtime仓受控Change (0.6227ms)
+✔ README引导首次采用者完成接入并开始Change (1.5354ms)
+✔ 工作流指南说明从需求到长期spec和归档的可观察效果 (0.344ms)
+✔ README与专题文档的仓库内链接全部有效 (1.8975ms)
+✔ runtime树不含禁用资产路径段 (13.2389ms)
+✔ 严格来源、批准失效、任务状态和投影合同 (3288.6852ms)
+✔ glob摘要按POSIX路径确定且真实文件去重 (8.1435ms)
+✔ 摘要拒绝绝对越界和逃逸软链 (2.4113ms)
+✔ Intake init and inspect create the contract (231.4492ms)
+✔ Intake advance enforces the DAG and preserves failed input (327.9945ms)
+✔ Intake hold and reopen preserve terminal history (341.9445ms)
+✔ Intake rejects sensitive content and unsafe promote target (262.8522ms)
+✔ Intake inventory 稳定列出 current、legacy、invalid 并报告重复 ID (132.6022ms)
+✔ legacy Intake inspect 返回迁移缺口且保持文件不变 (116.5896ms)
+✔ delivery-pilot skill 存在且 frontmatter 合法 (1.8109ms)
+✔ delivery-pilot skill 覆盖五项交互合同要素 (0.8485ms)
+✔ Review绑定完整实现范围并在实现漂移时失效 (3517.6737ms)
+✔ Acceptance与Archive Readiness取代Markdown关键词并支持受控reopen (7873.5249ms)
+✔ metrics append and summary produce a comparable local baseline (743.9738ms)
+✔ metrics append rejects duplicate ids without changing the event log (243.5239ms)
+✔ metrics append rejects sensitive input and repository-local state roots (211.8471ms)
+✔ summary preserves missing active-count observability (215.0198ms)
+✔ compare emits a C+1 recommendation only for a one-slot delta (213.5227ms)
+✔ cleanup removes only event files older than the explicit UTC cutoff (226.9849ms)
+✖ 升级评估只在临时根生成并输出三类脱敏delta (29141.1838ms)
+✔ 非法升级请求在启动npm前拒绝 (4043.6181ms)
+✔ Runtime源仓可以通过自身统一入口执行runtime-check (239.8797ms)
+✔ gitlink、相对软链与递归克隆形成唯一运行时绑定 (7891.123ms)
+✔ 实时资产仓拒绝runtime-update且不修改Runtime (4303.947ms)
+✔ 未初始化、gitlink漂移与dirty submodule均fail closed (4795.5982ms)
+✔ 软链漂移必须显式修复且只替换manifest托管路径 (4618.0845ms)
+✔ registry 提供三个 profile 且 profile 版本必须精确匹配 (108.5236ms)
+✔ 需求分析 profile 按澄清、核验、比较和决策阶段推进 (1.9758ms)
+✔ workflow core 按阶段返回 blocked、waiting、in_progress 和 completed (1.0111ms)
+✔ workflow core 拒绝跳阶段和伪造完成阶段 (0.7189ms)
+✔ workflow core 不把继承属性当作输入 (0.2253ms)
+✔ profile 合同拒绝重复阶段和未知字段 (0.2474ms)
+✔ workflow CLI 固定 Change binding 并拒绝静默切换 (607.698ms)
+✔ standalone workflow entry 自推进到人工门并返回可恢复结果 (745.6095ms)
+✔ runtime-entry 暴露 workflow 命令且保持入口校验 (675.1159ms)
+✔ 公开候选清单包含 workflow runtime 资产 (0.8708ms)
+✔ workflow catalog 和 describe 输出 Profile 用途、阶段与交接 (315.3938ms)
+✔ 需求分析输入合同拒绝占位报告和空分析轮次 (1.5306ms)
+ℹ tests 52
+ℹ suites 0
+ℹ pass 51
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 81034.9499
+
+✖ failing tests:
+
+test at test\openspec-upgrade.test.ts:96:1
+✖ 升级评估只在临时根生成并输出三类脱敏delta (29141.1838ms)
+  AssertionError [ERR_ASSERTION]: OpenSpec候选评估未通过
+  (node:34948) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+  (Use `node --trace-deprecation ...` to show where the warning was created)
+  
+  {
+    "schemaVersion": 1,
+    "currentVersion": "1.10.0",
+    "candidateVersion": "1.11.0",
+    "runtimeBaselineCommit": "facedc64137b884af4b53ab80cd206276850c895",
+    "startedAt": "2026-08-31T18:22:56.375Z",
+    "endedAt": "2026-08-31T18:23:15.929Z",
+    "generations": {
+      "current": {
+        "requestedVersion": "1.10.0",
+        "actualVersion": "1.10.0",
+        "commands": [
+          {
+            "path": "opsx-apply.md",
+            "sha256": "sha256:7c888f34895aeb0db9b149578a0dd8ac17c09129cc5c3a9003c6d79e885da682"
+          },
+          {
+            "path": "opsx-archive.md",
+            "sha256": "sha256:730b94143cab8fc8e7f6f6e67f28004e7c4991206e25027c34cb29bf0473485b"
+          },
+          {
+            "path": "opsx-continue.md",
+            "sha256": "sha256:3048f0b860bdae9ee402f481a1e103cbc3738b928e7bb209f897fa48d0ad6669"
+          },
+          {
+            "path": "opsx-explore.md",
+            "sha256": "sha256:f833c88236ccfaefcc91f83306594cf567ecafaf7b02e4828123dd5dd8958949"
+          },
+          {
+            "path": "opsx-new.md",
+            "sha256": "sha256:4e8bac347af3eecada5e7ba0c021c842816c3e4f705d2b9cb0aa2599d73b2254"
+          },
+          {
+            "path": "opsx-propose.md",
+            "sha256": "sha256:beccf8b3f28bd618564afbdfd56a2d4fe7a3309a191607a1b0c56060f8a99e16"
+          },
+          {
+            "path": "opsx-sync.md",
+            "sha256": "sha256:0b54b1598b282abf9fc0195fc847d1ee80daad9dc4b9d90b4db02bd060c8c568"
+          },
+          {
+            "path": "opsx-update.md",
+            "sha256": "sha256:c1d3dc2fa80c2eab98c80d0d979a800d23289226c9443198929f86b21b7817a7"
+          },
+          {
+            "path": "opsx-verify.md",
+            "sha256": "sha256:d72248d6c42352129df344017b5d10f0113bebe1c62f09fb64e34052dd819875"
+          }
+        ]
+      },
+      "candidate": {
+        "requestedVersion": "1.11.0",
+        "actualVersion": "1.11.0",
+        "commands": [
+          {
+            "path": "opsx-apply.md",
+            "sha256": "sha256:7c888f34895aeb0db9b149578a0dd8ac17c09129cc5c3a9003c6d79e885da682"
+          },
+          {
+            "path": "opsx-archive.md",
+            "sha256": "sha256:730b94143cab8fc8e7f6f6e67f28004e7c4991206e25027c34cb29bf0473485b"
+          },
+          {
+            "path": "opsx-continue.md",
+            "sha256": "sha256:3048f0b860bdae9ee402f481a1e103cbc3738b928e7bb209f897fa48d0ad6669"
+          },
+          {
+            "path": "opsx-explore.md",
+            "sha256": "sha256:59a82e8f45fe6e619d64ad14ed444946b4f10ad792d8bd679260229eac15976b"
+          },
+          {
+            "path": "opsx-new.md",
+            "sha256": "sha256:4e8bac347af3eecada5e7ba0c021c842816c3e4f705d2b9cb0aa2599d73b2254"
+          },
+          {
+            "path": "opsx-propose.md",
+            "sha256": "sha256:beccf8b3f28bd618564afbdfd56a2d4fe7a3309a191607a1b0c56060f8a99e16"
+          },
+          {
+            "path": "opsx-sync.md",
+            "sha256": "sha256:0b54b1598b282abf9fc0195fc847d1ee80daad9dc4b9d90b4db02bd060c8c568"
+          },
+          {
+            "path": "opsx-update.md",
+            "sha256": "sha256:c1d3dc2fa80c2eab98c80d0d979a800d23289226c9443198929f86b21b7817a7"
+          },
+          {
+            "path": "opsx-verify.md",
+            "sha256": "sha256:d72248d6c42352129df344017b5d10f0113bebe1c62f09fb64e34052dd819875"
+          }
+        ]
+      }
+    },
+    "deltas": {
+      "upstream": {
+        "from": "upstream-1.10.0",
+        "to": "upstream-1.11.0",
+        "files": [
+          {
+            "path": "opsx-apply.md",
+            "changeType": "unchanged",
+            "beforeSha256": "sha256:7c888f34895aeb0db9b149578a0dd8ac17c09129cc5c3a9003c6d79e885da682",
+            "afterSha256": "sha256:7c888f34895aeb0db9b149578a0dd8ac17c09129cc5c3a9003c6d79e885da682",
+            "additions": 0,
+            "deletions": 0
+          },
+          {
+            "path": "opsx-archive.md",
+            "changeType": "unchanged",
+            "beforeSha256": "sha256:730b94143cab8fc8e7f6f6e67f28004e7c4991206e25027c34cb29bf0473485b",
+            "afterSha256": "sha256:730b94143cab8fc8e7f6f6e67f28004e7c4991206e25027c34cb29bf0473485b",
+            "additions": 0,
+            "deletions": 0
+          },
+          {
+            "path": "opsx-continue.md",
+            "changeType": "unchanged",
+            "beforeSha256": "sha256:3048f0b860bdae9ee402f481a1e103cbc3738b928e7bb209f897fa48d0ad6669",
+            "afterSha256": "sha256:3048f0b860bdae9ee402f481a1e103cbc3738b928e7bb209f897fa48d0ad6669",
+            "additions": 0,
+            "deletions": 0
+          },
+          {
+            "path": "opsx-explore.md",
+            "changeType": "modified",
+            "beforeSha256": "sha256:f833c88236ccfaefcc91f83306594cf567ecafaf7b02e4828123dd5dd8958949",
+            "afterSha256": "sha256:59a82e8f45fe6e619d64ad14ed444946b4f10ad792d8bd679260229eac15976b",
+            "additions": 1,
+            "deletions": 1
+          },
+          {
+            "path": "opsx-new.md",
+            "changeType": "unchanged",
+            "beforeSha256": "sha256:4e8bac347af3eecada5e7ba0c021c842816c3e4f705d2b9cb0aa2599d73b2254",
+            "afterSha256": "sha256:4e8bac347af3eecada5e7ba0c021c842816c3e4f705d2b9cb0aa2599d73b2254",
+            "additions": 0,
+            "deletions": 0
+          },
+          {
+            "path": "opsx-propose.md",
+            "changeType": "unchanged",
+            "beforeSha256": "sha256:beccf8b3f28bd618564afbdfd56a2d4fe7a3309a191607a1b0c56060f8a99e16",
+            "afterSha256": "sha256:beccf8b3f28bd618564afbdfd56a2d4fe7a3309a191607a1b0c56060f8a99e16",
+            "additions": 0,
+            "deletions": 0
+          },
+          {
+            "path": "opsx-sync.md",
+            "changeType": "unchanged",
+            "beforeSha256": "sha256:0b54b1598b282abf9fc0195fc847d1ee80daad9dc4b9d90b4db02bd060c8c568",
+            "afterSha256": "sha256:0b54b1598b282abf9fc0195fc847d1ee80daad9dc4b9d90b4db02bd060c8c568",
+            "additions": 0,
+            "deletions": 0
+          },
+          {
+            "path": "opsx-update.md",
+            "changeType": "unchanged",
+            "beforeSha256": "sha256:c1d3dc2fa80c2eab98c80d0d979a800d23289226c9443198929f86b21b7817a7",
+            "afterSha256": "sha256:c1d3dc2fa80c2eab98c80d0d979a800d23289226c9443198929f86b21b7817a7",
+            "additions": 0,
+            "deletions": 0
+          },
+          {
+            "path": "opsx-verify.md",
+            "changeType": "unchanged",
+            "beforeSha256": "sha256:d72248d6c42352129df344017b5d10f0113bebe1c62f09fb64e34052dd819875",
+            "afterSha256": "sha256:d72248d6c42352129df344017b5d10f0113bebe1c62f09fb64e34052dd819875",
+            "additions": 0,
+            "deletions": 0
+          }
+        ]
+      },
+      "currentLocal": {
+        "from": "upstream-1.10.0",
+        "to": "runtime-facedc64137b884af4b53ab80cd206276850c895",
+        "files": [
+          {
+            "path": "opsx-apply.md",
+            "changeType": "modified",
+            "beforeSha256": "sha256:7c888f34895aeb0db9b149578a0dd8ac17c09129cc5c3a9003c6d79e885da682",
+            "afterSha256": "sha256:8f511634e315a7fbf84d642afca7d7faee9a59657993521abccf61815aeb7d7a",
+            "additions": 186,
+            "deletions": 1
+          },
+          {
+            "path": "opsx-archive.md",
+            "changeType": "modified",
+            "beforeSha256": "sha256:730b94143cab8fc8e7f6f6e67f28004e7c4991206e25027c34cb29bf0473485b",
+            "afterSha256": "sha256:d3366facd058e4ee719c606f770f42f1c6a9cefaa2bd141041fb83d2a5a24627",
+            "additions": 119,
+            "deletions": 1
+          },
+          {
+            "path": "opsx-continue.md",
+            "changeType": "modified",
+            "beforeSha256": "sha256:3048f0b860bdae9ee402f481a1e103cbc3738b928e7bb209f897fa48d0ad6669",
+            "afterSha256": "sha256:1eb03cd1368eddf6a5c2d9fef2de3ae0c002edfeebd086d0a4e8ea465d7d365b",
+            "additions": 144,
+            "deletions": 1
+          },
+          {
+            "path": "opsx-explore.md",
+            "changeType": "modified",
+            "beforeSha256": "sha256:f833c88236ccfaefcc91f83306594cf567ecafaf7b02e4828123dd5dd8958949",
+            "afterSha256": "sha256:64958409c0baaa289568265d822e662577f2b45e3df4fef7bcfbaa74d434eda2",
+            "additions": 199,
+            "deletions": 1
+          },
+          {
+            "path": "opsx-new.md",
+            "changeType": "modified",
+            "beforeSha256": "sha256:4e8bac347af3eecada5e7ba0c021c842816c3e4f705d2b9cb0aa2599d73b2254",
+            "afterSha256": "sha256:befbec7bff53175370df5e4f66ac73e2b09776a40c449ce89998b7489999826b",
+            "additions": 91,
+            "deletions": 1
+          },
+          {
+            "path": "opsx-propose.md",
+            "changeType": "modified",
+            "beforeSha256": "sha256:beccf8b3f28bd618564afbdfd56a2d4fe7a3309a191607a1b0c56060f8a99e16",
+            "afterSha256": "sha256:1e70df3b0cee7af140b6b48af1003130d9c06d95b5c7b51ce9b97ba50d4d4efc",
+            "additions": 157,
+            "deletions": 1
+          },
+          {
+            "path": "opsx-sync.md",
+            "changeType": "modified",
+            "beforeSha256": "sha256:0b54b1598b282abf9fc0195fc847d1ee80daad9dc4b9d90b4db02bd060c8c568",
+            "afterSha256": "sha256:c41475ff8f8d9d73f7a12097eed1e494dcb734dfeae0ce6a7ec2c2b5af4c8a7c",
+            "additions": 238,
+            "deletions": 1
+          },
+          {
+            "path": "opsx-update.md",
+            "changeType": "modified",
+            "beforeSha256": "sha256:c1d3dc2fa80c2eab98c80d0d979a800d23289226c9443198929f86b21b7817a7",
+            "afterSha256": "sha256:bf2cb9bbb1d575a1efb87861c8d1fc96042a78abeb849d47ac5900c8855a2c1a",
+            "additions": 112,
+            "deletions": 1
+          },
+          {
+            "path": "opsx-verify.md",
+            "changeType": "modified",
+            "beforeSha256": "sha256:d72248d6c42352129df344017b5d10f0113bebe1c62f09fb64e34052dd819875",
+            "afterSha256": "sha256:fd7e145afbf04b006aadf4b163e98301a9a8bf87e9c28642668f6a87808e72a0",
+            "additions": 216,
+            "deletions": 1
+          }
+        ]
+      },
+      "candidateLocal": {
+        "from": "upstream-1.11.0",
+        "to": "runtime-candidate",
+        "files": [
+          {
+            "path": "opsx-apply.md",
+            "changeType": "modified",
+            "beforeSha256": "sha256:7c888f34895aeb0db9b149578a0dd8ac17c09129cc5c3a9003c6d79e885da682",
+            "afterSha256": "sha256:8f511634e315a7fbf84d642afca7d7faee9a59657993521abccf61815aeb7d7a",
+            "additions": 186,
+            "deletions": 1
+          },
+          {
+            "path": "opsx-archive.md",
+            "changeType": "modified",
+            "beforeSha256": "sha256:730b94143cab8fc8e7f6f6e67f28004e7c4991206e25027c34cb29bf0473485b",
+            "afterSha256": "sha256:d3366facd058e4ee719c606f770f42f1c6a9cefaa2bd141041fb83d2a5a24627",
+            "additions": 119,
+            "deletions": 1
+          },
+          {
+            "path": "opsx-continue.md",
+            "changeType": "modified",
+            "beforeSha256": "sha256:3048f0b860bdae9ee402f481a1e103cbc3738b928e7bb209f897fa48d0ad6669",
+            "afterSha256": "sha256:1eb03cd1368eddf6a5c2d9fef2de3ae0c002edfeebd086d0a4e8ea465d7d365b",
+            "additions": 144,
+            "deletions": 1
+          },
+          {
+            "path": "opsx-explore.md",
+            "changeType": "modified",
+            "beforeSha256": "sha256:59a82e8f45fe6e619d64ad14ed444946b4f10ad792d8bd679260229eac15976b",
+            "afterSha256": "sha256:64958409c0baaa289568265d822e662577f2b45e3df4fef7bcfbaa74d434eda2",
+            "additions": 199,
+            "deletions": 1
+          },
+          {
+            "path": "opsx-new.md",
+            "changeType": "modified",
+            "beforeSha256": "sha256:4e8bac347af3eecada5e7ba0c021c842816c3e4f705d2b9cb0aa2599d73b2254",
+            "afterSha256": "sha256:befbec7bff53175370df5e4f66ac73e2b09776a40c449ce89998b7489999826b",
+            "additions": 91,
+            "deletions": 1
+          },
+          {
+            "path": "opsx-propose.md",
+            "changeType": "modified",
+            "beforeSha256": "sha256:beccf8b3f28bd618564afbdfd56a2d4fe7a3309a191607a1b0c56060f8a99e16",
+            "afterSha256": "sha256:1e70df3b0cee7af140b6b48af1003130d9c06d95b5c7b51ce9b97ba50d4d4efc",
+            "additions": 157,
+            "deletions": 1
+          },
+          {
+            "path": "opsx-sync.md",
+            "changeType": "modified",
+            "beforeSha256": "sha256:0b54b1598b282abf9fc0195fc847d1ee80daad9dc4b9d90b4db02bd060c8c568",
+            "afterSha256": "sha256:c41475ff8f8d9d73f7a12097eed1e494dcb734dfeae0ce6a7ec2c2b5af4c8a7c",
+            "additions": 238,
+            "deletions": 1
+          },
+          {
+            "path": "opsx-update.md",
+            "changeType": "modified",
+            "beforeSha256": "sha256:c1d3dc2fa80c2eab98c80d0d979a800d23289226c9443198929f86b21b7817a7",
+            "afterSha256": "sha256:bf2cb9bbb1d575a1efb87861c8d1fc96042a78abeb849d47ac5900c8855a2c1a",
+            "additions": 112,
+            "deletions": 1
+          },
+          {
+            "path": "opsx-verify.md",
+            "changeType": "modified",
+            "beforeSha256": "sha256:d72248d6c42352129df344017b5d10f0113bebe1c62f09fb64e34052dd819875",
+            "afterSha256": "sha256:fd7e145afbf04b006aadf4b163e98301a9a8bf87e9c28642668f6a87808e72a0",
+            "additions": 216,
+            "deletions": 1
+          }
+        ]
+      }
+    },
+    "probes": {
+      "current": [
+        {
+          "id": "change-status",
+          "argv": [
+            "status",
+            "--change",
+            "probe",
+            "--json"
+          ],
+          "status": 0,
+          "fields": [
+            {
+              "path": "changeName",
+              "type": "string"
+            },
+            {
+              "path": "schemaName",
+              "type": "string"
+            },
+            {
+              "path": "planningHome",
+              "type": "object"
+            },
+            {
+              "path": "artifactPaths",
+              "type": "object"
+            },
+            {
+              "path": "isPlanningComplete",
+              "type": "boolean"
+            },
+            {
+              "path": "isComplete",
+              "type": "boolean"
+            },
+            {
+              "path": "applyRequires",
+              "type": "array"
+            },
+            {
+              "path": "nextSteps",
+              "type": "array"
+            },
+            {
+              "path": "actionContext",
+              "type": "object"
+            },
+            {
+              "path": "artifacts",
+              "type": "array"
+            },
+            {
+              "path": "root",
+              "type": "object"
+            }
+          ],
+          "structureSha256": "sha256:9d89e652f60f794cb916c6a090495281aac8e3673e7260965a18ad1bdd59597d",
+          "result": "PASS"
+        },
+        {
+          "id": "change-show-error-json",
+          "argv": [
+            "show",
+            "probe",
+            "--json",
+            "--type",
+            "change",
+            "--no-interactive"
+          ],
+          "status": 1,
+          "fields": [
+            {
+              "path": "status",
+              "type": "array"
+            },
+            {
+              "path": "status.0.severity",
+              "type": "string"
+            },
+            {
+              "path": "status.0.code",
+              "type": "string"
+            },
+            {
+              "path": "status.0.message",
+              "type": "string"
+            }
+          ],
+          "structureSha256": "sha256:81e2e39297aa5cc2c0e68fee083f7a79d14da4c36535ffca433d8e55c3839085",
+          "result": "PASS"
+        },
+        {
+          "id": "status-all",
+          "argv": [
+            "status",
+            "--all",
+            "--json"
+          ],
+          "status": 0,
+          "fields": [
+            {
+              "path": "changes",
+              "type": "array"
+            },
+            {
+              "path": "root",
+              "type": "object"
+            }
+          ],
+          "structureSha256": null,
+          "result": "SKIP"
+        }
+      ],
+      "candidate": [
+        {
+          "id": "change-status",
+          "argv": [
+            "status",
+            "--change",
+            "probe",
+            "--json"
+          ],
+          "status": 0,
+          "fields": [
+            {
+              "path": "changeName",
+              "type": "string"
+            },
+            {
+              "path": "schemaName",
+              "type": "string"
+            },
+            {
+              "path": "planningHome",
+              "type": "object"
+            },
+            {
+              "path": "artifactPaths",
+              "type": "object"
+            },
+            {
+              "path": "isPlanningComplete",
+              "type": "boolean"
+            },
+            {
+              "path": "isComplete",
+              "type": "boolean"
+            },
+            {
+              "path": "applyRequires",
+              "type": "array"
+            },
+            {
+              "path": "nextSteps",
+              "type": "array"
+            },
+            {
+              "path": "actionContext",
+              "type": "object"
+            },
+            {
+              "path": "artifacts",
+              "type": "array"
+            },
+            {
+              "path": "root",
+              "type": "object"
+            }
+          ],
+          "structureSha256": "sha256:9d89e652f60f794cb916c6a090495281aac8e3673e7260965a18ad1bdd59597d",
+          "result": "PASS"
+        },
+        {
+          "id": "change-show-error-json",
+          "argv": [
+            "show",
+            "probe",
+            "--json",
+            "--type",
+            "change",
+            "--no-interactive"
+          ],
+          "status": 1,
+          "fields": [
+            {
+              "path": "status",
+              "type": "array"
+            },
+            {
+              "path": "status.0.severity",
+              "type": "string"
+            },
+            {
+              "path": "status.0.code",
+              "type": "string"
+            },
+            {
+              "path": "status.0.message",
+              "type": "string"
+            }
+          ],
+          "structureSha256": "sha256:81e2e39297aa5cc2c0e68fee083f7a79d14da4c36535ffca433d8e55c3839085",
+          "result": "PASS"
+        },
+        {
+          "id": "status-all",
+          "argv": [
+            "status",
+            "--all",
+            "--json"
+          ],
+          "status": 0,
+          "fields": [
+            {
+              "path": "changes",
+              "type": "array"
+            },
+            {
+              "path": "root",
+              "type": "object"
+            }
+          ],
+          "structureSha256": "sha256:41b74762313140e59f6b2e86990494c42792bd6f7d749b135e1798ca3cb96eef",
+          "result": "PASS"
+        }
+      ]
+    },
+    "blankFixture": {
+      "status": 0,
+      "result": "PASS"
+    },
+    "consumers": [
+      {
+        "name": "agent-system",
+        "head": "34e90d0558b90fec465ab42b5713e7b6bf4e3ce9",
+        "beforeDigest": "sha256:6271160e5007112d3dec7c79b99cb3eae9f22c561450e32dcaa57aa1c11d3451",
+        "afterDigest": "sha256:6271160e5007112d3dec7c79b99cb3eae9f22c561450e32dcaa57aa1c11d3451",
+        "runtimeStatus": 0,
+        "probeStatus": 0,
+        "result": "PASS"
+      },
+      {
+        "name": "webcoding-spec",
+        "head": "79196ad1ce0a03619086f53167fe8e26f0fc24e7",
+        "beforeDigest": "sha256:e015db84a17e0e2fc391436e341298285eecfbb355405203dbcb6de32e996605",
+        "afterDigest": "sha256:e015db84a17e0e2fc391436e341298285eecfbb355405203dbcb6de32e996605",
+        "runtimeStatus": 1,
+        "probeStatus": 0,
+        "result": "FAIL"
+      },
+      {
+        "name": "work-spec",
+        "head": "2cf606513e4e675691be29ddf3ffe8b6d0cfa4dd",
+        "beforeDigest": "sha256:23915d1caf9234af9a832793270ff1802565e4462feaf95f045c5d77f18f7901",
+        "afterDigest": "sha256:23915d1caf9234af9a832793270ff1802565e4462feaf95f045c5d77f18f7901",
+        "runtimeStatus": 0,
+        "probeStatus": 0,
+        "result": "PASS"
+      }
+    ],
+    "realRepositoriesUnchanged": true,
+    "temporaryRootsCleaned": true,
+    "result": "FAIL"
+  }
+  
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///C:/Users/Morni/AppData/Local/Temp/tmp.909xAncRF5/lfclone/test/openspec-upgrade.test.ts:106:12)
+      at Test.runInAsyncScope (node:async_hooks:213:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.start (node:internal/test_runner/test:1003:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+exit=1

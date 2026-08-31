@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "51829cc8eef879a30ba22a2430a4f95119e45d6d",
+  "reviewedCommit": "b19f1a514366d4ade7534505099670bb499a283e",
+  "reviewedPaths": [
+    {
+      "path": ".claude/skills/delivery-pilot/SKILL.md",
+      "exists": true,
+      "sha256": "sha256:8078c736b8b417aebe8c5de18e3bfb14f868e81af929ce997ba844ccfe025e95"
+    },
+    {
+      "path": "AGENTS.md",
+      "exists": true,
+      "sha256": "sha256:78beb32cf96548cd6530c98229c896cf82c438a6d2be6a79b9aace85efffec58"
+    },
+    {
+      "path": "README.md",
+      "exists": true,
+      "sha256": "sha256:439bc7ba7c75747e68cbe042a91be0c2b7f2a7db63b3a09bf009fd8dd2011671"
+    },
+    {
+      "path": "docs/architecture.md",
+      "exists": true,
+      "sha256": "sha256:7737b5ca15c506b92b5cfbf00b7c4082609b7dc83f2d76fd1445c6670fe001c7"
+    },
+    {
+      "path": "docs/consumer-guide.md",
+      "exists": true,
+      "sha256": "sha256:174f24ed1bf3b9d6570c8b18ae45477c9c2d2143784ac929335eb40fc95f0510"
+    },
+    {
+      "path": "openspec/intake/INT-20260831-009-windows-crlf-render-drift.md",
+      "exists": true,
+      "sha256": "sha256:508345e89a086fbda0973c3cb904f4f2b00eb1efd5ca58784357e3c55849bd5c"
+    },
+    {
+      "path": "public-allowlist.json",
+      "exists": true,
+      "sha256": "sha256:a75267842349028f8ce675a0911d3aff91f92439d264c12e8d13f2ad048d622b"
+    },
+    {
+      "path": "runtime-manifest.json",
+      "exists": true,
+      "sha256": "sha256:36ab0f16c121f9456efcab413d18b542a6a59bd22332269a52fd9c24e8a22e20"
+    },
+    {
+      "path": "test/contracts.test.ts",
+      "exists": true,
+      "sha256": "sha256:ffe72f3c988a7126c9ddbdcd79dcc25023e8d799175fdd862948b4e66bd1c780"
+    },
+    {
+      "path": "test/interaction.test.ts",
+      "exists": true,
+      "sha256": "sha256:c4338d3f1edb641ea488b587924fde36a0b0a022bed39eff19da50d661578bbf"
+    },
+    {
+      "path": "test/submodule.test.ts",
+      "exists": true,
+      "sha256": "sha256:fd451140048890ab28d4bc05df811acf28a5b2f16a6f6a66e1e03f245e67e4fe"
+    }
+  ],
+  "reviewedDigest": "sha256:fa7478907bf4a61aceb2010e18060c57058e2f654a341ea78a308dcea4d93091",
+  "reviewer": "独立 fresh reviewer 会话（Claude 派发，2026-08-31，零 OPEN finding）",
+  "reviewedAt": "2026-08-31T19:05:00.000Z",
+  "findings": [],
+  "result": "PASS"
+}
