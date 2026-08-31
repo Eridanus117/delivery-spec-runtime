@@ -7,3 +7,4 @@
 - runtime 只通过资产仓 `.delivery-spec-runtime` Git submodule 接入；`runtime-manifest.json` 只声明四个相对软链。禁止恢复复制投影、`runtime-lock.json` 或第二套 commit/hash lock。
 - 不创建 Git remote 或 push，除非维护者当轮明确授权。
 - GitHub 相关操作（查看、创建、更新、合并 PR，Issue 和 Actions）必须使用 `gh` CLI；禁止改走浏览器，除非维护者明确要求浏览器交互。
+- 交付流水线校准期（2026-08-31 起，至 3 事项复盘检查点）：agent 在每站完成时把该站产物以一屏内摘要摆给维护者过目；维护者的不耐烦反馈即为「该站取消人工审阅」的裁剪信号，记录并在复盘时消费。资产写盘与人工审阅解耦：写盘服务 agent 上下文与审计，不因取消审阅而停写；复盘时另按「下游是否被消费」裁剪写盘清单。
