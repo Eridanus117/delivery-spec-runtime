@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "tasks": [
+    {
+      "id": "1.1",
+      "state": "verified",
+      "deliverables": [
+        "openspec/contracts/metrics-event.schema.json"
+      ],
+      "verification": [
+        "openspec validate --all --strict; schema contract test"
+      ],
+      "evidence": [
+        "openspec validate --all --strict 通过"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.1",
+      "state": "verified",
+      "deliverables": [
+        "openspec/tools/metrics-control.ts append"
+      ],
+      "verification": [
+        "node --experimental-strip-types --test test/metrics.test.ts"
+      ],
+      "evidence": [
+        "test/metrics.test.ts 追加、重复、敏感、unsafe state-root 与 cleanup 测试通过"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.2",
+      "state": "verified",
+      "deliverables": [
+        "openspec/tools/metrics-control.ts summary"
+      ],
+      "verification": [
+        "node --experimental-strip-types --test test/metrics.test.ts"
+      ],
+      "evidence": [
+        "test/metrics.test.ts 汇总公式与 activeCount 缺失测试通过"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "2.3",
+      "state": "verified",
+      "deliverables": [
+        "public-allowlist.json"
+      ],
+      "verification": [
+        "runtime-check and strict validation"
+      ],
+      "evidence": [
+        "runtime-entry runtime-check 通过"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "3.1",
+      "state": "verified",
+      "deliverables": [
+        "test/metrics.test.ts"
+      ],
+      "verification": [
+        "node --experimental-strip-types --test test/metrics.test.ts"
+      ],
+      "evidence": [
+        "node --experimental-strip-types --test test/metrics.test.ts：6 passed"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "4.1",
+      "state": "verified",
+      "deliverables": [
+        "Change technical/test boundary"
+      ],
+      "verification": [
+        "synthetic smoke and manual review"
+      ],
+      "evidence": [
+        "已确定所有 workflow 采集、按 Profile 分别汇总、私有 state 边界和默认窗口"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "4.2",
+      "state": "verified",
+      "deliverables": [
+        "C/C+1 experiment precondition record"
+      ],
+      "verification": [
+        "comparison report changes only slotCount"
+      ],
+      "evidence": [
+        "已确定先采集 C 再人工决定 C+1；compare 测试验证只增加一个 slotCount"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "5.1",
+      "state": "verified",
+      "deliverables": [
+        "runtime documentation and fixture cleanup"
+      ],
+      "verification": [
+        "implementation completion gate"
+      ],
+      "evidence": [
+        "维护指南已加入本地指标入口；strict validation 通过"
+      ],
+      "blocker": null
+    }
+  ]
+}

@@ -37,11 +37,13 @@ Runtime 源仓也使用同一入口：在源仓根执行 `openspec/tools/runtime
 
 ## Profile 与 Change 绑定
 
-`openspec/profiles/registry.json` 是 Runtime 内唯一的 profile registry；每个条目通过相对路径加载一个带 `profileId`、`profileVersion` 和阶段合同的 profile 文件。`workflow-control.ts list-profiles` 只列出 registry 内容，`workflow bind` 将精确的 `workflow-binding.json` 写入 Change 根，`workflow run` 只按该绑定解析 profile。
+`openspec/profiles/registry.json` 是 Runtime 内唯一的 profile registry；每个条目通过相对路径加载一个带 `profileId`、`profileVersion` 和阶段合同的 profile 文件。`workflow-control.ts list-profiles` 只列出 registry 内容，`workflow bind` 将精确的 `workflow-binding.json` 写入 Change 根，绑定型 `workflow run` 只按该绑定解析 profile。没有正式 Change 的事项可使用 `workflow-entry.ts run --input <request.json>`，由 request 显式携带精确的 profile 绑定。
 
 Profile core 只负责阶段合同、输入检查、人工判断和稳定结果；现有 `delivery-control.ts`、`delivery-lifecycle.ts` 与 `delivery-change` schema 仍负责重型交付的 artifact、task 和生命周期门禁。两者通过明确的 binding/request/result 合同连接，不把旧 `delivery-change` 入口隐式改造成默认 profile。
 
 `requirement-analysis@v1.0.0` 是一个前置分析 profile：`capture → clarify ↺ → discover ↺ → evaluate ↺ → decision`。三个分析阶段分别承担问题澄清、现有能力核验和方案比较，均可循环补证据；它在门 B 返回完整分析链与处置，不创建后续 Change。分析报告、事项归属和 Desk 策略由调用方保存与决定。
+
+多个 Intake 进入 Workflow 前，调用方可先执行 `runtime-entry.ts intake list`。该只读 inventory 只报告当前、legacy、invalid 和重复身份，不决定业务优先级、不自动迁移或创建 Change；维护者确认单个事项后再交给具体 Profile。
 
 ## 需求、Change 与 Runtime 的边界
 
@@ -49,7 +51,7 @@ Profile core 只负责阶段合同、输入检查、人工判断和稳定结果�
 
 因此，Runtime 仓只保存公共工作流、机器合同、工具、文档和 Runtime 自身 Change；消费仓保存自己的业务 Change、长期 spec、源码和交付证据。两者通过固定的 Runtime submodule commit 连接，不通过复制需求、spec、请求或证据连接。
 
-Workflow profile 只描述阶段合同，不替代 `delivery-change` 的 artifact、task 和生命周期门禁。Change 绑定必须先写入 Change 根；执行请求必须与该绑定逐字段一致，缺少绑定或发生版本漂移时应拒绝执行。
+Workflow profile 只描述阶段合同，不替代 `delivery-change` 的 artifact、task 和生命周期门禁。绑定型 Change 执行请求必须与 Change binding 逐字段一致；standalone 执行只接受显式 request，不读取 Change、全局目录或其他仓库。缺少绑定或发生版本漂移时应拒绝执行。
 
 ## 执行前校验
 

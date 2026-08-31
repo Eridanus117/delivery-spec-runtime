@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "RAW-001",
+      "kind": "intake-record",
+      "authority": 1,
+      "locator": "openspec/intake/INT-20260830-005-metrics-concurrency.md",
+      "adapter": "manual"
+    },
+    {
+      "id": "RAW-002",
+      "kind": "repository-inspection",
+      "authority": 1,
+      "locator": "openspec/intake/INT-20260830-004-runtime-metrics-and-options.md",
+      "adapter": "manual"
+    }
+  ]
+}

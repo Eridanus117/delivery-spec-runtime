@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "delivery-change/intake-inventory.schema.json",
+  "title": "Intake inventory report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "scannedPath", "entries", "duplicateIds"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "scannedPath": { "const": "openspec/intake" },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "id", "classification", "missingFields", "state", "phase"],
+        "properties": {
+          "file": { "type": "string", "minLength": 1 },
+          "id": { "type": ["string", "null"] },
+          "classification": { "enum": ["current", "legacy", "invalid"] },
+          "missingFields": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "state": { "type": ["string", "null"] },
+          "phase": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "duplicateIds": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "files"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "files": { "type": "array", "minItems": 2, "items": { "type": "string", "minLength": 1 } }
+        }
+      }
+    }
+  }
+}

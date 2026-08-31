@@ -51,6 +51,16 @@ capture → triage → evidence → options → disposition
 
 `disposition` 由维护者选择 `promote`、`hold` 或 `close`。Promote 只关联已存在的 Change；Hold 和 Close 保留理由，Reopen 后重新从 `triage` 开始。Intake 记录事实、未知、证据和候选处置；正式 Requirement、方案、任务、实现和验收只进入 Change。
 
+处理多个 Intake 前，先生成只读 inventory：
+
+```bash
+node --experimental-strip-types \
+  openspec/tools/runtime-entry.ts intake list \
+  --intake-root .
+```
+
+输出会按相对路径列出当前、legacy 和 invalid 条目，并报告重复 `id` 的全部冲突文件。它不会自动排序业务优先级、迁移 legacy、合并重复记录或创建 Change；维护者确认单个事项后，再交给 `requirement-analysis` Profile。
+
 需求分析不等于实现，也不必先创建一个空 Change。是否创建 Change 取决于是否已经决定进入正式交付；调查过程中可以读取代码、现有 spec 和外部资料，但不得修改项目实现。
 
 ## 需求分析与 Change 的边界
@@ -88,6 +98,18 @@ node --experimental-strip-types \
   --change-root openspec/changes/add-order-export \
   --request-file request.json
 ```
+
+如果事项还没有正式 Change，可以直接调用 standalone workflow execution：
+
+```bash
+node --experimental-strip-types \
+  openspec/tools/workflow-entry.ts run \
+  --runtime-root . \
+  --input request.json \
+  --output-file result.json
+```
+
+该入口只读取显式 `--input`，按 request 中的精确 `profileId@profileVersion` 解析 Profile，并将单个机器可读结果写入 stdout 或 `--output-file`。它会连续推进当前输入和判断已经满足的阶段，直到遇到缺少输入、需要人工判断、重复分析、失败或完成；下一次执行只需使用上一次请求及结果中的 `completedStages` 继续，不需要重新拼接已完成阶段的上下文。`in_progress` 和 `completed` 返回零退出码；`blocked`、`waiting_human_judgment` 和 `rejected` 返回非零退出码，但仍写出可读取的结果。它不创建 Change、不扫描全局目录，也不写回未授权资产。
 
 `list-profiles` 保留机器 JSON；`catalog` 适合快速查看所有 Profile 的用途和完整阶段；`describe` 只查看一个精确版本。三者都直接读取 registry 和 Profile 文件，身份漂移或未知版本会 fail closed。
 

@@ -43,51 +43,59 @@
     },
     {
       "id": "3.1",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
-        "openspec/tools/workflow-entry.ts：standalone run --input CLI"
+        "openspec/tools/workflow-entry.ts：standalone run --input CLI，自动推进至下一人工判断门"
       ],
       "verification": [
         "以 process.execPath 和 --experimental-strip-types 执行真实 CLI，stdout 可解析为单个机器结果"
       ],
-      "evidence": [],
+      "evidence": [
+        "node --experimental-strip-types --test test/workflow.test.ts：standalone workflow entry 场景通过"
+      ],
       "blocker": null
     },
     {
       "id": "3.2",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
         "CLI 的退出码、stderr 参数错误和显式输入边界处理"
       ],
       "verification": [
         "成功请求为零退出码；阻塞/等待/拒绝为非零且结果仍可读；未指定输入不读取隐式路径"
       ],
-      "evidence": [],
+      "evidence": [
+        "node --experimental-strip-types --test test/workflow.test.ts：成功、人工等待、Malformed request、缺少 --input 场景通过"
+      ],
       "blocker": null
     },
     {
       "id": "4.1",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
-        "06-测试方案/fixtures 下的合成 workflow 请求与场景定义",
+        "test/workflow.test.ts 的合成 workflow 请求与场景定义",
         "test/workflow.test.ts 的 core 和合同行为测试"
       ],
       "verification": [
         "node --experimental-strip-types --test test/workflow.test.ts"
       ],
-      "evidence": [],
+      "evidence": [
+        "test/workflow.test.ts 全部 12 项通过"
+      ],
       "blocker": null
     },
     {
       "id": "4.2",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
-        "06-测试方案/runner/workflow-cli-probe.ts 或等价真实 CLI 探针"
+        "test/workflow.test.ts 中等价真实 CLI 探针"
       ],
       "verification": [
         "覆盖成功、缺输入、人工等待、末阶段和非法请求；逐项断言 stdout、退出码和 result reason"
       ],
-      "evidence": [],
+      "evidence": [
+        "node --experimental-strip-types --test test/workflow.test.ts：standalone CLI 成功、等待、完成、Malformed request 和缺少输入场景通过"
+      ],
       "blocker": null
     },
     {
@@ -105,14 +113,16 @@
     },
     {
       "id": "5.1",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
         "docs/workflow-guide.md 与 docs/architecture.md 的 standalone core 边界、CLI 和结果合同说明"
       ],
       "verification": [
         "文档示例只使用 synthetic 数据；既有 delivery-change 入口与新 workflow 入口职责可区分"
       ],
-      "evidence": [],
+      "evidence": [
+        "已更新 docs/workflow-guide.md、docs/architecture.md；示例仅使用 synthetic request.json 和显式 workflow-entry.ts 入口"
+      ],
       "blocker": null
     },
     {

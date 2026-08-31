@@ -1,10 +1,10 @@
 ---
-id: INT-20260830-004
-status: captured
-area: runtime-governance
+schemaVersion: 1
+id: INT-20260830-004-runtime-metrics-and-options
+state: captured
+phase: capture
 source: current-user-session
 capturedAt: 2026-08-30
-issue: null
 promotedTo: null
 ---
 
@@ -14,7 +14,15 @@ promotedTo: null
 
 Runtime 当前已经具备需求分析、Profile workflow、Change、Review、Acceptance 和 Archive 等能力，但还没有整体证据说明它是否提高了有效决策完成率、哪些环节制造摩擦，以及 OpenSpec 与 Runtime 各自承担了多少成本。当前不应先决定 npm、CLI、Adapter 或脱离 OpenSpec。
 
-## 观察
+## Triage
+
+范围：Runtime 工作流的价值、采用、效率、认知负担、审计、可复现性、失败恢复、依赖归因、维护集成和安全边界。
+影响：没有真实消费仓和低频脱敏运行数据，无法判断流程价值、摩擦来源或替代方案成本。
+判断：continue
+
+## Evidence
+
+### 已知事实
 
 - 当前 Runtime 通过 Git submodule + 三条受管相对软链接接入消费仓。
 - `runtime-manifest.json` 锁定 Node `22.6.0` 和 OpenSpec `1.11.0`。
@@ -23,6 +31,20 @@ Runtime 当前已经具备需求分析、Profile workflow、Change、Review、Ac
 - OpenSpec 仍提供 Change/Artifact 基础能力，包括 schema DAG、`new/status/instructions/validate/archive` 等 CLI 能力。
 - Runtime 仓的合同测试、Git/PR 历史和升级评估可以证明 Runtime 自身行为，但不能证明真实消费仓的采用率、认知负担或主人认可度。
 - 当前没有面向一般 workflow 的 telemetry；OpenSpec 升级评估器只单独记录升级运行的时间和结果。
+
+### 未知与假设
+
+- 真实消费仓的阶段漏斗、首次价值时间、主人认可度、OpenSpec/Runtime 失败归因、认知负担和维护成本尚未形成统计基线。
+- 第一版只记录脱敏元数据，不建设远程 telemetry。
+- 指标存储应留在本地私有工作区，不能写入公共 Runtime 业务资产。
+
+### 证据
+
+- `openspec/intake/README.md`
+- `openspec/specs/intake-workflow/spec.md`
+- `docs/maintainer-guide.md`
+- `docs/governance.md`
+- Runtime 合同测试和历史 Change
 
 ## 指标范围
 
@@ -39,6 +61,7 @@ Runtime 当前已经具备需求分析、Profile workflow、Change、Review、Ac
 11. 安全边界：来源、完整性校验和隐式脚本风险。
 
 流程漏斗：`eligible → capture → clarify → discover → evaluate → decision → owner-accepted`。
+
 ## 当前价值优先级
 
 按“对真实交付结果的影响 × 当前风险/摩擦 × 改善杠杆”排序，当前优先观察：
@@ -60,20 +83,11 @@ Runtime 当前已经具备需求分析、Profile workflow、Change、Review、Ac
 
 分析结果和正式决策应优先保存在当前项目仓的 `openspec/intake/`、`openspec/changes/` 或 `openspec/specs/`；业务事项不写入公共 Runtime 的代码、合同或测试资产。个人 Desk 不作为本项目分析资料的权威位置。
 
+第一版只记录元数据：事项不可逆哈希、run 标识、stage、event、command、Runtime/Profile/OpenSpec 版本、开始/结束时间、状态、失败类别、重试次数和枚举型人工判断。禁止记录业务正文、请求响应全文、凭据、绝对路径、用户名、机器标识、trace、release-id 和可逆事项标识。第一阶段不建设远程 telemetry，不向公共 Runtime 仓写入业务事项。
+
 ## 方案评估原则
 
 候选方案统一比较：有效决策完成率、首次价值时间、认知负担、审计可信度、可复现性、失败恢复、OpenSpec 依赖、实施成本、迁移成本、可逆性、安全风险和长期维护成本。当前只建立候选池和评估维度，不作最终路线选择。
-
-
-## 指标采集边界
-
-第一版只记录元数据：事项不可逆哈希、run 标识、stage、event、command、Runtime/Profile/OpenSpec 版本、开始/结束时间、状态、失败类别、重试次数和枚举型人工判断。
-
-禁止记录业务正文、请求响应全文、凭据、绝对路径、用户名、机器标识、trace、release-id 和可逆事项标识。第一阶段不建设远程 telemetry，不向公共 Runtime 仓写入业务事项。
-
-## 当前数据缺口
-
-真实消费仓的阶段漏斗、首次价值时间、主人认可度、OpenSpec/Runtime 失败归因、认知负担和维护成本尚未形成统计基线。Runtime 仓自身测试和历史 Change 只能作为行为与治理基线，不能替代这些数据。
 
 ## 候选方案池
 
@@ -87,7 +101,7 @@ Runtime 当前已经具备需求分析、Profile workflow、Change、Review、Ac
 
 ### 分发
 
-- 保持 submodule + 软链接；
+- 保持 submodule + 软链；
 - npm package + CLI；
 - npm package + Commands 受控适配层；
 - 独立二进制 CLI；
@@ -110,7 +124,6 @@ Runtime 当前已经具备需求分析、Profile workflow、Change、Review、Ac
 - 本地 run evidence；
 - 组织级脱敏汇总。
 
-
 ## 当前处置
 
 阶段一只进行指标定义、现有资料盘点、真实消费仓基线准备和方案头脑风暴；不修改 Runtime 行为，不创建实施 Change。
@@ -122,6 +135,16 @@ Runtime 当前已经具备需求分析、Profile workflow、Change、Review、Ac
 - 用基线填充候选方案评估矩阵；
 - 由维护者决定是否进入具体实验或正式 Change。
 
+## Disposition
+
+决定：
+理由：
+下一步：
+
 ## 提升或关闭条件
 
 只有在指标基线和候选评估完成，并明确决定实施某一方向后，才提升为正式 Runtime Change；若数据表明当前模式已满足需要，则关闭本 Intake 并记录原因。
+
+## History
+
+- 2026-08-30T00:00:00.000Z legacy-normalized

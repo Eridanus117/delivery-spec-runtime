@@ -69,3 +69,58 @@ test("Intake rejects sensitive content and unsafe promote target", () => {
     assert.equal(existsSync(join(tmpdir(), "target", "01-原始需求", "原始需求索引.md")), false);
   } finally { rmSync(rootPath, { recursive: true, force: true }); }
 });
+
+test("Intake inventory 稳定列出 current、legacy、invalid 并报告重复 ID", () => {
+  const rootPath = root();
+  try {
+    const intakePath = join(rootPath, "openspec/intake");
+    mkdirSync(intakePath, { recursive: true });
+    writeFileSync(join(intakePath, "INT-20260830-001-current.md"), "---\nschemaVersion: 1\nid: INT-20260830-001-current\nstate: captured\nphase: capture\nsource: synthetic\ncapturedAt: 2026-08-30\npromotedTo: null\n---\n", "utf8");
+    writeFileSync(join(intakePath, "INT-20260830-003-a.md"), "---\nid: INT-20260830-003\nstatus: captured\nsource: synthetic\ncapturedAt: 2026-08-30\npromotedTo: null\n---\n", "utf8");
+    writeFileSync(join(intakePath, "INT-20260830-003-b.md"), "---\nid: INT-20260830-003\nstatus: captured\nsource: synthetic\ncapturedAt: 2026-08-30\npromotedTo: null\n---\n", "utf8");
+    writeFileSync(join(intakePath, "INT-20260830-004-legacy.md"), "---\nid: INT-20260830-004\nstatus: captured\nsource: synthetic\ncapturedAt: 2026-08-30\npromotedTo: null\n---\n", "utf8");
+    writeFileSync(join(intakePath, "INT-20260830-005-invalid.md"), "not frontmatter\n", "utf8");
+
+    const result = invoke(rootPath, ["list"]);
+    assert.equal(result.status, 0, result.stderr);
+    const report = JSON.parse(result.stdout) as {
+      entries: Array<{ file: string; id: string | null; classification: string; missingFields: string[] }>;
+      duplicateIds: Array<{ id: string; files: string[] }>;
+    };
+    assert.deepEqual(report.entries.map((entry) => entry.file), [
+      "openspec/intake/INT-20260830-001-current.md",
+      "openspec/intake/INT-20260830-003-a.md",
+      "openspec/intake/INT-20260830-003-b.md",
+      "openspec/intake/INT-20260830-004-legacy.md",
+      "openspec/intake/INT-20260830-005-invalid.md",
+    ]);
+    assert.equal(report.entries[0].classification, "current");
+    assert.equal(report.entries[1].classification, "legacy");
+    assert.equal(report.entries[4].classification, "invalid");
+    assert.deepEqual(report.duplicateIds, [{
+      id: "INT-20260830-003",
+      files: ["openspec/intake/INT-20260830-003-a.md", "openspec/intake/INT-20260830-003-b.md"],
+    }]);
+  } finally {
+    rmSync(rootPath, { recursive: true, force: true });
+  }
+});
+
+test("legacy Intake inspect 返回迁移缺口且保持文件不变", () => {
+  const rootPath = root();
+  try {
+    const legacyFile = join(rootPath, "openspec/intake/INT-20260830-004-legacy.md");
+    mkdirSync(join(rootPath, "openspec/intake"), { recursive: true });
+    writeFileSync(legacyFile, "---\nid: INT-20260830-004\nstatus: captured\nsource: synthetic\ncapturedAt: 2026-08-30\npromotedTo: null\n---\n\n# Legacy\n", "utf8");
+    const before = readFileSync(legacyFile, "utf8");
+    const inspected = invoke(rootPath, ["inspect", "--file", "openspec/intake/INT-20260830-004-legacy.md"]);
+    assert.equal(inspected.status, 0, inspected.stderr);
+    const report = JSON.parse(inspected.stdout) as { legacy: boolean; missingFields: string[]; migration: string };
+    assert.equal(report.legacy, true);
+    assert.deepEqual(report.missingFields, ["schemaVersion", "state", "phase", "id"]);
+    assert.match(report.migration, /不自动修改/);
+    assert.equal(readFileSync(legacyFile, "utf8"), before);
+  } finally {
+    rmSync(rootPath, { recursive: true, force: true });
+  }
+});
