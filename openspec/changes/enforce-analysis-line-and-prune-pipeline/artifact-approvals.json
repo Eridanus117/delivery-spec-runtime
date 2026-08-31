@@ -1,4 +1,54 @@
 {
   "schemaVersion": 1,
-  "artifacts": {}
+  "artifacts": {
+    "raw-requirements": {
+      "digest": "sha256:671e8a865f730e2a846bd789365488bda36b2579cd5c9bd5b48c53d661308586",
+      "decision": "approved",
+      "approvedBy": "维护者",
+      "approvedAt": "2026-08-31T23:25:11.806Z",
+      "migrationSource": "主会话门口表态，由实施代理转录：2026-08-31 复盘处置包整包「同意」"
+    },
+    "specs": {
+      "digest": "sha256:fd804f3b3f17f58e31c7de43d505345c27a4354a610f8214a5385d53e04ab7bf",
+      "decision": "approved",
+      "approvedBy": "维护者",
+      "approvedAt": "2026-08-31T23:25:11.925Z",
+      "migrationSource": "主会话门口表态，由实施代理转录：2026-08-31 复盘处置包整包「同意」"
+    },
+    "business-current": {
+      "digest": "sha256:ac33505a8aa8b966f362f88b8751ecb08f23d29e4cc1cf25351c881a206e4790",
+      "decision": "approved",
+      "approvedBy": "维护者",
+      "approvedAt": "2026-08-31T23:25:12.040Z",
+      "migrationSource": "主会话门口表态，由实施代理转录：2026-08-31 复盘处置包整包「同意」"
+    },
+    "technical-current": {
+      "digest": "sha256:6125cbe747dd986ee04692b25a3b67a20b3f77c0cbee4c017ab79aba93d57c73",
+      "decision": "approved",
+      "approvedBy": "维护者",
+      "approvedAt": "2026-08-31T23:25:12.157Z",
+      "migrationSource": "主会话门口表态，由实施代理转录：2026-08-31 复盘处置包整包「同意」"
+    },
+    "solution-proposal": {
+      "digest": "sha256:245805deddd3e095598cec84a65231f89f91ce14256ef62bb66a1e5f910e09e5",
+      "decision": "approved",
+      "approvedBy": "维护者",
+      "approvedAt": "2026-08-31T23:25:17.077Z",
+      "migrationSource": "主会话门口表态，由实施代理转录：2026-08-31 方案门「我觉得走 A 就行」"
+    },
+    "solution-decision": {
+      "digest": "sha256:51c87a4d822682b444242dfdf000fbf4347718b90f7f83869c68dcdb7e89e263",
+      "decision": "approved",
+      "approvedBy": "维护者",
+      "approvedAt": "2026-08-31T23:25:17.193Z",
+      "migrationSource": "主会话门口表态，由实施代理转录：2026-08-31 方案门「我觉得走 A 就行」"
+    },
+    "change-plan": {
+      "digest": "sha256:10f38918d11d83ed7eabfcc79535d64d9ee6637e3f1dbd01714f9c04c4e3bebd",
+      "decision": "approved",
+      "approvedBy": "维护者",
+      "approvedAt": "2026-08-31T23:25:17.311Z",
+      "migrationSource": "主会话门口表态，由实施代理转录：2026-08-31 方案门「我觉得走 A 就行」"
+    }
+  }
 }
