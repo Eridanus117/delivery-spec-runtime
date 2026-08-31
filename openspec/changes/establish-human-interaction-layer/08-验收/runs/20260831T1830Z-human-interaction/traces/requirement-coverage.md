@@ -12,5 +12,6 @@
 
 ## 偏差记录
 
-- `outputs/full-tests-serial.log` 保存了一次失败运行：`openspec-upgrade.test.ts` 的消费仓 smoke 偶发失败（第二个合成消费仓 runtime submodule 偶现归档证据文件 M 状态）。已在**基线 commit（实现之前）重现同签名失败（5 跑 2 败）**，证明为既有 Windows git 竞态，非本 Change 回归；登记于 `openspec/intake/INT-20260831-010-upgrade-smoke-flaky-status.md`。失败日志按规保留，不覆盖。
+- `outputs/full-tests-serial.log` 保存了一次失败运行：`openspec-upgrade.test.ts` 的消费仓 smoke 偶发失败（第二个合成消费仓 runtime submodule 偶现归档证据文件 M 状态）。已在**基线 commit（实现之前）重现同签名失败（5 跑 2 败）**，对照证据（基线两份失败日志、实现后一份失败日志、汇总表）落盘于 `traces/baseline-flake/`，证明为既有 Windows git 竞态，非本 Change 回归；登记于 `openspec/intake/INT-20260831-010-upgrade-smoke-flaky-status.md`。失败日志按规保留，不覆盖。
+- 落盘日志中的本机用户目录路径已统一脱敏为 `<home>`（增量 Review REV-001 的处置；公开仓不得含私人环境信息）。
 - Fresh Review 由独立会话执行，零 OPEN finding，`implementation-review.json` result=PASS。

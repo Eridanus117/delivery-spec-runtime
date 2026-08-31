@@ -1,79 +1,29 @@
-✔ bootstrap stage必须外部批准，activation可恢复且保持受保护树 (1620.0557ms)
-✔ bootstrap拒绝脏工作树和受保护目录漂移 (973.6455ms)
-✔ 公开候选只复制允许清单且不产生外部副作用 (640.6513ms)
-✔ 公开候选拒绝秘密与禁用路径 (214.8575ms)
-✔ 公开候选示例必须有合规provenance (215.0152ms)
-✔ Commands结构化真源与现有九个渲染物逐字节一致 (114.9875ms)
-✔ renderer check报告漂移且write只修复受管Commands (109.5703ms)
-✔ renderer在恶意manifest下fail closed且不改渲染物 (67.6742ms)
-✔ runtime manifest、九层schema与九个Commands一致 (4.3809ms)
-✔ OpenSpec升级只允许通过Runtime仓受控Change (0.6227ms)
-✔ README引导首次采用者完成接入并开始Change (1.5354ms)
-✔ 工作流指南说明从需求到长期spec和归档的可观察效果 (0.344ms)
-✔ README与专题文档的仓库内链接全部有效 (1.8975ms)
-✔ runtime树不含禁用资产路径段 (13.2389ms)
-✔ 严格来源、批准失效、任务状态和投影合同 (3288.6852ms)
-✔ glob摘要按POSIX路径确定且真实文件去重 (8.1435ms)
-✔ 摘要拒绝绝对越界和逃逸软链 (2.4113ms)
-✔ Intake init and inspect create the contract (231.4492ms)
-✔ Intake advance enforces the DAG and preserves failed input (327.9945ms)
-✔ Intake hold and reopen preserve terminal history (341.9445ms)
-✔ Intake rejects sensitive content and unsafe promote target (262.8522ms)
-✔ Intake inventory 稳定列出 current、legacy、invalid 并报告重复 ID (132.6022ms)
-✔ legacy Intake inspect 返回迁移缺口且保持文件不变 (116.5896ms)
-✔ delivery-pilot skill 存在且 frontmatter 合法 (1.8109ms)
-✔ delivery-pilot skill 覆盖五项交互合同要素 (0.8485ms)
-✔ Review绑定完整实现范围并在实现漂移时失效 (3517.6737ms)
-✔ Acceptance与Archive Readiness取代Markdown关键词并支持受控reopen (7873.5249ms)
-✔ metrics append and summary produce a comparable local baseline (743.9738ms)
-✔ metrics append rejects duplicate ids without changing the event log (243.5239ms)
-✔ metrics append rejects sensitive input and repository-local state roots (211.8471ms)
-✔ summary preserves missing active-count observability (215.0198ms)
-✔ compare emits a C+1 recommendation only for a one-slot delta (213.5227ms)
-✔ cleanup removes only event files older than the explicit UTC cutoff (226.9849ms)
-✖ 升级评估只在临时根生成并输出三类脱敏delta (29141.1838ms)
-✔ 非法升级请求在启动npm前拒绝 (4043.6181ms)
-✔ Runtime源仓可以通过自身统一入口执行runtime-check (239.8797ms)
-✔ gitlink、相对软链与递归克隆形成唯一运行时绑定 (7891.123ms)
-✔ 实时资产仓拒绝runtime-update且不修改Runtime (4303.947ms)
-✔ 未初始化、gitlink漂移与dirty submodule均fail closed (4795.5982ms)
-✔ 软链漂移必须显式修复且只替换manifest托管路径 (4618.0845ms)
-✔ registry 提供三个 profile 且 profile 版本必须精确匹配 (108.5236ms)
-✔ 需求分析 profile 按澄清、核验、比较和决策阶段推进 (1.9758ms)
-✔ workflow core 按阶段返回 blocked、waiting、in_progress 和 completed (1.0111ms)
-✔ workflow core 拒绝跳阶段和伪造完成阶段 (0.7189ms)
-✔ workflow core 不把继承属性当作输入 (0.2253ms)
-✔ profile 合同拒绝重复阶段和未知字段 (0.2474ms)
-✔ workflow CLI 固定 Change binding 并拒绝静默切换 (607.698ms)
-✔ standalone workflow entry 自推进到人工门并返回可恢复结果 (745.6095ms)
-✔ runtime-entry 暴露 workflow 命令且保持入口校验 (675.1159ms)
-✔ 公开候选清单包含 workflow runtime 资产 (0.8708ms)
-✔ workflow catalog 和 describe 输出 Profile 用途、阶段与交接 (315.3938ms)
-✔ 需求分析输入合同拒绝占位报告和空分析轮次 (1.5306ms)
-ℹ tests 52
+✖ 升级评估只在临时根生成并输出三类脱敏delta (23237.662ms)
+✔ 非法升级请求在启动npm前拒绝 (3288.1762ms)
+ℹ tests 2
 ℹ suites 0
-ℹ pass 51
+ℹ pass 1
 ℹ fail 1
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 81034.9499
+ℹ duration_ms 26620.0227
 
 ✖ failing tests:
 
 test at test\openspec-upgrade.test.ts:96:1
-✖ 升级评估只在临时根生成并输出三类脱敏delta (29141.1838ms)
+✖ 升级评估只在临时根生成并输出三类脱敏delta (23237.662ms)
   AssertionError [ERR_ASSERTION]: OpenSpec候选评估未通过
-  (node:34948) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+  (node:12776) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
   (Use `node --trace-deprecation ...` to show where the warning was created)
   
   {
     "schemaVersion": 1,
     "currentVersion": "1.10.0",
     "candidateVersion": "1.11.0",
-    "runtimeBaselineCommit": "facedc64137b884af4b53ab80cd206276850c895",
-    "startedAt": "2026-08-31T18:22:56.375Z",
-    "endedAt": "2026-08-31T18:23:15.929Z",
+    "runtimeBaselineCommit": "fb80cdb2c679786b5c48489bf73dd3842a89b664",
+    "startedAt": "2026-08-31T18:32:17.996Z",
+    "endedAt": "2026-08-31T18:32:33.617Z",
     "generations": {
       "current": {
         "requestedVersion": "1.10.0",
@@ -241,7 +191,7 @@ test at test\openspec-upgrade.test.ts:96:1
       },
       "currentLocal": {
         "from": "upstream-1.10.0",
-        "to": "runtime-facedc64137b884af4b53ab80cd206276850c895",
+        "to": "runtime-fb80cdb2c679786b5c48489bf73dd3842a89b664",
         "files": [
           {
             "path": "opsx-apply.md",
@@ -631,27 +581,27 @@ test at test\openspec-upgrade.test.ts:96:1
     "consumers": [
       {
         "name": "agent-system",
-        "head": "34e90d0558b90fec465ab42b5713e7b6bf4e3ce9",
-        "beforeDigest": "sha256:6271160e5007112d3dec7c79b99cb3eae9f22c561450e32dcaa57aa1c11d3451",
-        "afterDigest": "sha256:6271160e5007112d3dec7c79b99cb3eae9f22c561450e32dcaa57aa1c11d3451",
+        "head": "4d6953325457fa1f53f05d866afce562a413d6d5",
+        "beforeDigest": "sha256:624b6c91882d700086a9e9106deb2ec1c3c970ae13f6f3a125b743ea16f5175a",
+        "afterDigest": "sha256:624b6c91882d700086a9e9106deb2ec1c3c970ae13f6f3a125b743ea16f5175a",
         "runtimeStatus": 0,
         "probeStatus": 0,
         "result": "PASS"
       },
       {
         "name": "webcoding-spec",
-        "head": "79196ad1ce0a03619086f53167fe8e26f0fc24e7",
-        "beforeDigest": "sha256:e015db84a17e0e2fc391436e341298285eecfbb355405203dbcb6de32e996605",
-        "afterDigest": "sha256:e015db84a17e0e2fc391436e341298285eecfbb355405203dbcb6de32e996605",
+        "head": "2be1867a5a9db8fc4b7c81374401c0e9baf93df0",
+        "beforeDigest": "sha256:76fb3e1b7e69de65ac1ac8b4968ab037c0af6a6634459fe91a9a8c4aa33591e8",
+        "afterDigest": "sha256:76fb3e1b7e69de65ac1ac8b4968ab037c0af6a6634459fe91a9a8c4aa33591e8",
         "runtimeStatus": 1,
         "probeStatus": 0,
         "result": "FAIL"
       },
       {
         "name": "work-spec",
-        "head": "2cf606513e4e675691be29ddf3ffe8b6d0cfa4dd",
-        "beforeDigest": "sha256:23915d1caf9234af9a832793270ff1802565e4462feaf95f045c5d77f18f7901",
-        "afterDigest": "sha256:23915d1caf9234af9a832793270ff1802565e4462feaf95f045c5d77f18f7901",
+        "head": "3e84047ff68c7ede2e866e12aa59bf4ac61732ee",
+        "beforeDigest": "sha256:000a7116be6cb313cf996d6c349386229d8250bf7ffd6ee99c96c5ba7d5b8a70",
+        "afterDigest": "sha256:000a7116be6cb313cf996d6c349386229d8250bf7ffd6ee99c96c5ba7d5b8a70",
         "runtimeStatus": 0,
         "probeStatus": 0,
         "result": "PASS"
@@ -665,7 +615,7 @@ test at test\openspec-upgrade.test.ts:96:1
   
   1 !== 0
   
-      at TestContext.<anonymous> (file:///<home>/AppData/Local/Temp/tmp.909xAncRF5/lfclone/test/openspec-upgrade.test.ts:106:12)
+      at TestContext.<anonymous> (file:///<home>/AppData/Local/Temp/tmp.NYkdubBd8n/base/test/openspec-upgrade.test.ts:106:12)
       at Test.runInAsyncScope (node:async_hooks:213:14)
       at Test.run (node:internal/test_runner/test:1106:25)
       at Test.start (node:internal/test_runner/test:1003:17)
@@ -677,4 +627,3 @@ test at test\openspec-upgrade.test.ts:96:1
     operator: 'strictEqual',
     diff: 'simple'
   }
-exit=1
