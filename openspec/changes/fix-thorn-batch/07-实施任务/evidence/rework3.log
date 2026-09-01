@@ -1,0 +1,44 @@
+INT-024 两处提前修复的返工记录（2026-09-01）
+裁定变更：维护者采纳 INT-024 登记时实测得出的爆炸半径订正，
+delivery-lifecycle.ts 与 render-commands.ts 两处提前到本批修，openspec-upgrade.ts 维持登记不修。
+
+【为什么不能像 runtime-entry.ts 那样直接删守卫】
+实测两者的导出都有 import 方，无条件执行 main() 会在每次 import 时跑一遍命令解析：
+  openspec/tools/delivery-control.ts:10  import { requireAcceptance, requireReadiness, requireReview } from "./delivery-lifecycle.ts"
+  openspec/tools/openspec-upgrade.ts:7   import { renderCommands } from "./render-commands.ts"
+  test/command-renderer.test.ts:7        import { renderCommands } from "../openspec/tools/render-commands.ts"
+runtime-entry.ts 没有任何 import 方，所以那里能走、也必须走「无条件执行」这条更彻底的路。
+故本次按裁定的候选甲：守卫保留，判据换成 samePath()。
+
+【修法】
+- runtime-lib.ts 新增 samePath 的权威定义（resolve → realpath → 小写比较），
+  与 runtime-entry.ts 内那份逐字副本一致，并已纳入 VC-042 的逐字比对（比对函数由两个增至三个）。
+- render-commands.ts:  resolve(argv[1]) === resolve(import.meta.filename)
+                    →  samePath(argv[1], import.meta.filename)
+- delivery-lifecycle.ts: import.meta.url === new URL("file://" + argv[1]).href
+                      →  samePath(argv[1], import.meta.filename)
+  这一处顺带甩掉了「把 argv[1] 直接拼进 file 协议 URL」的写法，INT-024 未知节里记的
+  那条「含空格或非 ASCII 路径缺少百分号编码」的第二层脆弱性随之消失。
+
+【A/B 先红后绿】
+[旧判据装回] test/contracts.test.ts
+  ✖ T-GUARD-3 两个工具经软链路径调用时行为与真实路径一致 (172.238ms)
+    AssertionError: 经软链调用时 main() 未执行：status=0 stdout="" stderr=""
+    ℹ pass 16 / fail 1
+[samePath 修复后] ✔ T-GUARD-3 (352.8323ms)，ℹ pass 17 / fail 0
+
+【手工探针（与断言相互印证）】
+同一文件分别用真实路径与指向源仓的 junction 调用：
+  修复前：lifecycle 真实路径 exit=1「缺少 --change-root」／junction exit=0 零输出
+          render    真实路径 exit=0 {"files":9,"changed":[]}／junction exit=0 零输出
+  修复后：lifecycle 两侧均 exit=1「缺少 --change-root」
+          render    两侧均 exit=0 {"files":9,"changed":[]}
+
+【安全性核对】
+T-GUARD-3 的 junction 指向源仓本身，清理时用的是 rmSync(临时根, {recursive:true})。
+单独实测过 rmSync 对 junction 走 unlink 而不递归进目标：在 box/link → target 的夹具上
+删掉 box 之后 target 内的文件原样还在。故该用例不会波及被链接的仓库。
+
+【剩余未处置】
+openspec-upgrade.ts 一处（同形判据）维持登记不修，候选已在 INT-024 收窄为两条
+（甲：改 samePath；乙：确认无 import 方后删守卫无条件执行），丙已随 T-GUARD-3 提前落地。

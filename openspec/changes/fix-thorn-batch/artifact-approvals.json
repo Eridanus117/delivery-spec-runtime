@@ -37,25 +37,25 @@
       "migrationSource": null
     },
     "change-plan": {
-      "digest": "sha256:16e48eb2050bf19d0858cf726bd62e5923c7cc5f8e04c0dbaf6f27cae8f0620d",
+      "digest": "sha256:08485087ef587dd440a06429269c0ce724100866cde401ec4d38181469c49d2e",
       "decision": "approved",
-      "approvedBy": "维护者（收口复审 FAIL 后的逐条返工裁定，门口表态由 Claude 代笔转录）",
-      "approvedAt": "2026-09-01T08:51:50.293Z",
-      "migrationSource": "按 REV-008 补入决策日志 D-08 与对应风险行、订正影响面与断言计数，并把 INT-024 记入待决问题的「已登记不在本单」条；目标、非目标与实施切片未变"
+      "approvedBy": "维护者（INT-024 爆炸半径订正被采纳后的裁定变更，门口表态由 Claude 代笔转录）",
+      "approvedAt": "2026-09-01T09:07:32.065Z",
+      "migrationSource": "按裁定变更把 delivery-lifecycle.ts 与 render-commands.ts 两处入口守卫提前到本批修：补决策日志 D-09、目标与切片各一条、风险表一行、场景 T-GUARD-3、任务 2.3 与 3.4 的交付物与验证，并订正断言计数与待决问题段"
     },
     "test-plan": {
-      "digest": "sha256:fb7599d4a247c4395a31b714a181c0ffaa9cecb1703cdc48b235dcc82c277304",
+      "digest": "sha256:56cf541f62efd8dd28b6ba52a5d42ffeb4b3859d83ea64423889eb0e96120557",
       "decision": "approved",
-      "approvedBy": "维护者（收口复审 FAIL 后的逐条返工裁定，门口表态由 Claude 代笔转录）",
-      "approvedAt": "2026-09-01T08:51:50.813Z",
-      "migrationSource": "按 REV-008 补入场景 T-GUARD-1 / T-GUARD-2、自动化资产落点与判据 import 来源的说明、失败停止条件一条，并订正断言计数与场景数"
+      "approvedBy": "维护者（INT-024 爆炸半径订正被采纳后的裁定变更，门口表态由 Claude 代笔转录）",
+      "approvedAt": "2026-09-01T09:07:32.611Z",
+      "migrationSource": "按裁定变更把 delivery-lifecycle.ts 与 render-commands.ts 两处入口守卫提前到本批修：补决策日志 D-09、目标与切片各一条、风险表一行、场景 T-GUARD-3、任务 2.3 与 3.4 的交付物与验证，并订正断言计数与待决问题段"
     },
     "tasks": {
-      "digest": "sha256:478e2da4192b994aba1186dac85613e4ae7d9c1b84815ea84446be3691431340",
+      "digest": "sha256:83736bf77b0166f46c5ca47da835951184047addd100a0e5b004ab563d50938e",
       "decision": "approved",
-      "approvedBy": "维护者（收口复审 FAIL 后的逐条返工裁定，门口表态由 Claude 代笔转录）",
-      "approvedAt": "2026-09-01T08:51:51.333Z",
-      "migrationSource": "按 REV-008 扩写任务 2.3 与 3.4 的交付物与验证（入口无条件执行、判据权威定义移入 runtime-lib、junction 回归与判据一致性断言）并追加 rework2 证据；按 REV-009 把披露措辞与 change-plan / test-plan 对齐——增加交付物与扩展验证判据都改变了工件语义，不按机械回填披露"
+      "approvedBy": "维护者（INT-024 爆炸半径订正被采纳后的裁定变更，门口表态由 Claude 代笔转录）",
+      "approvedAt": "2026-09-01T09:07:33.158Z",
+      "migrationSource": "按裁定变更把 delivery-lifecycle.ts 与 render-commands.ts 两处入口守卫提前到本批修：补决策日志 D-09、目标与切片各一条、风险表一行、场景 T-GUARD-3、任务 2.3 与 3.4 的交付物与验证，并订正断言计数与待决问题段"
     }
   }
 }

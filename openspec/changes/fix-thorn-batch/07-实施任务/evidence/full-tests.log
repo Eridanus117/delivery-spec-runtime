@@ -44,3 +44,18 @@
 ℹ pass 89
 ℹ fail 0
 ℹ duration_ms 60573.7225
+=== 全量测试 第 1 次（INT-024 两处提前修复后）===
+ℹ tests 90
+ℹ pass 90
+ℹ fail 0
+ℹ duration_ms 61177.0073
+=== 全量测试 第 2 次（INT-024 两处提前修复后）===
+ℹ tests 90
+ℹ pass 90
+ℹ fail 0
+ℹ duration_ms 61289.7255
+=== 全量测试 第 3 次（INT-024 两处提前修复后）===
+ℹ tests 90
+ℹ pass 90
+ℹ fail 0
+ℹ duration_ms 61092.7527
