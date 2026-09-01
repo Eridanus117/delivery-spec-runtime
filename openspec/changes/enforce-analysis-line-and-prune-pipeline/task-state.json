@@ -348,7 +348,7 @@
     },
     {
       "id": "7.1",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
         "establish-intake-inventory 的 4 条需求并入 openspec/specs/intake-workflow/spec.md",
         "该目录归档至 openspec/changes/archive/ 并在处置记录写明 spec 归宿"
@@ -357,12 +357,14 @@
         "VC-039：openspec validate --all --strict 通过",
         "grep 确认 intake list 的扫描/排序/重复 id 报告在 openspec/specs 中有规范来源"
       ],
-      "evidence": [],
+      "evidence": [
+        "07-实施任务/证据/7.1.md"
+      ],
       "blocker": null
     },
     {
       "id": "7.2",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
         "establish-workflow-v01-contract 标 superseded 归档、不补验收，处置记录写明取代关系（5daf1bd 与 workflow-profiles spec）"
       ],
@@ -370,7 +372,9 @@
         "VC-040：workflow-entry.ts 仍在 allowlist、test/workflow.test.ts 6 处断言与两份 docs 中",
         "VC-039：openspec/changes/ 下只余 establish-runtime-metrics-baseline 与本 Change"
       ],
-      "evidence": [],
+      "evidence": [
+        "07-实施任务/证据/7.2.md"
+      ],
       "blocker": null
     },
     {

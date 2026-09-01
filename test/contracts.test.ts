@@ -247,3 +247,35 @@ test("VC-030 发布模板删三节且保留 Spec Sync 表与门禁勾选", () =>
     assert.doesNotMatch(text, /change-mode\.json/);
   }
 });
+
+test("VC-039 早期目录归档后 active Change 只剩两个", () => {
+  const active = readdirSync(join(runtimeRoot, "openspec/changes"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && entry.name !== "archive")
+    .map((entry) => entry.name)
+    .sort();
+  assert.deepEqual(active, ["enforce-analysis-line-and-prune-pipeline", "establish-runtime-metrics-baseline"]);
+  // 两个早期目录确实落到了 archive 且带处置记录。
+  for (const name of ["2026-09-01-establish-intake-inventory", "2026-09-01-establish-workflow-v01-contract"]) {
+    const archived = join(runtimeRoot, "openspec/changes/archive", name);
+    assert.equal(existsSync(archived), true, `未归档: ${name}`);
+    assert.equal(existsSync(join(archived, "处置记录.md")), true, `缺处置记录: ${name}`);
+  }
+  // superseded 目录的处置记录必须写明取代关系。
+  const superseded = readFileSync(join(runtimeRoot, "openspec/changes/archive/2026-09-01-establish-workflow-v01-contract/处置记录.md"), "utf8");
+  assert.match(superseded, /superseded/);
+  assert.match(superseded, /5daf1bd/);
+  assert.match(superseded, /workflow-profiles/);
+  // intake-inventory 的 4 条需求必须在长期能力里有规范来源。
+  const spec = readFileSync(join(runtimeRoot, "openspec/specs/intake-workflow/spec.md"), "utf8");
+  for (const requirement of [
+    "Inventory SHALL scan only controlled Intake assets",
+    "Inventory SHALL report duplicate identities without choosing an authority",
+    "Legacy Intake SHALL be visible and non-authoritative",
+    "Inventory output SHALL preserve fail-closed boundaries",
+  ]) {
+    assert.match(spec, new RegExp(`### Requirement: ${requirement}`), `spec 缺少并入的需求: ${requirement}`);
+  }
+  // intake list 的扫描/排序/重复 id 报告三项行为在 specs 中有规范来源。
+  assert.match(spec, /按相对路径稳定排序/);
+  assert.match(spec, /列出该 ID 和全部冲突文件/);
+});

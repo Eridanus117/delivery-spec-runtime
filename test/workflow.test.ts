@@ -357,3 +357,19 @@ test("需求分析输入合同拒绝占位报告和空分析轮次", () => {
   assert.equal(malformed.status, "rejected");
   assert.match(malformed.reason ?? "", /缺少字段 stage/);
 });
+
+test("VC-040 归档 establish-workflow-v01-contract 不连带移除 workflow-entry.ts", () => {
+  // 归档的是那份未完成的规划记录，不是它规划过的代码。
+  const entry = join(runtimeRoot, "openspec/tools/workflow-entry.ts");
+  assert.equal(existsSync(entry), true, "workflow-entry.ts 被误删");
+  // 仍在公开清单中。
+  const allowlist = JSON.parse(readFileSync(join(runtimeRoot, "public-allowlist.json"), "utf8"));
+  assert.equal(JSON.stringify(allowlist).includes("openspec/tools/workflow-entry.ts"), true, "workflow-entry.ts 不在 allowlist");
+  // 仍被本测试文件的断言引用。
+  const selfSource = readFileSync(join(runtimeRoot, "test/workflow.test.ts"), "utf8");
+  const references = selfSource.match(/workflow-entry/g) ?? [];
+  assert.ok(references.length >= 6, `workflow.test.ts 中的 workflow-entry 断言数异常: ${references.length}`);
+  // 仍被两份 docs 引用。
+  const docs = ["docs/architecture.md", "docs/workflow-guide.md"].filter((path) => readFileSync(join(runtimeRoot, path), "utf8").includes("workflow-entry"));
+  assert.deepEqual(docs, ["docs/architecture.md", "docs/workflow-guide.md"]);
+});
