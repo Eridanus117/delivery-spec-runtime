@@ -1,12 +1,22 @@
 {
   "schemaVersion": 1,
   "baselineCommit": "e6d3637a678404dcf6c4496609c392050d10de46",
-  "reviewedCommit": "f0fb49d64354bbae1f7b524c12cff4e6c5a4e6ae",
+  "reviewedCommit": "fc6a90a6210613a7197ed240887ce20be0521af4",
   "reviewedPaths": [
     {
       "path": ".claude/skills/delivery-pilot/SKILL.md",
       "exists": true,
-      "sha256": "sha256:41d4e927b3739b922d93c0c02410f12267560530a0a3557a92cc6e537bdaeba2"
+      "sha256": "sha256:d667050096032ec8167c1d963b0c0f9ba2c3cdae14fb6e6e3ea4cf5f5e27b81d"
+    },
+    {
+      "path": ".omp/command-sources/bodies/opsx-propose.md",
+      "exists": true,
+      "sha256": "sha256:b7ff7320f6b7934f4e630c23e90ffeca3da89db3f3552b70400abbecef5816f2"
+    },
+    {
+      "path": ".omp/commands/opsx-propose.md",
+      "exists": true,
+      "sha256": "sha256:755df0fec210f36a0a031828e90f041db29ff1a723446445c7e86f0582a99b99"
     },
     {
       "path": "AGENTS.md",
@@ -16,42 +26,52 @@
     {
       "path": "README.md",
       "exists": true,
-      "sha256": "sha256:c753f86329dfa2bdfd12d7b938f6843c8f7697c93b038decf951af15366ef611"
+      "sha256": "sha256:b425c4618c03670e60a706cf254a3be38e76f2bd98ad27da4b389d021449688c"
     },
     {
       "path": "docs/glossary.md",
       "exists": true,
-      "sha256": "sha256:e050f772e581b210224a4fd2d1e0287cfe2370186b4f213933c68e4987ec9061"
+      "sha256": "sha256:208d0ab0b2b8fba946ea75cd53cf7bbdf156880d15ddcf855a79d607a2713cbc"
     },
     {
       "path": "docs/governance.md",
       "exists": true,
-      "sha256": "sha256:8a3afbadcaa2ee720918bdfeb9d8569cd654b47a216f27bc96297d61592412f9"
+      "sha256": "sha256:593b24f09a08f321daeae72004907b59f53ade62f588b0c74be7b68650a6ec6f"
+    },
+    {
+      "path": "docs/known-edges.md",
+      "exists": true,
+      "sha256": "sha256:a45bc87a7a264ee7632c4cc3e4e503b4a8e1894d65dcc08a5cd6d622f60c4896"
     },
     {
       "path": "docs/portable-core.md",
       "exists": true,
-      "sha256": "sha256:31c660f04bd8fe246540964026d4788ebc976f2710bac3ca4ea75e659810cd43"
+      "sha256": "sha256:25a36a01e206756f86b83ea2ae2fce100e1f5008d363f1dd4ec8a67e691c51d7"
     },
     {
       "path": "docs/workflow-guide.md",
       "exists": true,
-      "sha256": "sha256:f06e20862212a85a87419189397a9a3cd49549a5483e8539e1e74b6e3dbe1761"
+      "sha256": "sha256:42b5764306966159322e590cf3ad17791e732d3886554dfe6ad8f1777fe67792"
+    },
+    {
+      "path": "openspec/config.yaml",
+      "exists": true,
+      "sha256": "sha256:3394337fbf0ea81918fedbf35cd5c51967772b3c18d46e950cd65d2918f40c3b"
     },
     {
       "path": "openspec/contracts/artifact-approvals.schema.json",
       "exists": true,
-      "sha256": "sha256:194ca91a24affa094f64a80683cf761c044e10b5bca3fb0683f40a0158bcce5d"
+      "sha256": "sha256:d87fb9bf8dd459a18c5783bd60a95e17e4312e1e590fddca0f48b2dcf4c68912"
     },
     {
       "path": "openspec/contracts/plain-language.schema.json",
       "exists": true,
-      "sha256": "sha256:2449c78bdc90a1710d7bcd9cd43418017094645293f7f7219ba5532fa0437133"
+      "sha256": "sha256:57dd09c41932e581bb40fa5900c15d86f43671584fc41e022b2c23b3e9f7f911"
     },
     {
       "path": "openspec/contracts/readability-review.schema.json",
       "exists": true,
-      "sha256": "sha256:7ce86a38c65b3a924d8cacf474a698c5f5d4c0c94fba34d14d0ed19f5b23ef67"
+      "sha256": "sha256:13dbdfba7da9def028f8293d13fe7e1cba05b81bc47b60cc95adf9ac8f85dd13"
     },
     {
       "path": "openspec/contracts/task-state.schema.json",
@@ -77,6 +97,21 @@
       "path": "openspec/intake/INT-20260901-025-upgrade-agent-system-round2.md",
       "exists": true,
       "sha256": "sha256:408e5af7036d8cc3979006f89efba4ec4b50dc1299be7feed7bb3ee890264ed6"
+    },
+    {
+      "path": "openspec/intake/INT-20260901-026-analysis-line-usability.md",
+      "exists": true,
+      "sha256": "sha256:25049558069c8eb08feb520a2ed7216a485fea202381e97e46da54c9416d3bb4"
+    },
+    {
+      "path": "openspec/intake/INT-20260901-027-bootstrap-disposition.md",
+      "exists": true,
+      "sha256": "sha256:9accc2de43774c6f196df2da3a57b5011e848b6de4f7959137da3cf76f753d0f"
+    },
+    {
+      "path": "openspec/intake/INT-20260901-028-doc-vocabulary-gaps.md",
+      "exists": true,
+      "sha256": "sha256:1f140817a8bc03f479efd0c575a672e56a088f07b93bbef848ecddc3d5501206"
     },
     {
       "path": "openspec/intake/analysis/INT-20260901-023-repo-suited-workflow/workflow-binding.json",
@@ -106,7 +141,7 @@
     {
       "path": "openspec/profiles/plain-language-v1.json",
       "exists": true,
-      "sha256": "sha256:f5ca30f04df0ecf483c0c483ddfdee2a9dc5d2852c9930730cb0a5a03211bed5"
+      "sha256": "sha256:084ddfeb54768bda4094cbf6cb6e02896276a46fade787596c54aa53990c6c3c"
     },
     {
       "path": "openspec/schemas/delivery-change/schema.yaml",
@@ -134,14 +169,19 @@
       "sha256": "sha256:ed5f703670031622fa2f2833f6cb8218f2efdb00d46133cde0a94392622eff13"
     },
     {
+      "path": "openspec/tools/bootstrap.ts",
+      "exists": true,
+      "sha256": "sha256:671d3ee1099413f77e271ca0e7fb575c380169ea2fada867cf0d4f271b4b2a7c"
+    },
+    {
       "path": "openspec/tools/delivery-control.ts",
       "exists": true,
-      "sha256": "sha256:9f9a399c990bfd94b6342de9b36086068a81d838db7b8c55c2dc0d1c8f838060"
+      "sha256": "sha256:a84f9dfe500a790a496fff0ee23543b350a584c3fcd70d411a290d0e0b1fe997"
     },
     {
       "path": "openspec/tools/delivery-lifecycle.ts",
       "exists": true,
-      "sha256": "sha256:b448363f06271da527aa042e664fc836dbd33c2b9013ea4ad483d41fd384a585"
+      "sha256": "sha256:e64310fc5ca922d1ceccafe9694a68030def9fcf59d96f38091fa3a87be35671"
     },
     {
       "path": "openspec/tools/intake-control.ts",
@@ -156,7 +196,7 @@
     {
       "path": "openspec/tools/plain-language.ts",
       "exists": true,
-      "sha256": "sha256:dcf8e26ec727f18dcafbfbd5035803849b1ffc95068a43552f418f7659957cd1"
+      "sha256": "sha256:6fd94b65f822403ff58f84a5cd34f655b68244e7200ff14b4cef44ca4e74f066"
     },
     {
       "path": "openspec/tools/upgrade-report.ts",
@@ -176,7 +216,7 @@
     {
       "path": "public-allowlist.json",
       "exists": true,
-      "sha256": "sha256:a0de01d420dcd3b4e4e42473e35dcc610ac29b4499a5df12ded9070e9106b5e5"
+      "sha256": "sha256:7831343f4cdca513dd6048089ba635235547ad6237affc4cba5102c28409bc37"
     },
     {
       "path": "test/candidate.test.ts",
@@ -186,12 +226,12 @@
     {
       "path": "test/contracts.test.ts",
       "exists": true,
-      "sha256": "sha256:8bd0e7d4e3abbdc77187b06f68c0aabe703ee731d790de008c6a18c91f0f7f33"
+      "sha256": "sha256:5f70202e471f9a4e9b727e36ed714059298cb97e516e6b26e547b3c506bccbd6"
     },
     {
       "path": "test/control.test.ts",
       "exists": true,
-      "sha256": "sha256:11197a963f8fac68222572ed4e77a6e83c5c27b85c8008592fb063c58969a242"
+      "sha256": "sha256:b6aa7faaac272cc85418312ed47cc05b7d6162d5e46bb5be81ef8766d123cf92"
     },
     {
       "path": "test/intake.test.ts",
@@ -206,101 +246,101 @@
     {
       "path": "test/lifecycle.test.ts",
       "exists": true,
-      "sha256": "sha256:8790dbd7080876ad4318ef4012aa9f06e36b600d96b25cd0b23dd8c8bc125e75"
+      "sha256": "sha256:3d9d78bb425934dff526c1712ab1e06cc0f580ae2c9d41a78d0046d30a1f6922"
     },
     {
       "path": "test/plain-language.test.ts",
       "exists": true,
-      "sha256": "sha256:3c654a3de65154ced383f13ef670a439a46d58e0e90ec55e3e2fcc1a2b930d39"
+      "sha256": "sha256:5bc292531da2afecafaeba1cd0117440208b05021818bde8fe1e376f84b74385"
     },
     {
       "path": "test/station-authority.test.ts",
       "exists": true,
-      "sha256": "sha256:ae8bbb953c25082f59211533dd31959375e718b87dbda9d3b60be5f646601dfd"
+      "sha256": "sha256:b980782ca39a69f57dfdbdddd72f242e266d3002e5521b37a99f5617999fe3d6"
     }
   ],
-  "reviewedDigest": "sha256:ae06b984a9ad4eb2fb6bd6806e524b1ca1a635788fd54368026f573dd6218cdd",
-  "reviewer": "独立实施评审（未参与实施的空白会话；只读审查加敌对实测，全量测试连跑三次）",
-  "reviewedAt": "2026-09-01T19:20:00Z",
+  "reviewedDigest": "sha256:25596530455eede2c51f67cf23bf6c16718a30e18c771b13b7999c8879ea7948",
+  "reviewer": "独立实施评审终审（未参与实施的空白会话；逐条敌对复测，全量测试连跑三次）",
+  "reviewedAt": "2026-09-01T21:55:00Z",
   "findings": [
     {
       "id": "REV-001",
       "severity": "HIGH",
-      "path": "(general)",
-      "line": null,
-      "summary": "工件升到第 7 版时漏改 openspec/config.yaml 的 rules 段（第 16 至 20 行）：它仍然给 current-state 与 change-plan 两个已经不存在的工件挂规则。实测 `openspec instructions solution-proposal --change slim-workflow-and-plain-language` 每次都打印两行 Unknown artifact ID in rules；两条治理规则（升级职责与失败处置、安全修复与升级框架的区分）在第 7 版下不再挂到任何工件，等于静默失效，而承接了这些内容的 solution-proposal 与 tasks 并没有补上对应规则。上一版 schema 里这两个 id 是合法的，所以这是本次改动引入的回归。",
-      "status": "OPEN",
-      "resolution": null
+      "path": "openspec/config.yaml",
+      "line": 16,
+      "summary": "规则挂在已取消的工件上，两条治理规则静默失效。",
+      "status": "RESOLVED",
+      "resolution": "已关闭。逐字对照旧版：原挂在 current-state 上的两条规则搬到 solution-proposal，原挂在 change-plan 上的一条搬到 tasks，三条内容一条不丢，各带一行注释说明去向（其中一条顺手把「软链」改为「受管投影」，与先前的受管投影改造一致）。实测 openspec instructions 对全部合法工件均不再打印 Unknown artifact ID。新增断言从 schema.yaml 反推合法工件 id 再比对规则键，不是硬编码清单；变异实测：把一条规则挂回 change-plan，断言当场点名「规则挂在不存在的工件上：change-plan」，还原后通过。"
     },
     {
       "id": "REV-002",
       "severity": "HIGH",
-      "path": "(general)",
-      "line": null,
-      "summary": "命令正文没跟着升版：.omp/command-sources/bodies/opsx-propose.md 第 13 行与其渲染副本 .omp/commands/opsx-propose.md 第 26 行仍写着「最后才能创建 change-plan……Proposal、Decision 和 Plan 分别批准」。一句话同时踩两个已被本单废止的口径（已取消的工件、已废止的按份批准）。实测按此指令执行 `openspec instructions change-plan` 直接硬失败并列出八个合法工件。render-commands check 报 changed 为空，因为源文件与渲染副本同病，这道检查在结构上发现不了。",
-      "status": "OPEN",
-      "resolution": null
+      "path": ".omp/commands/opsx-propose.md",
+      "line": 26,
+      "summary": "命令正文仍指示创建已取消的工件、并讲已废止的按份批准口径。",
+      "status": "RESOLVED",
+      "resolution": "已关闭。源文件与渲染副本的对应段落都改写成第 7 版口径：只要求方案提案与方案决策两份，实施切片写进实施任务，批准按人真实表态的次数记、门内逐份记哈希。render check 报 changed 为空，两份一致。全目录扫描不再有 change-plan、03-现状、改造方案.md、分别批准。变异实测：把过时说法写回渲染副本，新增断言当场点名。"
     },
     {
       "id": "REV-003",
       "severity": "HIGH",
       "path": "(general)",
       "line": null,
-      "summary": "长期规范增量漏了 MODIFIED 段。openspec/specs/delivery-lifecycle-governance/spec.md 第 9 至 17 行仍规定「Schema MUST 在 05 中依次要求 solution-proposal、solution-decision 和 change-plan。三者 MUST 分别计算 digest 和批准」，并在场景里写「不得用 change-plan 的批准代替 Proposal 或 Decision 批准」。这与本单新增的「一次表态只记一条批准」直接对立，且点名一个已被删除的工件。本单五份增量全部只有 ## ADDED Requirements，没有任何 MODIFIED 或 REMOVED；规范同步站合入后，长期规范正文会同时挂着两条互相否定的 MUST。本仓已有 MODIFIED 段的先例（archive/2026-09-01-enforce-analysis-line-and-prune-pipeline）。",
-      "status": "OPEN",
-      "resolution": null
+      "summary": "长期规范增量全是纯新增，没有改写与新口径正面冲突的旧条款。",
+      "status": "RESOLVED",
+      "resolution": "已关闭。delivery-lifecycle-governance 的增量新增了 ## MODIFIED Requirements 段，改写「方案提案与决策必须是独立 Artifact」。我逐字节比对了增量与长期规范里那一行的 Requirement 名，完全一致（合入靠名字匹配，名字对不上就不会生效）；改写后的正文不再出现 change-plan，也不再要求「三者分别计算 digest 和批准」，并把新的按门批准口径写了进去。openspec validate --all --strict 十项全过。"
     },
     {
       "id": "REV-004",
       "severity": "HIGH",
       "path": "openspec/tools/delivery-control.ts",
-      "line": 359,
-      "summary": "批准改按门记之后，防篡改能力实际被削弱了。一条门批准是整体覆写：机械回填 07-实施任务（每次 task render 都会发生）让 tasks 转 stale，而唯一的修复手段就是重签整条门批准，于是维护者对另外五份工件的原始表态与时间被一并抹掉，记录变成「Claude 代笔的机械重批准」。更要紧的是重签会重算并重新祝福全部工件的哈希。实测：在 07-实施任务里做一处机械改动、同时在 05-改造方案/方案决策.md 里做一处语义篡改，两份先都转 stale；随后以「证据回填后重批准」名义重签一次，八份全部回到 approved，guard apply 放行，被篡改的方案决策没有任何提示。旧的按份口径不存在这条通道（重签 tasks 不会重签 solution-decision）。这与 AGENTS.md「任何改变语义的改动都必须重新取得维护者表态，不得由 agent 重签」直接冲突，而该条规则正是本仓上一次被判 FAIL 的原因。",
-      "status": "OPEN",
-      "resolution": null
+      "line": 389,
+      "summary": "门级批准整体覆写，机械回填能顺带把被篡改的工件一起重新祝福，且抹掉维护者的原始表态。",
+      "status": "RESOLVED",
+      "resolution": "已关闭。写入拆成三条互不冒充的路：首签、机械回填后的刷新（须显式声明刷新哪几份）、重新取得人工表态（须写理由）。我原样复演了上一轮那条链路：在实施任务做一处机械改动、在方案决策做一处语义篡改，再以刷新名义只声明 tasks——被拒绝并点名 solution-decision，批准记录逐字节不变（前后 sha256 相同），实施门禁继续拦。撤掉篡改后同一条命令成功，且首签的表态人与时间原样保留、刷新以追加方式记录、未声明工件的哈希未动。另测：不声明刷新范围拒、刷新时改结论拒、声明未知工件拒、声明重复项拒、声明了没变的工件放行并如实记进 unchanged、重新表态覆写表态人与时间并清空刷新记录且把理由写进记录、首签时声明重新表态拒。残余面（已属设计边界，非缺陷）：把被篡改的工件显式写进刷新范围仍会放行——机器分不清机械与语义。但它已从「悄悄搭车」变成「必须署名认领」：那一份会被永久记进 refreshes 的执行者与工件清单，人复核时点得出来。"
     },
     {
       "id": "REV-005",
       "severity": "HIGH",
       "path": "openspec/tools/plain-language.ts",
-      "line": 188,
-      "summary": "说人话关宣布的必过范围比它实际检查的范围大一圈，而且在自己的立法单里就没生效。配置里的 repoMustPass（README.md、docs/**、openspec/specs/**）被加载、被 inspect 回显，却没有任何门禁读它：verifyPlainLanguage 只处理 Change 内的 mustPass。而 AGENTS.md 与 .claude/skills/delivery-pilot/SKILL.md 第 54 行都对外承诺「README 与说明文档、长期规范……归档前的门禁会检查它」。后果之二是禁词单在本单自己新产出的人读文字里大面积落空：现状.md、方案提案.md、方案决策.md、原始需求索引.md 等六份文件落在「未归类」，其中反复出现本单新立的禁词「台账」「砍纸」，门禁如实报出未归类却放行。未归类只报不拦这条设计本身没问题，问题是必过清单没有覆盖维护者在方案门实际阅读的材料。",
-      "status": "OPEN",
-      "resolution": null
+      "line": 205,
+      "summary": "说人话关宣布要管仓级必过文件却一份不查；本单自己新写的六份人读文字落在未归类，里面的禁词全部放行。",
+      "status": "RESOLVED",
+      "resolution": "已关闭，两侧都补上了。仓级那一侧：门禁取「本次改动实际碰过的仓级必过文件」，与越档交叉校验共用同一份改动事实。实测三种情形——往 README 塞禁词被拒并点名「README.md:113 台账 → 改用 事项记录」；新增一份 docs 下的说明文档而没有审读记录被拒并点名；改动后审读记录没更新被判过期。Change 内那一侧：必过清单补进了维护者在门口真正会翻的那几份（原始需求索引、现状、改造方案目录、测试方案），本单的未归类清单从六份降到零。当前本单共 19 份人读文字过关，我逐份重算 sha256 核对审读记录的哈希，19 份全部对得上，没有一条挂着的意见。仓级那一侧在拿不到 git 事实时不检查（Change 内那一侧照常），这是刻意的 fail-open；正常流水线里评审站要求 Change 已提交，走不到这条分支。"
     },
     {
       "id": "REV-006",
       "severity": "MEDIUM",
       "path": "openspec/tools/delivery-control.ts",
-      "line": 400,
-      "summary": "第 7 版的任务模板与渲染器互相打架，首次渲染就静默删掉模板自带的两节。实测：把 openspec/schemas/delivery-change/templates/tasks.md 原样放进 Change 再跑 task render，模板第 27 至 37 行的「## 依赖关系」与「## 关于证据」两节被整段删除——后者恰恰是本单新写的、解释可否重跑判据的说明。原因是渲染以「## 任务清单」为界，界线以下全部重新生成，而模板在界线之下还放了两节内容。",
-      "status": "OPEN",
-      "resolution": null
+      "line": 476,
+      "summary": "任务清单渲染会静默删掉模板自带的两节。",
+      "status": "RESOLVED",
+      "resolution": "已关闭。渲染现在只重写一段，终点锚定到其后第一个整行以 ## 开头的标题。实测把第 7 版模板原样放进 Change 再渲染，「依赖关系」与「关于证据」两节完整保留。"
     },
     {
       "id": "REV-007",
       "severity": "MEDIUM",
       "path": "openspec/tools/delivery-control.ts",
-      "line": 400,
-      "summary": "渲染边界用的是裸子串查找（existing.indexOf），不是行锚定。人写部分只要提到「## 任务清单」这五个字，首次渲染就从该子串处腰斩：实测一份在正文里写「渲染规则：以 `## 任务清单` 这一行为界」的实施任务文件，渲染后那句话被截成「本节由人写。渲染规则：以 `## 任务清单」，其后的全部人写内容消失，而 verifyTaskProjection 仍然通过、没有任何门禁报警。触发条件并不罕见——schema.yaml 的 instruction 与模板本身都在要求作者理解并可能复述这条边界规则。",
-      "status": "OPEN",
-      "resolution": null
+      "line": 480,
+      "summary": "渲染边界用裸子串查找，人写正文里只要提到「## 任务清单」就会被腰斩。",
+      "status": "RESOLVED",
+      "resolution": "已关闭。起点改为整行相等匹配。实测三种情形：人写正文里提到这五个字不再腰斩、内容完整保留；模板自带的后续小节保留；文件里没有这条界线行时行为与从前一致，整份覆盖。附带一处无害变化：界线行之前的那个空行会被吃掉一次，之后稳定不再变化，Markdown 渲染不受影响。"
     },
     {
       "id": "REV-008",
       "severity": "MEDIUM",
       "path": "openspec/contracts/readability-review.schema.json",
       "line": 17,
-      "summary": "审读记录不绑定被审文件的内容哈希：条目只记 target 路径，verifyPlainLanguage 也只比对路径集合。于是一份文字审读完之后被整篇改写，这道关照样放行。本仓其它每一条人工记录（工件批准、实施评审、验收、归档就绪）都绑内容哈希并在内容变化时转 stale，唯独这道新关没有。契约的 description 只声明了「证明不了确实找过一个不知情的会话，伪造面由独立评审兜」，没有覆盖「审读之后又改了」这一侧——那不是伪造，是新鲜度。",
-      "status": "OPEN",
-      "resolution": null
+      "summary": "审读记录不绑被审文件的内容哈希，审完再改照样放行。",
+      "status": "RESOLVED",
+      "resolution": "已关闭。契约把 digest 设为必填并限定 sha256 格式，判定逐条比对现算哈希，与工件批准同规格。实测：改动被审文件后报「审读记录已过期」并点名，重新审读后恢复放行，写一个非法格式的哈希被拒。"
     },
     {
       "id": "REV-009",
       "severity": "MEDIUM",
       "path": "docs/workflow-guide.md",
       "line": 76,
-      "summary": "说明文档内部自相矛盾，且都落在「宣称必过、实际不检查」的 repoMustPass 范围里。docs/glossary.md 第 33 行正确写明今天是六份工件；docs/workflow-guide.md 第 76 行仍在讲「02 归一化 WHAT/WHY……03 记录业务与技术现状（v6 起合并为一份）」，而第 7 版下 02 与 03 两个目录都已不存在；README.md 第 75 行更旧，仍写「业务/技术现状」这个第 5 版的说法。一个照着说明文档建 Change 的人会去找两个不存在的目录。",
+      "summary": "说明文档自相矛盾，上一轮点名的两处原文一字未改。docs/workflow-guide.md 第 76 行仍写「02 归一化 WHAT/WHY……03 记录业务与技术现状（v6 起合并为一份）」，而同一份文件第 208 行起的产物表已经改成了第 7 版的六份——同一份文档里前后打架。README.md 第 75 行仍写「业务/技术现状」，是第 5 版的说法，与同文件第 12 行的「六层」矛盾。两处都在仓级必过范围内，审读记录的哈希与当前内容一致，说明陌生读者是对着这两处遗留文字读的却没圈出来，处置侧也只改了表格。更麻烦的是承接后续文档词汇问题的事项记录 INT-20260901-028 在「不含」段里明写「本单已改的那批（工件层数……）」把这类问题排除在外——于是这处遗留两头都没人认领。",
       "status": "OPEN",
       "resolution": null
     },
@@ -309,45 +349,72 @@
       "severity": "LOW",
       "path": "openspec/tools/delivery-lifecycle.ts",
       "line": 220,
-      "summary": "把长期规范纳入评审范围这一改只做对了一半。函数上方的说明明确写着情形二（评审之后由规范同步站写长期规范）「继续排除长期规范目录」，但实际只有工作树那一侧的 dirtyImplementationPaths 排除了它；评审后漂移检查走的 implementationPaths（reviewedCommit 到 HEAD 的提交区间）没有排除。当前流水线把 Spec Sync 留在工作树里、与归档一起提交，所以没撞上；一旦有人先提交 Spec Sync 再跑 guard archive，就会拿到一句指向 openspec/specs 的 review stale，而按注释这不该失效。测试 T-04.2 只覆盖了工作树那一侧。",
-      "status": "OPEN",
-      "resolution": null
+      "summary": "评审后漂移检查只在工作树那一侧排除长期规范目录，提交区间那一侧没排除。",
+      "status": "RESOLVED",
+      "resolution": "已关闭。提交区间那一侧也加了同一条排除，两侧判据一致。测试补了对照：把规范同步提交掉再查，评审不得过期；而改实现代码仍然让评审过期。"
     },
     {
       "id": "REV-011",
       "severity": "LOW",
       "path": "test/control.test.ts",
       "line": 17,
-      "summary": "三份测试里各留了一个零引用的 const artifacts 数组（control.test.ts 第 17 行、lifecycle.test.ts 第 21 行、station-authority.test.ts 第 21 行）。它们是按份批准时代的遗留，本单还顺手把它们从八项改成六项，却没发现已经没有任何调用方。这恰好是本单要消灭的「第二份清单」的三份复制品：它们硬编码了当前工件集，却不被任何断言约束，下次升版时会静默过时。",
-      "status": "OPEN",
-      "resolution": null
+      "summary": "三份测试各留一个零引用的工件清单常量。",
+      "status": "RESOLVED",
+      "resolution": "已关闭。三处整行删除，全仓不再有这个常量。"
     },
     {
       "id": "REV-012",
       "severity": "LOW",
-      "path": "openspec/tools/intake-control.ts",
-      "line": 129,
-      "summary": "敏感内容检查的修法正确，但有两处锐边值得入档。实测 18 个边界样例：所有网址放行（https、http、file、ftp，含括号、反引号、尖括号包裹），所有盘符写法拦下（行首、空格前导、中文字紧邻、连字符后、表格单元内、大小写、正反斜杠）。两处例外是这个结构判据的固有代价：一是单字母协议 s:// 会被当成盘符拦下（现实中没有这种协议，可接受）；二是 ASCII 字母紧贴盘符时逃逸（pathC:\\Users\\x 放行，因为「本机用户目录」那条只认正斜杠的 /Users/）。中文正文里几乎不会出现后者，但建议在注释里写明这个已知逃逸口，而不是留给下一个人重新发现。",
-      "status": "OPEN",
-      "resolution": null
+      "path": "docs/known-edges.md",
+      "line": 7,
+      "summary": "敏感内容检查的两处已知逃逸口应入档说明。",
+      "status": "RESOLVED",
+      "resolution": "已关闭。新增的已知锐边文档如实记下单字母协议误判与 ASCII 字母紧贴盘符逃逸两条，并说明为什么不改成协议白名单。相关代码本轮未被触碰，我重跑真 CLI 复验：网址放行、四种盘符写法全拦，行为与上一轮一致。"
     },
     {
       "id": "REV-013",
       "severity": "LOW",
-      "path": "openspec/tools/delivery-control.ts",
-      "line": 146,
-      "summary": "三代结构并存的一处锐边：parseGateApproval 用 Change 当前声明的版本去校验批准记录里的工件名，遇到表外工件是直接解析失败，而不是降级成 stale。所以把一个已批准的第 6 版 Change 的 deliverySchemaVersion 改成 7，整份批准记录会以「含未知工件: current-state」报错，而不是给出「这些工件已合并，需要重新批准」这样可操作的提示。目前没有自动迁移路径所以不会触发，但三代并存的升版指引里没有写这一条，第一个真去升版的人会撞上。",
-      "status": "OPEN",
-      "resolution": null
+      "path": "docs/known-edges.md",
+      "line": 22,
+      "summary": "三代结构并存时手改版本号会让批准记录硬解析失败而非转过期，升版指引没写。",
+      "status": "RESOLVED",
+      "resolution": "已关闭。已知锐边文档记下这一条并给出正确做法（新建第 7 版 Change，而不是改老 Change 的版本号）。我核对了它引用的报错串确实来自批准记录解析处，描述属实。"
     },
     {
       "id": "REV-014",
       "severity": "LOW",
-      "path": "(general)",
-      "line": null,
-      "summary": "遗留项裁断：openspec/tools/bootstrap.ts 仍映射到 03-现状/现状.md 与 05-改造方案/改造方案.md，并把 deliverySchemaVersion 写死为 6。实测走完 dry-run、stage、activate、rollback 全流程，产出的 Change 自洽：显式声明第 6 版，落地文件与第 6 版路径表逐项匹配，bootstrap-state 合同校验通过，不与第 7 版冲突，也不会被误判。它是为单一历史 slug optimize-logistics-change-review-workflow 写的一次性迁移工具，而该 slug 在本仓既不在 active 也不在 archive。建议不在本单返工，另开一条事项二选一：要么取消（连同 test/bootstrap.test.ts 一并删），要么冻结并在文件头写明「本工具固定产出第 6 版结构，迁移后需另走一次第 6 版到第 7 版的升版」。",
+      "path": "openspec/tools/bootstrap.ts",
+      "line": 2,
+      "summary": "历史导入工具仍固定产出第 6 版结构，去留未定。",
+      "status": "RESOLVED",
+      "resolution": "已关闭，取的正是上一轮建议的「冻结并写明」。文件头新增说明：固定产出第 6 版、导入后需另走一次升版、本工具不做也不假装做过，并写清为什么冻结而不跟着升版。去留另立事项 INT-20260901-027。代码里那句写死的版本号与注释一致。"
+    },
+    {
+      "id": "REV-015",
+      "severity": "MEDIUM",
+      "path": "AGENTS.md",
+      "line": 12,
+      "summary": "本轮新立的三条批准写入路径，没有同步到 agent 每轮真正照着做事的两份文档。AGENTS.md 第 12 条仍写着「重批准……此时 agent 可以重签，但必须在 approvedBy 标注代笔」——它描述并授权的正是本轮刚刚取消的整体重签；第 11 条也仍把「证据回填后的机械重批准」列为 approvedBy 的一种合法形态，而刷新这条路根本不写 approvedBy。docs/governance.md 第 59 行只写了首签一条命令，全文没有一处提到刷新或重新表态。两个新参数在全仓的出现范围只有工具源码与它自己的测试，任何文档都没有。后果是可达的：任务清单渲染之后批准转过期，agent 照 AGENTS.md 去重签会撞上「缺少 --refreshed-artifact」这个文档里查不到的参数，而此时它能找到的唯一能写 approvedBy 的入口是 --new-attestation——那恰恰是替维护者签一次新表态。长期规范增量与机器合同都补上了这条，唯独这两份最常被读的操作文档没补。",
       "status": "OPEN",
       "resolution": null
+    },
+    {
+      "id": "REV-016",
+      "severity": "LOW",
+      "path": ".omp/commands/opsx-propose.md",
+      "line": 137,
+      "summary": "同一份命令正文的第 137 行仍写「01～07 的九项规划 artifact」，而第 7 版落在这个编号区间的规划工件只有六份，与本单在词表和 README 里反复强调的「六份」直接打架。这一句早于本次评审基线（第 5 版时是对的，第 6 版起就已过时），不是本轮引入；但本轮返工恰好改的就是这份文件上面一百多行处的同类说法，而新增的命令正文断言只查四个固定字符串、不含计数，所以这处没有任何覆盖。",
+      "status": "ACCEPTED",
+      "resolution": "记录但不判为本单未关闭项：它早于评审基线，属于存量。建议在处置 REV-009 时顺手改掉（改成「六项」或去掉具体数字），并考虑把计数类说法纳入那条命令正文断言。"
+    },
+    {
+      "id": "REV-017",
+      "severity": "LOW",
+      "path": "openspec/schemas/delivery-change/schema.yaml",
+      "line": 25,
+      "summary": "第 7 版 schema 的写作说明仍把作者指向 02-需求理解 这个目录（第 25、29 行；模板 raw-requirements.md 里也有一处）。实测 openspec instructions specs 与 instructions raw-requirements 会把这几句原样打印给 agent，而仓内没有任何一个第 6、7 版 Change 存在这个目录，它也不在任何一张工件路径表里。照做会造出一份谁都不读、并且会被说人话关报成未归类的文件。",
+      "status": "ACCEPTED",
+      "resolution": "记录但不判为本单未关闭项：这处残留自第 6 版就已存在，早于评审基线。建议与 REV-009、REV-016 合并成一次文档口径清扫。"
     }
   ],
   "result": "FAIL"
