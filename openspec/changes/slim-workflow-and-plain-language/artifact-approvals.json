@@ -3,19 +3,20 @@
   "gates": {
     "decision": {
       "decision": "approved",
-      "approvedBy": "维护者（2026-09-01 方案门口逐条表态，由 Claude 转录，非亲签）",
-      "approvedAt": "2026-09-01T18:59:19.863Z",
-      "migrationSource": null,
+      "approvedBy": "维护者（门口表态由 Claude 转录，非亲签）",
+      "approvedAt": "2026-09-01T21:26:08.110Z",
+      "migrationSource": "重新取得表态：返工语义订正后重新表态：战果数字更正为约 17、撤下未实现承诺、禁词写法改指向名单",
       "artifacts": {
-        "raw-requirements": "sha256:8686d701317e8234a507814359ae36f7c2538e25b6841a133a82c1170de4e1ec",
-        "specs": "sha256:b7f4343ea33be0748acab71b12972370fedcd80dc01a02f6ca314318a2a55166",
-        "current-state": "sha256:2ce7820471773d7d24ea5d944b966de57d71804ab163a8f96edcbb15cf9b9f06",
-        "solution-proposal": "sha256:3f7e589929f57b14ec4921b97bae7f41d0f2980f3dd549a70ce84de61cc9c95a",
-        "solution-decision": "sha256:9e43f37f6e19ddb057dc22678c440e190c39e7694fbd1ce37100e1aecfe724e9",
-        "change-plan": "sha256:2ebe4b13121e147dd1e36c0d85513d9126678e689d173432cee1e3439ccc48a1",
-        "test-plan": "sha256:ffcfcc7afe75ae1f77ce8861bca4340dde5cb620b390df2b1d5fcb10957ea2ca",
-        "tasks": "sha256:78a92d23301fccba27b21c96c0dbaa70ff216fd69bb62c062d80d2aed7c82fe8"
-      }
+        "raw-requirements": "sha256:aff72d6ac9dc03658430dcd31d15866e6386458f4ae99574f7d5bb875f49c074",
+        "specs": "sha256:c9cf9804e02d355ac6f4b50ac2d3a8b1f78f32fe80000ff8fe648f7f9ddca06a",
+        "current-state": "sha256:74d398dd2665763d35ebcf468643684c41bb53226c990cf9ef83f1ba562352cf",
+        "solution-proposal": "sha256:5b4645527fe2cadbbba8558e80c2931dae5337f7980e4abbb2c549d9937f38fb",
+        "solution-decision": "sha256:f7e209a91976a9894b7bf5807936ca0ce41d2b372f5249fa65aa109a548d8ef5",
+        "change-plan": "sha256:fad04cec78fd7c84e78a4d7590279314423884ed4f094bf8bfc88f7ef0e06e82",
+        "test-plan": "sha256:691931cdfeca12715c62900a0914bca107feb22b664add4e11928d7cc95dca8b",
+        "tasks": "sha256:100344cd9f1aed94751d73b3ece51b3db1a0ff6bf8fc53b782a8ab39e3ea224d"
+      },
+      "refreshes": []
     }
   }
 }

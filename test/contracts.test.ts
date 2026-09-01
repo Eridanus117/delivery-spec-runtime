@@ -407,7 +407,12 @@ test("REV-003/T-07.4 批准合同同时容纳两种口径，并校验仓内全�
     if (value.schemaVersion === 2) {
       assert.deepEqual(Object.keys(value).sort(), ["gates", "schemaVersion"], `${label} 顶层键`);
       for (const [gate, record] of Object.entries(value.gates) as Array<[string, Record<string, unknown>]>) {
-        assert.deepEqual(Object.keys(record).sort(), ["approvedAt", "approvedBy", "artifacts", "decision", "migrationSource"], `${label}.${gate} 字段集`);
+        // refreshes 是可选的：还没发生过机械回填的门就没有这个键。必填的那五个一个不能少，
+        // 也不许多出合同外的键——多出来的键说明有人在批准记录里塞了合同没规定的东西。
+        const allowedGateKeys = ["approvedAt", "approvedBy", "artifacts", "decision", "migrationSource", "refreshes"];
+        const requiredGateKeys = ["approvedAt", "approvedBy", "artifacts", "decision", "migrationSource"];
+        for (const key of requiredGateKeys) assert.ok(key in record, `${label}.${gate} 缺 ${key}`);
+        for (const key of Object.keys(record)) assert.ok(allowedGateKeys.includes(key), `${label}.${gate} 出现合同外字段: ${key}`);
         assert.ok(["approved", "rejected"].includes(record.decision as string), `${label}.${gate}.decision`);
         assert.ok(typeof record.approvedBy === "string" && (record.approvedBy as string).length > 0, `${label}.${gate}.approvedBy`);
         const digests = Object.entries(record.artifacts as Record<string, string>);
