@@ -20,7 +20,8 @@
         "T-01.6"
       ],
       "evidence": [],
-      "blocker": null
+      "blocker": null,
+      "replayable": true
     },
     {
       "id": "2.1",
@@ -36,7 +37,8 @@
         "T-02.3"
       ],
       "evidence": [],
-      "blocker": null
+      "blocker": null,
+      "replayable": true
     },
     {
       "id": "3.1",
@@ -52,7 +54,8 @@
         "T-03.4"
       ],
       "evidence": [],
-      "blocker": null
+      "blocker": null,
+      "replayable": true
     },
     {
       "id": "4.1",
@@ -65,11 +68,12 @@
         "T-04.2"
       ],
       "evidence": [],
-      "blocker": null
+      "blocker": null,
+      "replayable": true
     },
     {
       "id": "5.1",
-      "state": "planned",
+      "state": "implemented_unverified",
       "deliverables": [
         "task-state 契约新增 replayable",
         "delivery-control.ts 按 replayable 分派证据规则",
@@ -83,7 +87,8 @@
         "T-05.5"
       ],
       "evidence": [],
-      "blocker": null
+      "blocker": null,
+      "replayable": true
     },
     {
       "id": "6.1",
@@ -103,7 +108,8 @@
         "T-06.5"
       ],
       "evidence": [],
-      "blocker": null
+      "blocker": null,
+      "replayable": true
     },
     {
       "id": "7.1",
@@ -121,7 +127,8 @@
         "T-07.5"
       ],
       "evidence": [],
-      "blocker": null
+      "blocker": null,
+      "replayable": true
     },
     {
       "id": "8.1",
@@ -138,7 +145,8 @@
         "T-08.5"
       ],
       "evidence": [],
-      "blocker": null
+      "blocker": null,
+      "replayable": true
     },
     {
       "id": "9.1",
@@ -153,7 +161,8 @@
         "T-09.3"
       ],
       "evidence": [],
-      "blocker": null
+      "blocker": null,
+      "replayable": true
     },
     {
       "id": "10.1",
@@ -171,7 +180,8 @@
         "T-10.4"
       ],
       "evidence": [],
-      "blocker": null
+      "blocker": null,
+      "replayable": true
     }
   ]
 }

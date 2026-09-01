@@ -32,7 +32,7 @@ function prepareChange(repo: string): { change: string; baseline: string; review
     "07-实施任务/实施任务.md": "# 实施任务\n- [x] 1.1 [verified] 完成演示\n", "specs/example/spec.md": "## ADDED Requirements\n### Requirement: Demo\n#### Scenario: Demo\n- **WHEN** x\n- **THEN** y\n",
   };
   for (const [path, content] of Object.entries(files)) write(join(change, path), content);
-  write(join(change, "task-state.json"), `${JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "verified", deliverables: ["src/app.ts"], verification: ["node --test"], evidence: ["PASS"], blocker: null }] }, null, 2)}\n`);
+  write(join(change, "task-state.json"), `${JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "verified", deliverables: ["src/app.ts"], verification: ["node --test"], evidence: ["PASS"], blocker: null, replayable: false }] }, null, 2)}\n`);
   // 说人话关在归档前的门禁上生效，所以这个能走到归档的 fixture 必须带审读记录。
   // 它同时是这道关的正向对照：记录齐备、没有挂着的意见时，归档照常放行。
   write(join(change, "readability-review.json"), `${JSON.stringify({

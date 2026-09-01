@@ -18,7 +18,7 @@ type TaskStateName = "planned" | "implemented_unverified" | "blocked_external" |
 type ChangeInfo = { schemaVersion: 1; displayName: string; deliverySchemaVersion: number | null };
 type Approval = { digest: string; decision: "approved" | "rejected"; approvedBy: string; approvedAt: string; migrationSource: string | null };
 type ApprovalState = { schemaVersion: 1; artifacts: Record<string, Approval> };
-type Task = { id: string; state: TaskStateName; deliverables: string[]; verification: string[]; evidence: string[]; blocker: string | null };
+type Task = { id: string; state: TaskStateName; deliverables: string[]; verification: string[]; evidence: string[]; blocker: string | null; replayable: boolean };
 type TaskState = { schemaVersion: 1; tasks: Task[] };
 
 // v6 起 business-current 与 technical-current 合并为单一 current-state。
@@ -151,19 +151,52 @@ function validateEvidence(root: string, evidence: string[], label: string): void
     if (!statSync(target).isFile() || statSync(target).size === 0) fail(`${label} evidence 必须是非空文件: ${item}`);
   }
 }
+/**
+ * 任务解析。
+ *
+ * `replayable` 是本轮新增的字段，回答一个此前没人问过的问题：**这次验证还能不能再跑一遍？**
+ * 维护者原话是「测试日志和验收证据，在 vibe coding 中意义不大……我会觉得单测其实根本不
+ * 需要记录」。判据由此从「证据重不重要」换成「能不能重跑」：
+ *
+ *   - **可重跑**（本仓的自动化测试全属此类）→ **不许留证据路径**。要复核就当场再跑一遍；
+ *     存下来的日志无法证明它对应的是当前这版代码，留着只是让人以为有据可查。
+ *   - **不可重跑**（构造一次请求走一遍场景，做完就没了）→ **必须留证据**，那是唯一一次机会。
+ *
+ * 「记录验证过程」这个能力因此保留在通用底盘上，只是在本仓恒为关闭——这一条是未来接入
+ * 公司仓时最关键的一处差异，那边的验证恰好落在「不可重跑」那一侧。
+ *
+ * 缺省视为可重跑，好让存量任务状态不必改写；但**新写入必须显式声明**（见 requireExplicitReplayable），
+ * 免得默认值替人把「这次验证到底能不能重跑」这个判断悄悄做掉。
+ */
 function parseTask(value: unknown, index: number): Task {
   const item = object(value, `tasks[${index}]`);
-  exactKeys(item, ["id", "state", "deliverables", "verification", "evidence", "blocker"], ["id", "state", "deliverables", "verification", "evidence", "blocker"], `tasks[${index}]`);
+  exactKeys(item, ["id", "state", "deliverables", "verification", "evidence", "blocker", "replayable"], ["id", "state", "deliverables", "verification", "evidence", "blocker"], `tasks[${index}]`);
   const state = text(item.state, `tasks[${index}].state`);
   if (!( ["planned", "implemented_unverified", "blocked_external", "verified"] as string[]).includes(state)) fail(`tasks[${index}].state 非法`);
   const deliverables = stringArray(item.deliverables, `tasks[${index}].deliverables`); const verification = stringArray(item.verification, `tasks[${index}].verification`); const evidence = stringArray(item.evidence, `tasks[${index}].evidence`);
   if (!deliverables.length || !verification.length) fail(`tasks[${index}] 缺少交付物或验证方式`);
+  if (item.replayable !== undefined && typeof item.replayable !== "boolean") fail(`tasks[${index}].replayable 必须是布尔值`);
+  // 缺省值按实际形态推断，而不是一律当成可重跑：归档目录里的存量任务带着自然语言证据，
+  // 一律按可重跑解释会让它们集体解析失败——只读兼容是硬要求，存量不迁移。
+  // 推断只服务于读；新写入必须显式声明（见 requireExplicitReplayable）。
+  const replayable = item.replayable === undefined ? evidence.length === 0 : (item.replayable as boolean);
   const blocker = item.blocker === null ? null : text(item.blocker, `tasks[${index}].blocker`);
-  if (state === "verified" && evidence.length === 0) fail(`tasks[${index}] verified 缺少 evidence`);
+  if (replayable && evidence.length > 0) fail(`tasks[${index}] 声明这次验证可以重跑，就不得保存证据路径——要复核就当场重跑，存下来的日志证明不了它对应当前这版代码`);
+  if (!replayable && state === "verified" && evidence.length === 0) fail(`tasks[${index}] 声明这次验证不可重跑，verified 时必须保存证据——做完就没了，不记就永远丢了`);
   if (state !== "verified" && evidence.length > 0) fail(`tasks[${index}] 非verified不得保存 evidence`);
   if (state === "blocked_external" && blocker === null) fail(`tasks[${index}] blocked_external 缺少 blocker`);
   if (state !== "blocked_external" && blocker !== null) fail(`tasks[${index}] 非blocked_external不得保存 blocker`);
-  return { id: text(item.id, `tasks[${index}].id`), state: state as TaskStateName, deliverables, verification, evidence, blocker };
+  return { id: text(item.id, `tasks[${index}].id`), state: state as TaskStateName, deliverables, verification, evidence, blocker, replayable };
+}
+/**
+ * 新写入必须显式声明 replayable。缺省值只服务于存量任务状态的只读兼容；
+ * 让新写入也吃缺省，等于把一个需要人判断的问题交给默认值回答。
+ */
+function requireExplicitReplayable(path: string): void {
+  const value = object(readJson(path), "task-state");
+  if (!Array.isArray(value.tasks)) return;
+  const missing = (value.tasks as unknown[]).map((item, index) => (item && typeof item === "object" && "replayable" in (item as Record<string, unknown>) ? null : index)).filter((index) => index !== null);
+  if (missing.length) fail(`task-state 写入必须为每个任务显式声明 replayable（这次验证能不能再跑一遍）：缺失于 tasks[${missing.join("], tasks[")}]`);
 }
 function parseTasks(path: string): TaskState {
   const value = object(readJson(path), "task-state");
@@ -207,7 +240,7 @@ function approvalSet(root: string, options: Map<string, string>): void {
   withFileLock(lockPath(root), () => { const state = parseApprovals(approvalsPath(root), root); state.artifacts[artifact] = { digest: artifactDigest(root, artifact), decision, approvedBy: requiredOption(options, "approved-by"), approvedAt: now(), migrationSource: options.get("migration-source") ?? null }; atomicWriteJson(approvalsPath(root), state); console.log(JSON.stringify(state, null, 2)); });
 }
 function approvalsInspect(root: string): void { const state = parseApprovals(approvalsPath(root), root); const effective: Record<string, string> = {}; for (const artifact of Object.keys(artifactPathsFor(root))) effective[artifact] = approvalStatus(root, state, artifact); console.log(JSON.stringify({ ...state, effective }, null, 2)); }
-function taskWrite(root: string, options: Map<string, string>): void { const imported = parseTasks(requiredOption(options, "file")); parseInfo(infoPath(root)); for (const task of imported.tasks) validateEvidence(root, task.evidence, `tasks[${task.id}]`); withFileLock(lockPath(root), () => atomicWriteJson(tasksPath(root), imported)); console.log(JSON.stringify(imported, null, 2)); }
+function taskWrite(root: string, options: Map<string, string>): void { const file = requiredOption(options, "file"); requireExplicitReplayable(file); const imported = parseTasks(file); parseInfo(infoPath(root)); for (const task of imported.tasks) validateEvidence(root, task.evidence, `tasks[${task.id}]`); withFileLock(lockPath(root), () => atomicWriteJson(tasksPath(root), imported)); console.log(JSON.stringify(imported, null, 2)); }
 function taskSet(root: string, options: Map<string, string>): void {
   withFileLock(lockPath(root), () => { const state = parseTasks(tasksPath(root)); const task = state.tasks.find((item) => item.id === requiredOption(options, "id")); if (!task) fail("未知 task id"); const next = requiredOption(options, "state"); if (!( ["planned", "implemented_unverified", "blocked_external", "verified"] as string[]).includes(next)) fail("任务状态非法"); task.state = next as TaskStateName; task.evidence = options.has("evidence") ? [requiredOption(options, "evidence")] : []; task.blocker = options.has("blocker") ? requiredOption(options, "blocker") : null; parseTask(task, 0); validateEvidence(root, task.evidence, `tasks[${task.id}]`); atomicWriteJson(tasksPath(root), state); console.log(JSON.stringify(state, null, 2)); });
 }

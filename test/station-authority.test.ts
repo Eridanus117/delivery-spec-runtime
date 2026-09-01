@@ -63,7 +63,7 @@ function prepare(repo: string): Fixture {
     "09-发布/发布计划.md": "# 发布计划\nrelease-not-required\n",
   };
   for (const [path, content] of Object.entries(files)) write(join(change, path), content);
-  write(join(change, "task-state.json"), `${JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "verified", deliverables: ["src/app.ts"], verification: ["node --test"], evidence: ["08-验收/验收记录.md"], blocker: null }] }, null, 2)}\n`);
+  write(join(change, "task-state.json"), `${JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "verified", deliverables: ["src/app.ts"], verification: ["node --test"], evidence: ["08-验收/验收记录.md"], blocker: null, replayable: false }] }, null, 2)}\n`);
   write(join(repo, mainSpec), readFileSync(join(change, "specs/example/spec.md"), "utf8"));
   const init = runTool("delivery-control.ts", ["init", "--change-root", change, "--slug", "demo-change", "--display-name", "演示", "--mode", "delivery"], { cwd: repo });
   assert.equal(init.status, 0, init.stderr);
