@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
   "baselineCommit": "cd6d2f0c3e127913144e3d2e72b751fb52b14704",
-  "reviewedCommit": "e6c538a416b0509b55065d4ff4e97f7b0324997b",
+  "reviewedCommit": "0d40647554eaa84cf4d118aba4511f11d9eaceb3",
   "reviewedPaths": [
     {
       "path": "openspec/contracts/openspec-upgrade-report.schema.json",
       "exists": true,
-      "sha256": "sha256:84fc269d5f5f8cac53a4a4ee5056dc9b1617bd77e7cc632b247793a2a90801ef"
+      "sha256": "sha256:27cef8efdbd61850a7bed20b91f317c55f703077c5b64266a79880dc74253200"
     },
     {
       "path": "openspec/intake/INT-20260831-014-calibration-signals.md",
       "exists": true,
-      "sha256": "sha256:86f734effcdcbea2f10f10c8b8a21832bd2423519293e1208c371de935cf31be"
+      "sha256": "sha256:78375e0b06cd6972103cb396cc05a69a1e18de816e4f410174cb1801c1e9d6b9"
     },
     {
       "path": "openspec/intake/INT-20260901-022-thorn-batch.md",
@@ -21,7 +21,7 @@
     {
       "path": "openspec/intake/INT-20260901-023-repo-suited-workflow.md",
       "exists": true,
-      "sha256": "sha256:571122c242e59e7b7d127c4eb80a2fefdab5d01cd75a89d9e92912422021a11e"
+      "sha256": "sha256:31a668e46b608149240dffed9d822aef8139eee7127ba7c55aab1023f83069ce"
     },
     {
       "path": "openspec/intake/analysis/INT-20260901-022-thorn-batch/workflow-binding.json",
@@ -51,7 +51,7 @@
     {
       "path": "openspec/tools/openspec-upgrade.ts",
       "exists": true,
-      "sha256": "sha256:c6f842e204bfd70d9a64c439d75972bb3fd522921509842087a4d0641d24c3a6"
+      "sha256": "sha256:fd633113b23f30855defb55a819f0df0b517f0cc0ce9248206601e9f5b878db6"
     },
     {
       "path": "openspec/tools/public-candidate.ts",
@@ -61,7 +61,7 @@
     {
       "path": "openspec/tools/runtime-entry.ts",
       "exists": true,
-      "sha256": "sha256:0d628fd5d7cebe6d8365ef2931f02ddbaefcaffbf06eba5b95da03ccabdebdec"
+      "sha256": "sha256:1189c02df4fabe0229b41c1cd5e07fcbc417b267e5945465c91f47170fbae6f9"
     },
     {
       "path": "openspec/tools/runtime-lib.ts",
@@ -71,7 +71,7 @@
     {
       "path": "test/bootstrap.test.ts",
       "exists": true,
-      "sha256": "sha256:a2b91d9123037992c0d79105be61020a79ffc7ed75ffe3d8031f5e8b750799c8"
+      "sha256": "sha256:734ecb42dd66517e06662ddd55d1f2f0b3ebf9a2b0c24472c121a93d68b82dec"
     },
     {
       "path": "test/candidate.test.ts",
@@ -86,7 +86,7 @@
     {
       "path": "test/contracts.test.ts",
       "exists": true,
-      "sha256": "sha256:1693dc04e81a70978ceea8c7f9ce9b981012279c088246fca45db96a78641f7b"
+      "sha256": "sha256:4ef2ecf7d5cbc6d3407dd9afb64369e9cd98501b28ca6a21d8c4b174a742e97b"
     },
     {
       "path": "test/control.test.ts",
@@ -139,9 +139,9 @@
       "sha256": "sha256:609735723e12e30f358adf9153e476b35d659b9a440d54fa80aa7156f9f70e35"
     }
   ],
-  "reviewedDigest": "sha256:81a5a30f34dd1a1cb0952e78498c18843e15ce282b6f4880037ff39d6388b724",
-  "reviewer": "independent-implementation-review session（未参与实施，逐刺亲手复测，不采信实施侧报告）",
-  "reviewedAt": "2026-09-01T08:05:23Z",
+  "reviewedDigest": "sha256:7d620d72d7a51ad9e21dce7db86316da4e06efd3d464d7af460e46b6a45d14d1",
+  "reviewer": "independent-implementation-review session（未参与实施，第二轮收口复审，逐条亲手复测返工处置）",
+  "reviewedAt": "2026-09-01T08:34:10Z",
   "findings": [
     {
       "id": "REV-001",
@@ -149,8 +149,8 @@
       "path": "openspec/intake/INT-20260831-014-calibration-signals.md",
       "line": 37,
       "summary": "信号9「缺口两条」写明路由表缺前缀一事「处置按其自述走（补前缀行）」，与最终裁定 #4「不修路由表、记录在案随重设计处置」直接矛盾；复审核对 openspec/profiles/change-routing-v1.json 在 cd6d2f0..e6c538a 内一字未改，该处置从未发生。同段又称缺口「三处」，实为四处——openspec/specs/ 同样不命中任何 pathPrefixes（INT-023 自己列的是四处），两份新台账互相打架。信号台账是 AGENTS.md 明文规定要在复盘统一消费的资产，且 INT-023 明确把信号9 列为启动输入，读者会据此认为路由表已补。",
-      "status": "OPEN",
-      "resolution": null
+      "status": "RESOLVED",
+      "resolution": "信号9 改写为「缺口三条，维护者已裁定本批不修，全部留作 INT-023 重设计输入」，路径前缀空白订正为四处并逐一列名（补入 openspec/specs/**），另加一句「该表在 cd6d2f0..HEAD 一字未改，读者不要据本条认为它已经补上」，并说明本单的实际处置是另一条路（按路由表另一半规定把 INT-022 的 changeObject 由 tool-code 升为 governance-contract，见 D-05），段末附订正说明。INT-023 的输入材料段同步注明两份台账口径已对齐。复审复核：git diff cd6d2f0..0d40647 -- openspec/profiles/change-routing-v1.json 为空，「该表未改」属实；逐字比对两份台账，缺口数目、四处路径名、裁定编号与「不修」口径完全一致，无残留的旧陈述。"
     },
     {
       "id": "REV-002",
@@ -158,8 +158,8 @@
       "path": "openspec/contracts/openspec-upgrade-report.schema.json",
       "line": 127,
       "summary": "consumer 条目把 failureReason 加进 required，但 schemaVersion 仍是 1，而本仓已归档的 openspec/changes/archive/2026-08-30-establish-controlled-openspec-upgrades/08-验收/runs/20260830T1151Z-upgrade-final/upgrade-evaluation/upgrade-report.json 也自称 schemaVersion 1 且三个 consumer 条目均无该键——复审逐条实测确认。结果是本仓公开分发的机器合同现在拒绝本仓自己归档的证据，而改造方案已明写归档报告不回溯改写。上一轮复审的 REV-003（artifact-approvals 合同未覆盖 v5）是同一形态的问题，当时按 HIGH 处理并以「合同同时容纳新旧两种形状」收口，此处未沿用该范式，也未升版本号。",
-      "status": "OPEN",
-      "resolution": null
+      "status": "RESOLVED",
+      "resolution": "沿用 artifact-approvals 合同同时容纳 v5/v6 工件集的范式：JSON 合同把 failureReason 移出 required 并改用 allOf + if/then 表达「键出现时取值约束仍为硬」，TS 侧 validateReport 的 exactKeys 允许键缺失、取值检查包在 in 判断内；不升 schemaVersion（理由写进新增决策日志 D-06）。validateReport 导出供断言直接调用唯一实现，不在测试里另抄判据。复审不采信其断言、亲手把真实归档报告原文喂进 validateReport：不抛错通过；三种新形状违规仍被逐一拒绝并报出准确理由（FAIL+null →「结论为 FAIL 却没有失败原因」、FAIL+空串 → 同上、PASS+非空 →「结论为 PASS 不得携带失败原因」），FAIL+合理原因 通过。合同与实现同批一致。"
     },
     {
       "id": "REV-003",
@@ -167,8 +167,8 @@
       "path": "test/contracts.test.ts",
       "line": 362,
       "summary": "VC-041 中「预算必须是紧的：如果实际最长值远低于预算，说明预算没有跟上现实，形同虚设」这句注释所承诺的判据并不存在：紧随其后的 assert.ok(longest <= repositoryPathBudget) 与上一条 assert.deepEqual(violations, []) 逻辑等价，是一条恒真的重复断言，对「预算被调高到远离实测最大值」这一退化毫无判别力。注释因此强于事实，与本仓「结论不得强于可复现事实」的既有订正口径相悖。附带：repositoryPathBudget 以 export 暴露却无任何跨文件消费者，与本单「删除零调用导出」的取向不一致。",
-      "status": "OPEN",
-      "resolution": null
+      "status": "RESOLVED",
+      "resolution": "改为 assert.equal(repositoryPathBudget, longest)，把预算与仓内实测最长值绑死——单方面放宽当场转红；export 已删除。复审亲手跑负向对照：把常量由 155 临时改为 500 后 VC-041 转红并报出「预算已漂离现实：常量为 500，仓内实测最长路径为 155。预算只能与实测最长值同步升降，不得单方面放宽」，恢复后转绿。另核算归档改名的影响：本 Change 目录内最长路径 76 字符，归档前缀增量 19，归档后为 95，远低于 155，assert.equal 不会因本单归档而转红。"
     },
     {
       "id": "REV-004",
@@ -176,8 +176,8 @@
       "path": "openspec/tools/runtime-entry.ts",
       "line": 37,
       "summary": "gitResult 把 spawnSync 的 status 为 null（进程被信号终止、非 result.error 路径）归一成 1。对 ls-files 这是安全的（非 0 即 fail-closed），但对 check-ignore 恰好相反：1 正是「没有任何路径被忽略」的正常答案，于是 git 被杀掉时 verifyProjectionIndex 会静默放行。这是本单新增的六组断言里唯一一处 fail-open，与同文件其余全部判据的取向相反；区分 null 与 1 即可修复。",
-      "status": "OPEN",
-      "resolution": null
+      "status": "RESOLVED",
+      "resolution": "gitResult 改为如实透出 status: number | null 并附带 signal，判据抽成导出的纯函数 checkIgnoreIncomplete；ls-files 的错误信息也同步区分「退出状态 N」与「进程被信号终止(SIG)」。理由记入新增决策日志 D-07。复审不采信其断言、直接 import 判据函数亲手喂入六种形状：{0}/{1} 返回 null（放行）；{null,SIGKILL}、{null,null}、{128}、{129} 全部返回拒绝理由且文案可区分（分别报出 SIGKILL / 未知信号 / 退出状态 128 / 退出状态 129），null 与 1 的取值不再相同。fail-open 已消除。"
     },
     {
       "id": "REV-005",
@@ -185,8 +185,8 @@
       "path": "(general)",
       "line": null,
       "summary": "三处已批准工件/证据的陈述与事实不符，复审逐条实测：(1) 07-实施任务/实施任务.md 任务 3.5 仍写 T-QUIET-1 落在 test/control.test.ts，而全仓 grep 显示 DeprecationWarning 断言只存在于 test/submodule.test.ts:414——test-plan 已为同一处更正做过机械重批准，tasks 工件在 07:43 的证据回填重批准中未同步；(2) 改造方案「影响面」与测试方案均写「新增五组断言」，实测新增六个 test 块（VC-041、投影 index 坏账、入口回落、超长路径、输出洁净、冒烟失败原因），基线 79 → 现 85；(3) evidence/deadcode.log 声称「未用导入回扫为空」，复审对 openspec/tools/ 与 test/ 全量回扫仍得到一条 test/bootstrap.test.ts 的未用 statSync（基线即存在，非本单引入），该证据的结论强于其实际覆盖面。",
-      "status": "OPEN",
-      "resolution": null
+      "status": "RESOLVED",
+      "resolution": "三处逐条订正：(1) task-state.json 与实施任务.md 的 3.5 落点改为 test/submodule.test.ts 并重渲染，复审复核该文件内已无 control.test.ts 残留；(2) 改造方案与测试方案改为「八组（六组首轮 + 两组 REV-002/REV-004 返工补充）」并写明基线 79 → 87，复审实测顶层 test 块 86 个、套件报 87 项，与陈述一致；(3) 删除 test/bootstrap.test.ts 的未用 statSync，deadcode.log 补写扫描口径与首轮只扫 openspec/tools/ 的覆盖面缺陷，复审用自己的扫描器对 openspec/tools/ 与 test/ 全量重扫：未用导入 0、零调用导出 0，「回扫为空」现在可复现。"
     },
     {
       "id": "REV-006",
@@ -195,7 +195,7 @@
       "line": 72,
       "summary": "入口回落使受管投影副本成为可执行入口，副作用是「校验者本身可能是一份未经校验的副本」——修复前投影副本根本跑不起来，唯一入口是受 gitlink 钉死的 submodule 原件。方案决策「接受的后果」只写了「回落可能掩盖未初始化」这一面，未写这一面。",
       "status": "ACCEPTED",
-      "resolution": "按裁定 #1（投影副本算可执行入口）的直接后果接受，不要求本单返工。复审用独立探针在真实形状夹具上实测：干净投影副本作入口 exit 0；把该副本自身追加一行后再用它自己作入口，仍报「受管投影漂移: openspec/tools/runtime-entry.ts」并非零退出，与用 submodule 原件调用的结果一致——verifyLinks 兜住了自校验场景。残余面仅限「副本旧到不含 verifyLinks」，属跨版本历史问题而非本单引入。建议随 INT-20260901-023 工作流重设计时把这一面补进风险表。"
+      "resolution": "按裁定 #1（投影副本算可执行入口）的直接后果接受，不要求返工；残余风险已按复审建议连同实测结论完整移交 INT-20260901-023-repo-suited-workflow 的输入材料段，复审逐字核对该段与本条 finding 原意一致、未弱化，并保留了「重设计时应把这一面补进风险表」的行动项。复审在返工后的 HEAD 上用独立探针重跑：干净投影副本作入口 exit 0 且输出 allowed: true；把该副本自身追加一行后再用它自己作入口，仍报「受管投影漂移: openspec/tools/runtime-entry.ts」并非零退出——verifyLinks 仍兜住自校验场景，返工未削弱这一兜底。"
     },
     {
       "id": "REV-007",
@@ -204,7 +204,25 @@
       "line": 323,
       "summary": "failureReason 是 upgrade-report.json 里第一个逐字文本字段——此前全报告一律只出 sha256 摘要、行数与退出码，指纹也只出 digest。它转载的是消费仓克隆里跑出来的 stdout/stderr，而本仓是公开共享运行时，AGENTS.md 明文禁止保存请求响应与 trace。既有的 PRIVATE-<name>-SENTINEL 断言只覆盖一个特定字符串，对这一新增面基本没有判别力。",
       "status": "ACCEPTED",
-      "resolution": "复审实跑 T-SMOKE-1 并打印真实取值，得到单行「runtime-check 失败(status=1)：受管投影被父仓 .gitignore 或本机排除规则忽略，将无法进入提交: .claude/skills/delivery-pilot/SKILL.md；请移除命中它们的忽略规则」——无堆栈、无绝对路径、无消费仓私有内容；核对 runtime-entry.ts 末行的 catch 只打印 error.message，故当前不存在实际泄漏，不要求本单返工。但脱敏是「被引用的命令恰好只吐 Runtime 自有信息」的巧合，不是机器约束；建议在 INT-20260901-023 或下一次真实升级评估前，给 failureReason 补一条形状约束或裁剪规则。"
+      "resolution": "复审实跑取到的真实取值为单行 Runtime 自有错误消息，无堆栈、无绝对路径、无消费仓私有内容，故当前不存在实际泄漏，不要求返工。残余风险已连同该实测结论移交 INT-20260901-023 的输入材料段，复审逐字核对内容属实且保留了行动项「重设计时（或下一次真实升级评估之前，以先到者为准）应给该字段补一条形状约束或裁剪规则」。返工未改动该字段的取值逻辑，结论继续成立。"
+    },
+    {
+      "id": "REV-008",
+      "severity": "CRITICAL",
+      "path": "openspec/tools/runtime-entry.ts",
+      "line": 287,
+      "summary": "返工为让测试能 import checkIgnoreIncomplete，给入口补了「仅直接执行时才跑 main」守卫，判据是 resolve(process.argv[1]) === resolve(import.meta.filename)，并在注释里断言「该守卫不改变任何既有行为」。该断言不成立：Node 的 ESM 加载器对主模块会解析符号链接/junction，import.meta.filename 给出的是 realpath，而 process.argv[1] 保留调用时写法，两者在路径中任意一段是软链或 junction 时必然不等——此时 main() 根本不执行，进程以退出码 0、零输出结束。复审在真实形状夹具上实测：把一条受管投影（.omp/commands/opsx-apply.md）改坏后，用真实路径调用入口正确 fail-closed（exit 1，「受管投影漂移: .omp/commands」），经指向同一资产仓的 junction 调用同一个入口文件则 exit 0 且 stdout/stderr 全空——本应被拒的坏账被静默放行。另做 A/B 对照：把守卫撤回成返工前的无条件 main() 后，同一 junction 调用恢复正常输出判定。机制也已独立复现（junction 下 argv1 与 import.meta.filename 分别为 link 路径与 real 路径，守卫为 false）。这条守卫加在的是全体消费仓唯一的 fail-closed 闸门，且 runtime-entry.ts 本身是四条受管投影之一，会随 gitlink 升级进入每个消费仓；触发条件是「仓库路径上有软链/junction」这种寻常情形（macOS 的 /tmp→/private/tmp、/var→/private/var 即恒定命中，而升级冒烟与全部夹具都跑在 os.tmpdir() 下）。同一脆弱写法在 openspec-upgrade.ts、render-commands.ts、delivery-lifecycle.ts 三处于基线即存在（cd6d2f0 已有），但那三处是维护者侧内部工具，不是消费仓闸门，爆炸半径不同量级；runtime-entry.ts 的这条是本轮返工新引入的。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-009",
+      "severity": "MEDIUM",
+      "path": "(general)",
+      "line": null,
+      "summary": "tasks 工件的重批准把 approvedBy 写成「维护者（陈述订正与证据回填后的机械重批准，Claude 代笔）」，但本轮该工件的改动并非只有机械回填：任务 2.6 的交付物新增了一项「以及 test/bootstrap.test.ts 基线遗留的未用 statSync」，验证口径也由「未用导入回扫为空」扩展为「openspec/tools/ 与 test/ 两处全量回扫均为空」——增加交付物与放宽/扩展验证判据都改变了工件语义。AGENTS.md 对重批准的规定是「只在改动是机械回填、不改变工件的任何语义时合法……任何改变语义的改动都必须重新取得维护者表态，不得由 agent 重签」，且本仓已因同一工件的同类问题被复审判过一次 FAIL（上一单 REV-005）。同批的 change-plan 与 test-plan 都正确地披露为「维护者……返工裁定，门口表态由 Claude 代笔转录」，唯独 tasks 用了更弱的「机械重批准」分类，三者口径不一致。migrationSource 已如实列出改了什么，故属分类披露不准确而非隐瞒。",
+      "status": "OPEN",
+      "resolution": null
     }
   ],
   "result": "FAIL"
