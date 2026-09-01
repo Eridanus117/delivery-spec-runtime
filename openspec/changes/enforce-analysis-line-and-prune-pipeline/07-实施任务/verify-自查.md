@@ -47,9 +47,9 @@ no evidence: []
 
 ### 场景覆盖
 
-`06-测试方案/测试方案.md` 定义的 VC-001…VC-040 共 40 个场景，全部有对应断言落在 `test/` 下的 10 份测试文件中（新增 `station-authority.test.ts` 一份）。全量 `node --test`：**稳定通过 73/74，余 1 项为已知环境 flake `INT-20260831-010`**（改造前基线 53）。
+`06-测试方案/测试方案.md` 定义的 VC-001…VC-040 共 40 个场景，全部有对应断言落在 `test/` 下的 10 份测试文件中（新增 `station-authority.test.ts` 一份）。全量 `node --test`：**稳定通过 78/79，余 1 项为已知环境 flake `INT-20260831-010`**（改造前基线 53）。
 
-> 口径说明（复审 REV-013 订正）：本段原先写「74 passed / 0 failed」，把一次幸运绿灯当成终态。该 flake 在本 Change 之前的基线上同样可复现，非本单引入，但结论表不得强于可复现事实，故按「73/74 + 已知噪音」记。
+> 口径说明（复审 REV-013 订正）：本段原先写「74 passed / 0 failed」，把一次幸运绿灯当成终态。该 flake 在本 Change 之前的基线上同样可复现，非本单引入，但结论表不得强于可复现事实，故按「78/79 + 已知噪音」记。
 
 ### 偏离检查
 
@@ -57,7 +57,7 @@ no evidence: []
 
 - 5.2：工件**个数**由 9 变 8 是合并的直接结果；不减的是**校验项**，并给出了两条机器证据。
 - 4.1：新的「RAW 编号即权威顺序」规则不追认本 Change 自身 `change-sources.json` 里的历史排序，它对新建 Change 生效。
-- 7.1：本 Change delta 的 `Runtime SHALL report a deterministic intake inventory` 与并入长期能力的两条 Inventory 需求语义重叠，建议在 sync 站合并去重。
+- 7.1：Inventory 需求的语义重叠已按复审 REV-008 **在本单内合并去重**（合并为语义并集的单一来源，Legacy 孪生条款改以 MODIFIED 合并），不再留给 sync 站——sync 站没有改写 delta 的权限，推过去只能二选一硬合。
 
 ## 三、一致性
 
