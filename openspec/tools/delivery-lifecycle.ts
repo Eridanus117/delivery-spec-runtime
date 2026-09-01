@@ -5,7 +5,7 @@ import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "nod
 import { spawnSync } from "node:child_process";
 import {
   atomicWriteJson, exactKeys, fail, integer, now, object, parseArgs, readJson, requiredOption,
-  sha256File, text, withFileLock,
+  samePath, sha256File, text, withFileLock,
 } from "./runtime-lib.ts";
 
 type Finding = {
@@ -324,6 +324,13 @@ function main(): void {
   else if (command === "reopen") reopen(root, parsed.options);
   else fail("未知delivery-lifecycle命令");
 }
-if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+// 守卫不能删：requireAcceptance / requireReadiness / requireReview 被 delivery-control.ts import，
+// 无条件执行 main() 会在每次 import 时跑一遍命令解析。但判据必须是 samePath：
+// 旧写法把 argv[1] 直接拼进 file 协议 URL 再与 import.meta.url 比字符串，既在软链/junction 下必然
+// 为假（ESM 主模块走 realpath），又对含空格与非 ASCII 的路径缺少百分号编码。本模块在消费仓治理链上
+// ——runtime-entry 的 lifecycle 子命令以未经 realpath 的 runtimeRoot 拼路径 spawn 它，
+// 消费仓路径含软链时 review / acceptance / readiness 全族会以退出码 0、零输出静默跳过
+// （INT-20260901-024 实测）。
+if (process.argv[1] && samePath(process.argv[1], import.meta.filename)) {
   try { main(); } catch (error) { console.error((error as Error).message); process.exitCode = 1; }
 }

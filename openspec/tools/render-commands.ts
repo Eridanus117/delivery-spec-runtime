@@ -1,7 +1,7 @@
 #!/usr/bin/env -S node --experimental-strip-types
 import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { exactKeys, fail, integer, object, parseArgs, readJson, requiredOption, text } from "./runtime-lib.ts";
+import { exactKeys, fail, integer, object, parseArgs, readJson, requiredOption, samePath, text } from "./runtime-lib.ts";
 
 type CommandSource = { id: string; description: string; body: string };
 type RenderMode = "write" | "check";
@@ -82,6 +82,11 @@ function main(): void {
   console.log(JSON.stringify(renderCommands(requiredOption(parsed.options, "runtime-root"), mode), null, 2));
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename)) {
+// 守卫不能删：本模块的 renderCommands 被 openspec-upgrade.ts 与 test/command-renderer.test.ts import，
+// 无条件执行 main() 会在每次 import 时跑一遍命令渲染检查。但判据必须是 samePath 而不是字符串比较：
+// Node 的 ESM 加载器对主模块解析软链与 junction，import.meta.filename 是 realpath 而 argv[1] 保留
+// 调用写法，路径含软链时旧判据必然为假——CI 的「Check rendered Commands」步骤会以退出码 0、零输出
+// 静默通过而实际一个字节都没比对（INT-20260901-024 实测）。
+if (process.argv[1] && samePath(process.argv[1], import.meta.filename)) {
   try { main(); } catch (error) { console.error((error as Error).message); process.exitCode = 1; }
 }

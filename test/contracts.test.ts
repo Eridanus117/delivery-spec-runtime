@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { checkIgnoreIncomplete } from "../openspec/tools/runtime-lib.ts";
 import { validateReport } from "../openspec/tools/openspec-upgrade.ts";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { resolveChangeDir, runTool, runtimeRoot, removeOptions } from "./helpers.ts";
@@ -449,7 +449,7 @@ function functionSource(source: string, name: string): string {
 test("VC-042 入口的判据副本与 runtime-lib 权威定义逐字一致，且入口不得自带执行守卫", () => {
   const entry = readFileSync(join(runtimeRoot, "openspec/tools/runtime-entry.ts"), "utf8");
   const lib = readFileSync(join(runtimeRoot, "openspec/tools/runtime-lib.ts"), "utf8");
-  for (const name of ["abnormalExit", "checkIgnoreIncomplete"]) {
+  for (const name of ["samePath", "abnormalExit", "checkIgnoreIncomplete"]) {
     // 权威侧带 export 关键字，副本侧不带；除此之外必须一个字符都不差。
     assert.equal(functionSource(entry, name), functionSource(lib, name), `${name} 的入口副本与 runtime-lib 权威定义已分叉，请两边一起改`);
   }
@@ -464,4 +464,50 @@ test("VC-042 入口的判据副本与 runtime-lib 权威定义逐字一致，且
   assert.match(entry, /^try \{ main\(\); \}/m, "main\(\) 必须无条件执行");
   // 判据不得从入口导出：一旦导出就会有人去 import 它，而 import 会连带执行 main()。
   assert.doesNotMatch(entry, /^export /m, "入口不得导出任何符号");
+});
+
+/**
+ * T-GUARD-3（INT-20260901-024，两处基线旧账提前到本批修）
+ *
+ * `delivery-lifecycle.ts` 与 `render-commands.ts` 的 `renderCommands` / `requireXxx` 被别的模块
+ * import，无条件执行 `main()` 会在每次 import 时跑一遍命令解析，故这两处守卫不能删——
+ * 但判据必须能吸收软链。旧写法直接比字符串（一处还把 argv[1] 拼进 file 协议 URL），
+ * 在软链/junction 下必然为假，`main()` 整个跳过，进程以退出码 0、零输出结束：
+ *   - `delivery-lifecycle.ts` 在消费仓治理链上（入口的 lifecycle 子命令用未经 realpath 的
+ *     runtimeRoot 拼路径 spawn 它），review / acceptance / readiness 全族会静默跳过；
+ *   - `render-commands.ts` 是 CI 的「Check rendered Commands」步骤，会静默通过而不做任何比对。
+ * 本断言按 T-GUARD-2 的形状固化：经软链路径调用，行为必须与真实路径逐项一致。
+ */
+test("T-GUARD-3 两个工具经软链路径调用时行为与真实路径一致", () => {
+  const root = mkdtempSync(join(tmpdir(), "delivery-guard-"));
+  try {
+    const linked = join(root, "rt");
+    symlinkSync(runtimeRoot, linked, "junction");
+    const run = (base: string, script: string, args: string[]) =>
+      spawnSync(process.execPath, ["--experimental-strip-types", join(base, "openspec/tools", script), ...args], { encoding: "utf8" });
+
+    // delivery-lifecycle：不带参数应报缺参并非零退出，两条路径必须给出同一结果。
+    const realLifecycle = run(runtimeRoot, "delivery-lifecycle.ts", []);
+    const linkLifecycle = run(linked, "delivery-lifecycle.ts", []);
+    assert.notEqual(realLifecycle.status, 0, "真实路径下缺参数就该报错");
+    assert.match(realLifecycle.stderr, /缺少 --change-root/);
+    assert.equal(linkLifecycle.status, realLifecycle.status, `经软链调用时 main() 未执行：status=${linkLifecycle.status} stdout=${JSON.stringify(linkLifecycle.stdout)} stderr=${JSON.stringify(linkLifecycle.stderr)}`);
+    assert.match(linkLifecycle.stderr, /缺少 --change-root/);
+
+    // render-commands check：必须真的执行比对并输出结果，而不是静默通过。
+    const realRender = run(runtimeRoot, "render-commands.ts", ["check", "--runtime-root", runtimeRoot]);
+    const linkRender = run(linked, "render-commands.ts", ["check", "--runtime-root", runtimeRoot]);
+    assert.equal(realRender.status, 0, realRender.stderr);
+    assert.equal(linkRender.status, realRender.status, `经软链调用时 main() 未执行：status=${linkRender.status} stdout=${JSON.stringify(linkRender.stdout)} stderr=${JSON.stringify(linkRender.stderr)}`);
+    assert.deepEqual(JSON.parse(linkRender.stdout), JSON.parse(realRender.stdout));
+    assert.equal(JSON.parse(linkRender.stdout).files, 9, "check 必须真的数过九个 Commands");
+
+    // 「退出码 0 且零输出」正是守卫失配时的特征形状，单独钉住它。
+    for (const [label, result] of [["delivery-lifecycle.ts", linkLifecycle], ["render-commands.ts", linkRender]] as const) {
+      assert.notEqual(`${result.stdout}${result.stderr}`.trim(), "", `${label} 经软链调用时零输出退出——说明 main() 根本没跑`);
+    }
+  } finally {
+    // rmSync 对 junction 走 unlink 而不递归进目标，实测不会波及被链接的仓库。
+    rmSync(root, removeOptions);
+  }
 });
