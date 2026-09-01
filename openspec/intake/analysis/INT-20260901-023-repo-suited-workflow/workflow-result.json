@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "matterId": "INT-20260901-023-repo-suited-workflow",
+  "profileId": "requirement-analysis",
+  "profileVersion": "v1.0.0",
+  "status": "blocked",
+  "currentStageId": "decision",
+  "nextStageId": null,
+  "outputs": {
+    "missingInputs": [
+      "decisionReport",
+      "disposition"
+    ],
+    "completedStages": [
+      "capture",
+      "clarify",
+      "discover",
+      "evaluate"
+    ]
+  },
+  "reason": "阶段 decision 缺少输入: decisionReport, disposition"
+}
