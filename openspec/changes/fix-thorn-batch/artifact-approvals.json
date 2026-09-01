@@ -37,25 +37,25 @@
       "migrationSource": null
     },
     "change-plan": {
-      "digest": "sha256:e36643cef2e0f9a770a53d52034afede79824a44e16dfa14cf6a51877509b0de",
+      "digest": "sha256:16e48eb2050bf19d0858cf726bd62e5923c7cc5f8e04c0dbaf6f27cae8f0620d",
       "decision": "approved",
-      "approvedBy": "维护者（独立评审 FAIL 后的逐条返工裁定，门口表态由 Claude 代笔转录）",
-      "approvedAt": "2026-09-01T08:21:43.989Z",
-      "migrationSource": "按 REV-002 / REV-004 的裁定补入决策日志 D-06、D-07 并订正影响面与断言计数；目标、非目标与实施切片未变"
+      "approvedBy": "维护者（收口复审 FAIL 后的逐条返工裁定，门口表态由 Claude 代笔转录）",
+      "approvedAt": "2026-09-01T08:51:50.293Z",
+      "migrationSource": "按 REV-008 补入决策日志 D-08 与对应风险行、订正影响面与断言计数，并把 INT-024 记入待决问题的「已登记不在本单」条；目标、非目标与实施切片未变"
     },
     "test-plan": {
-      "digest": "sha256:779806b0824291e45997932a61fbdf1202e89600c2c2efeb400a77e18482bd4c",
+      "digest": "sha256:fb7599d4a247c4395a31b714a181c0ffaa9cecb1703cdc48b235dcc82c277304",
       "decision": "approved",
-      "approvedBy": "维护者（独立评审 FAIL 后的逐条返工裁定，门口表态由 Claude 代笔转录）",
-      "approvedAt": "2026-09-01T08:21:44.542Z",
-      "migrationSource": "按 REV-002 / REV-004 的裁定补入场景 T-COMPAT-1、T-IGN-3 与自动化资产落点，并按 REV-005 订正断言计数；通过标准与失败停止条件未变"
+      "approvedBy": "维护者（收口复审 FAIL 后的逐条返工裁定，门口表态由 Claude 代笔转录）",
+      "approvedAt": "2026-09-01T08:51:50.813Z",
+      "migrationSource": "按 REV-008 补入场景 T-GUARD-1 / T-GUARD-2、自动化资产落点与判据 import 来源的说明、失败停止条件一条，并订正断言计数与场景数"
     },
     "tasks": {
-      "digest": "sha256:414cb36d7693e96f5f46231c9a9dbc56e42bc00e0277613dd93be55fd0853a77",
+      "digest": "sha256:478e2da4192b994aba1186dac85613e4ae7d9c1b84815ea84446be3691431340",
       "decision": "approved",
-      "approvedBy": "维护者（陈述订正与证据回填后的机械重批准，Claude 代笔）",
-      "approvedAt": "2026-09-01T08:21:45.103Z",
-      "migrationSource": "按 REV-005 把任务 3.5 的测试落点由 control.test.ts 订正为 submodule.test.ts、把任务 2.6 的回扫口径补全到 test/ 并追加 rework.log 证据；任务边界与验证方式未变"
+      "approvedBy": "维护者（收口复审 FAIL 后的逐条返工裁定，门口表态由 Claude 代笔转录）",
+      "approvedAt": "2026-09-01T08:51:51.333Z",
+      "migrationSource": "按 REV-008 扩写任务 2.3 与 3.4 的交付物与验证（入口无条件执行、判据权威定义移入 runtime-lib、junction 回归与判据一致性断言）并追加 rework2 证据；按 REV-009 把披露措辞与 change-plan / test-plan 对齐——增加交付物与扩展验证判据都改变了工件语义，不按机械回填披露"
     }
   }
 }

@@ -29,3 +29,18 @@
 ℹ pass 87
 ℹ fail 0
 ℹ duration_ms 54587.0638
+=== 全量测试 第 1 次（收口返工后）===
+ℹ tests 89
+ℹ pass 89
+ℹ fail 0
+ℹ duration_ms 63200.3077
+=== 全量测试 第 2 次（收口返工后）===
+ℹ tests 89
+ℹ pass 89
+ℹ fail 0
+ℹ duration_ms 60370.806
+=== 全量测试 第 3 次（收口返工后）===
+ℹ tests 89
+ℹ pass 89
+ℹ fail 0
+ℹ duration_ms 60573.7225

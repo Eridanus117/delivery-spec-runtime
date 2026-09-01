@@ -48,13 +48,16 @@
       "id": "2.3",
       "state": "verified",
       "deliverables": [
-        "openspec/tools/runtime-entry.ts 的 sourceRootFromScript() 找不到 manifest 时回落 findConsumerRoot()"
+        "openspec/tools/runtime-entry.ts 的 sourceRootFromScript() 找不到 manifest 时回落 findConsumerRoot()",
+        "openspec/tools/runtime-entry.ts 的 main() 无条件执行、不导出任何符号；受管投影校验的纯判据权威定义移入 runtime-lib.ts，入口保留受机器校验的逐字副本"
       ],
       "verification": [
-        "投影副本在消费仓侧可作入口；未初始化目录仍 fail-closed 且文案指向 submodule 初始化"
+        "投影副本在消费仓侧可作入口；未初始化目录仍 fail-closed 且文案指向 submodule 初始化",
+        "经 junction/软链路径调用入口时受管投影坏账仍被拒；入口内不得出现路径比较守卫或同级 import"
       ],
       "evidence": [
-        "07-实施任务/evidence/new-asserts.log"
+        "07-实施任务/evidence/new-asserts.log",
+        "07-实施任务/evidence/rework2.log"
       ],
       "blocker": null
     },
@@ -151,13 +154,16 @@
       "id": "3.4",
       "state": "verified",
       "deliverables": [
-        "test/submodule.test.ts 的入口回落与边界断言（T-ENTRY-1 / T-ENTRY-2）"
+        "test/submodule.test.ts 的入口回落与边界断言（T-ENTRY-1 / T-ENTRY-2）",
+        "test/submodule.test.ts 的 junction 回归断言（T-GUARD-2）与 test/contracts.test.ts 的判据一致性断言（T-GUARD-1）"
       ],
       "verification": [
-        "投影副本可调用；孤立副本仍拒且文案正确"
+        "投影副本可调用；孤立副本仍拒且文案正确",
+        "经软链调用坏账仍被拒且入口不得零输出退出；两份判据源码逐字一致，入口无守卫、无导出"
       ],
       "evidence": [
-        "07-实施任务/evidence/new-asserts.log"
+        "07-实施任务/evidence/new-asserts.log",
+        "07-实施任务/evidence/rework2.log"
       ],
       "blocker": null
     },
@@ -201,7 +207,8 @@
       ],
       "evidence": [
         "07-实施任务/evidence/checks.log",
-        "07-实施任务/evidence/rework.log"
+        "07-实施任务/evidence/rework.log",
+        "07-实施任务/evidence/rework2.log"
       ],
       "blocker": null
     }
