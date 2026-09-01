@@ -11,6 +11,7 @@
 | active Change | `openspec/changes/<change>/` | 当前需求、决策、任务和证据 |
 | 历史 Change | `openspec/changes/archive/` | 审计证据，不作为当前 runbook |
 | Artifact 批准 | `artifact-approvals.json` | 批准状态真源。第 2 版按「人真实表态一次记一条」记：一条门批准覆盖那一刻的全部工件，但每份工件的内容哈希仍逐一记录，改了哪一份就失效并点名。门的清单由站位定义里 `humanJudgment` 为真的站推导，不另立第二份清单。 |
+| 说人话关审读 | `readability-review.json` | 必过清单里每份文字的审读意见与处置结论，绑被审文件的内容哈希。归档前的门禁会检查它：缺记录、有挂着没处置的意见、或审读之后又改了文字，都会停下。必过清单在 `openspec/profiles/plain-language-v1.json`。 |
 | 实现任务 | `task-state.json` | 任务状态真源；07 Markdown 仅是投影 |
 | Review/Acceptance/Readiness | `implementation-review.json`、`acceptance-state.json`、`archive-readiness.json` | 生命周期门禁真源 |
 | Runtime 执行合同 | manifest、schema、contracts、tools | 程序校验权威 |

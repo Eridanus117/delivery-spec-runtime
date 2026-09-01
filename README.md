@@ -82,9 +82,9 @@ Change 是正式交付的审计对象，不是聊天记录的替代品，也不�
 /opsx-new add-order-export
 ```
 
-随后使用 `/opsx-continue` 生成下一项规划工件；方案批准后由 `/opsx-apply` 实施，完成后使用 `/opsx-verify` 进入 Review 与验收，并由 `/opsx-archive` 完成长期 spec 同步和归档门禁。
+随后使用 `/opsx-continue` 生成下一项规划工件；方案批准后由 `/opsx-apply` 实施，完成后使用 `/opsx-verify` 进入 Review 与验收，由 `/opsx-sync` 把 delta spec 合并进长期 spec，最后由 `/opsx-archive` 过归档门禁并归档。
 
-Workflow System 支持同一仓库的多套 profile。先执行 `runtime-entry.ts workflow list-profiles` 获取机器 JSON，或执行 `workflow catalog` 查看所有 Profile 的用途、适用范围、阶段和交接；需要单个版本时使用 `workflow describe --profile-id <id> --profile-version <version>`。之后在 Change 根执行 `workflow bind --profile-id <id> --profile-version <version>`；`workflow run` 必须同时指定该 Change 根和 request 文件，并校验 request 中的绑定与 Change 持久绑定一致。未绑定、版本不存在、请求不匹配、阶段越序、缺少阶段输入、输入结构不符或缺少人工判断时，Runtime 返回机器可读的拒绝或阻塞结果，不自动回退到其他 profile。
+Workflow System 支持同一仓库的多套 profile。先执行 `runtime-entry.ts workflow list-profiles` 获取机器 JSON，或执行 `workflow catalog` 查看所有 Profile 的用途、适用范围、阶段和交接；需要单个版本时使用 `workflow describe --profile-id <id> --profile-version <version>`。之后在 Change 根执行 `workflow bind --profile-id <id> --profile-version <version>`；已有 Change 时，`workflow run` 要同时指定该 Change 根（`--change-root`）和 request 文件（`--request-file`），并校验 request 中的绑定与 Change 持久绑定一致。**立项之前还没有 Change**，此时改用 `--intake-id` 指向事项记录；两个参数互斥，同时给会被拒绝，完整命令见 [从需求到归档](docs/workflow-guide.md)。未绑定、版本不存在、请求不匹配、阶段越序、缺少阶段输入、输入结构不符或缺少人工判断时，Runtime 返回机器可读的拒绝或阻塞结果，不自动回退到其他 profile。
 
 没有完整外部需求分析输入的事项可使用 `requirement-analysis@v1.0.0`：`capture → clarify ↺ → discover ↺ → evaluate ↺ → decision`。它要求结构完整的问题框架、现有能力核验、候选方案比较、决策报告和至少一项 `analysisRounds`；每轮记录 `round`、`stage`、`known`、`unknown`、`evidence`、`confidence`、`judgment` 和 `decision`。门 B 输出 `build`、`use-existing`、`defer` 或 `reject`。`build` 不会自动创建 Change，Desk 仍负责个人分析策略和事项归属。
 
@@ -105,5 +105,7 @@ Workflow System 支持同一仓库的多套 profile。先执行 `runtime-entry.t
 | 评估并提升 OpenSpec 版本 | [受控 OpenSpec 升级](docs/openspec-upgrade.md) |
 | 创建、审查、验收和归档 Runtime 自身 Change | [Runtime 自治理](docs/governance.md) |
 | 把这套流程装到第二个仓库时该搬什么、该改什么 | [通用核心与本仓特有](docs/portable-core.md) |
+| 查一个仓内术语是什么意思 | [词表](docs/glossary.md) |
+| 知道哪些边界情形是刻意不修的 | [已知锐边](docs/known-edges.md) |
 
 当前操作方法以 `docs/` 为入口；规范性行为以 `openspec/specs/` 和机器合同为准；`openspec/changes/archive/` 只保存历史证据；`AGENTS.md` 只约束 Agent 会话。
