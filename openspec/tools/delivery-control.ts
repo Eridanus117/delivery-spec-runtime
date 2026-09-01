@@ -1,6 +1,8 @@
 #!/usr/bin/env -S node --experimental-strip-types
-import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { basename, isAbsolute, join, relative, resolve } from "node:path";
+import { existsSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
   atomicWriteJson, exactKeys, fail, integer, now, object, parseArgs, readJson, requiredOption,
   sha256File, sha256Paths, stringArray, text, withFileLock,
@@ -201,17 +203,122 @@ function renderTasks(root: string): void {
   verifyTaskProjection(root, state);
   console.log(JSON.stringify({ path: taskMarkdownPath(root), tasks: state.tasks.length }, null, 2));
 }
-function guard(root: string, operation: string): void {
+// ---- 声明与事实的交叉校验（REV-002）--------------------------------------
+// 登记时声明的 changeObject 是自报字段。只查表不核对，等于把豁免开关交回给调用方。
+// 这里按路由表的路径前缀表把「实际 git diff 触碰的路径」归类，与声明的档位序对照：
+// 声明低档而实际触碰高档路径，一律 fail-closed。
+type RoutingRoute = { changeObject: string; rank: number; pathPrefixes: string[] };
+type RoutingTable = { unmatchedRank: number; routes: RoutingRoute[] };
+
+function runtimeRootFor(options: Map<string, string>): string {
+  const explicit = options.get("runtime-root");
+  if (explicit) return resolve(explicit);
+  // 未显式给出时用工具自身位置定位 Runtime 源根，保证路由表总能被找到。
+  return resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+}
+function loadRoutingTable(runtimeRoot: string): RoutingTable | null {
+  const path = join(runtimeRoot, "openspec/profiles/change-routing-v1.json");
+  if (!existsSync(path)) return null;
+  const value = object(readJson(path), "change-routing");
+  const unmatched = object(value.unmatched, "change-routing.unmatched");
+  if (!Array.isArray(value.routes)) fail("change-routing.routes 合同非法");
+  return {
+    unmatchedRank: integer(unmatched.rank, "change-routing.unmatched.rank"),
+    routes: (value.routes as unknown[]).map((item, index) => {
+      const route = object(item, `routes[${index}]`);
+      return {
+        changeObject: text(route.changeObject, `routes[${index}].changeObject`),
+        rank: integer(route.rank, `routes[${index}].rank`),
+        pathPrefixes: stringArray(route.pathPrefixes, `routes[${index}].pathPrefixes`),
+      };
+    }),
+  };
+}
+function git(repo: string, args: string[]): string | null {
+  const result = spawnSync("git", args, { cwd: repo, encoding: "utf8" });
+  return result.status === 0 ? result.stdout : null;
+}
+/** 从 01 索引的 `- Intake 来源：` 行回溯登记时声明的 changeObject，取其中最重的一档。 */
+function declaredRoute(root: string, table: RoutingTable): RoutingRoute | null {
+  const index = join(root, "01-原始需求/原始需求索引.md");
+  if (!existsSync(index)) return null;
+  const assetRoot = resolve(root, "../../..");
+  let heaviest: RoutingRoute | null = null;
+  for (const line of readFileSync(index, "utf8").split(/\r?\n/)) {
+    const match = /^- Intake 来源：(.+?)\s*$/.exec(line);
+    if (!match) continue;
+    const intakePath = join(assetRoot, match[1]);
+    if (!existsSync(intakePath)) continue;
+    const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(readFileSync(intakePath, "utf8"));
+    const declared = frontmatter && /^changeObject:\s*(\S+)\s*$/m.exec(frontmatter[1]);
+    if (!declared) return null; // 有来源却未声明 → 等同未匹配（最重档），不构成降档
+    const route = table.routes.find((item) => item.changeObject === declared[1]);
+    if (!route) return null; // 声明了表外类别 → 未匹配即最重档
+    if (!heaviest || route.rank > heaviest.rank) heaviest = route;
+  }
+  return heaviest;
+}
+/** 本 Change 实际触碰的实现路径（排除 Change 目录自身与长期 spec 之外的一切都算）。 */
+function touchedPaths(repo: string, root: string): string[] | null {
+  const changeRel = relative(repo, realpathSync(root)).split(sep).join("/");
+  const firstTouch = git(repo, ["log", "--format=%H", "--reverse", "--", changeRel]);
+  const collected = new Set<string>();
+  const add = (output: string | null) => {
+    if (!output) return;
+    for (const path of output.split(/\r?\n/).map((item) => item.trim()).filter(Boolean)) collected.add(path.split("\\").join("/"));
+  };
+  const firstCommit = firstTouch?.split(/\r?\n/).map((item) => item.trim()).filter(Boolean)[0];
+  if (firstCommit) {
+    const parent = git(repo, ["rev-parse", "--verify", `${firstCommit}^`]);
+    const from = parent ? parent.trim() : firstCommit;
+    add(git(repo, ["diff", "--name-only", from, "HEAD"]));
+  } else if (!firstTouch) {
+    return null; // git 不可用或不是仓库：没有事实可核对
+  }
+  add(git(repo, ["diff", "--name-only", "HEAD"]));
+  add(git(repo, ["ls-files", "--others", "--exclude-standard"]));
+  // Change 目录自身是治理产物，不是被声明档位约束的实现改动。
+  return [...collected].filter((path) => path !== changeRel && !path.startsWith(`${changeRel}/`)).sort();
+}
+function verifyDeclaredScope(root: string, options: Map<string, string>): void {
+  const table = loadRoutingTable(runtimeRootFor(options));
+  if (!table) return;
+  const declared = declaredRoute(root, table);
+  // 未声明、声明表外类别、或多来源中最重的一档已是最重档 → 不可能构成降档，无需核对。
+  if (!declared || declared.rank >= table.unmatchedRank) return;
+  const repoOutput = git(root, ["rev-parse", "--show-toplevel"]);
+  if (!repoOutput) return;
+  const repo = realpathSync(repoOutput.trim());
+  const paths = touchedPaths(repo, root);
+  if (paths === null) return;
+  const violations: string[] = [];
+  for (const path of paths) {
+    let best: RoutingRoute | null = null;
+    for (const route of table.routes) {
+      for (const prefix of route.pathPrefixes) {
+        if (path === prefix || path.startsWith(prefix)) { if (!best || prefix.length > 0) best = best && best.rank >= route.rank ? best : route; }
+      }
+    }
+    const rank = best ? best.rank : table.unmatchedRank;
+    if (rank > declared.rank) violations.push(`${path}（归类 ${best ? best.changeObject : "未匹配"}，档位序 ${rank}）`);
+  }
+  if (violations.length) {
+    fail(`声明与事实不符：条目登记时声明的改动对象为 ${declared.changeObject}（档位序 ${declared.rank}），但实际触碰了更重档位的路径：\n  ${violations.slice(0, 20).join("\n  ")}${violations.length > 20 ? `\n  …共 ${violations.length} 条` : ""}\n处置方式是修正条目的 changeObject 声明并补走该档位要求的分析线，不是缩小改动面以迁就声明。`);
+  }
+}
+// ---------------------------------------------------------------------------
+
+function guard(root: string, operation: string, options: Map<string, string> = new Map()): void {
   parseInfo(infoPath(root)); const approvals = parseApprovals(approvalsPath(root), root); const requiredBeforeAcceptance = requiredBeforeAcceptanceFor(root);
   if (operation === "apply") { requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); }
   else if (operation === "acceptance") { requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); if (state.tasks.some((task) => task.state !== "verified")) fail("验收前全部任务必须 verified"); requireReview(root); }
-  else if (operation === "release") { guard(root, "acceptance"); requireAcceptance(root); }
-  else if (operation === "verify") { requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); }
+  else if (operation === "release") { guard(root, "acceptance", options); requireAcceptance(root); }
+  else if (operation === "verify") { requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); verifyDeclaredScope(root, options); }
   else if (operation === "sync") { requireAcceptance(root); }
-  else if (operation === "archive") { guard(root, "release"); requireReadiness(root); }
+  else if (operation === "archive") { guard(root, "release", options); requireReadiness(root); }
   else fail(`未知 guard operation: ${operation}`);
   console.log(JSON.stringify({ allowed: true, operation, mode }, null, 2));
 }
 function adapterInspect(options: Map<string, string>): void { const registry = object(readJson(requiredOption(options, "registry")), "source-adapters"); exactKeys(registry, ["schemaVersion", "adapters"], ["schemaVersion", "adapters"], "source-adapters"); if (registry.schemaVersion !== 1 || !Array.isArray(registry.adapters)) fail("source-adapters合同非法"); const ids = new Set<string>(); for (const [index, value] of registry.adapters.entries()) { const adapter = object(value, `adapters[${index}]`); exactKeys(adapter, ["id", "command", "trustDomain", "kinds"], ["id", "command", "trustDomain", "kinds"], `adapters[${index}]`); const id = text(adapter.id, `adapters[${index}].id`); if (ids.has(id)) fail(`重复adapter id: ${id}`); ids.add(id); const command = text(adapter.command, `adapters[${index}].command`); if (isAbsolute(command) || command.split(/[\\/]/).includes("..")) fail(`adapter command越界: ${command}`); const domain = text(adapter.trustDomain, `adapters[${index}].trustDomain`); if (domain !== "work" && domain !== "private") fail("adapter trustDomain非法"); stringArray(adapter.kinds, `adapters[${index}].kinds`); } console.log(JSON.stringify(registry, null, 2)); }
-function main(): void { const parsed = parseArgs(process.argv.slice(2)); const root = resolve(requiredOption(parsed.options, "change-root")); const [command, action] = parsed.positional; if (command === "init") init(root, parsed.options); else if (command === "inspect") inspect(root); else if (command === "approval" && action === "inspect") approvalsInspect(root); else if (command === "approval" && action === "set") approvalSet(root, parsed.options); else if (command === "task" && action === "inspect") { const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); console.log(JSON.stringify(state, null, 2)); } else if (command === "task" && action === "write") taskWrite(root, parsed.options); else if (command === "task" && action === "set") taskSet(root, parsed.options); else if (command === "task" && action === "render") renderTasks(root); else if (command === "adapter" && action === "inspect") adapterInspect(parsed.options); else if (command === "runtime-check") console.log(JSON.stringify({ allowed: true, runtime: "delivery-spec-runtime", schema: "delivery-change" }, null, 2)); else if (command === "guard") guard(root, requiredOption(parsed.options, "operation")); else fail("未知delivery-control命令"); }
+function main(): void { const parsed = parseArgs(process.argv.slice(2)); const root = resolve(requiredOption(parsed.options, "change-root")); const [command, action] = parsed.positional; if (command === "init") init(root, parsed.options); else if (command === "inspect") inspect(root); else if (command === "approval" && action === "inspect") approvalsInspect(root); else if (command === "approval" && action === "set") approvalSet(root, parsed.options); else if (command === "task" && action === "inspect") { const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); console.log(JSON.stringify(state, null, 2)); } else if (command === "task" && action === "write") taskWrite(root, parsed.options); else if (command === "task" && action === "set") taskSet(root, parsed.options); else if (command === "task" && action === "render") renderTasks(root); else if (command === "adapter" && action === "inspect") adapterInspect(parsed.options); else if (command === "runtime-check") console.log(JSON.stringify({ allowed: true, runtime: "delivery-spec-runtime", schema: "delivery-change" }, null, 2)); else if (command === "guard") guard(root, requiredOption(parsed.options, "operation"), parsed.options); else fail("未知delivery-control命令"); }
 try { main(); } catch (error) { console.error((error as Error).message); process.exitCode = 1; }

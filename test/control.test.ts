@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { createArtifactTree, runTool } from "./helpers.ts";
+import { spawnSync } from "node:child_process";
+import { createArtifactTree, runTool, runtimeRoot } from "./helpers.ts";
 
 const artifactFiles: Record<string, string> = {
   "01-原始需求/原始需求索引.md": "raw\n", "02-需求理解/需求理解.md": "requirements\n", "03-现状/现状.md": "current\n",
@@ -103,4 +104,50 @@ test("VC-024 change-mode 概念移除后 guard 行为与不存在时一致", () 
     assert.equal(broken.status, before.status);
     assert.equal(broken.stdout, before.stdout);
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("REV-002 声明与事实交叉校验：声明低档而实际触碰高档路径即 fail-closed", () => {
+  const repo = mkdtempSync(join(tmpdir(), "delivery-scope-"));
+  const sh = (args: string[]) => { const r = spawnSync("git", args, { cwd: repo, encoding: "utf8" }); assert.equal(r.status, 0, r.stderr); return r.stdout.trim(); };
+  try {
+    sh(["init", "-q", "-b", "master"]); sh(["config", "user.email", "t@example.com"]); sh(["config", "user.name", "t"]);
+    // 一条登记时自称「只改说明面」的 intake 条目。
+    mkdirSync(join(repo, "openspec/intake"), { recursive: true });
+    writeFileSync(join(repo, "openspec/intake/INT-20260901-050-doc.md"), "---\nschemaVersion: 1\nid: INT-20260901-050-doc\nstate: promoted\nphase: capture\nsource: synthetic\ncapturedAt: 2026-09-01\npromotedTo: demo-change\nchangeObject: doc-expression\n---\n\n# Intake\n", "utf8");
+    const change = join(repo, "openspec/changes/demo-change"); createArtifactTree(change);
+    for (const [path, body] of Object.entries(artifactFiles)) writeFileSync(join(change, path), body);
+    writeFileSync(join(change, "01-原始需求/原始需求索引.md"), "# 原始需求索引\n- Intake 来源：openspec/intake/INT-20260901-050-doc.md\n", "utf8");
+    assert.equal(runTool("delivery-control.ts", ["init", "--change-root", change, "--slug", "demo-change", "--display-name", "演示", "--mode", "delivery"]).status, 0);
+    const taskImport = join(repo, "tasks.json");
+    writeFileSync(taskImport, JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "planned", deliverables: ["d"], verification: ["v"], evidence: [], blocker: null }] }));
+    assert.equal(runTool("delivery-control.ts", ["task", "write", "--change-root", change, "--file", taskImport]).status, 0);
+    assert.equal(runTool("delivery-control.ts", ["task", "render", "--change-root", change]).status, 0);
+    for (const artifact of artifacts) assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", artifact, "--decision", "approved", "--approved-by", "tester"]).status, 0);
+
+    // 只碰 docs/：与声明相符，verify 放行。
+    mkdirSync(join(repo, "docs"), { recursive: true });
+    writeFileSync(join(repo, "docs/guide.md"), "doc\n", "utf8");
+    sh(["add", "."]); sh(["commit", "-qm", "change + doc"]);
+    let result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "verify", "--runtime-root", runtimeRoot], { cwd: repo });
+    assert.equal(result.status, 0, result.stderr);
+
+    // 顺手改了工具代码：实际触碰 tool-code 档位，声明仍是 doc-expression → 必须拒绝。
+    mkdirSync(join(repo, "openspec/tools"), { recursive: true });
+    writeFileSync(join(repo, "openspec/tools/sneaky.ts"), "export const x = 1;\n", "utf8");
+    result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "verify", "--runtime-root", runtimeRoot], { cwd: repo });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /声明与事实不符/);
+    assert.match(result.stderr, /openspec\/tools\/sneaky\.ts/);
+    assert.match(result.stderr, /tool-code/);
+    // 处置方式必须指向改声明补分析线，而不是缩小改动面。
+    assert.match(result.stderr, /修正条目的 changeObject 声明/);
+
+    // 治理合同路径同样被抓。
+    rmSync(join(repo, "openspec/tools/sneaky.ts"));
+    mkdirSync(join(repo, "openspec/contracts"), { recursive: true });
+    writeFileSync(join(repo, "openspec/contracts/new.schema.json"), "{}\n", "utf8");
+    result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "verify", "--runtime-root", runtimeRoot], { cwd: repo });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /governance-contract/);
+  } finally { rmSync(repo, { recursive: true, force: true }); }
 });

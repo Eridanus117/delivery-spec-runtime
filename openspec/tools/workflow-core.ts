@@ -383,7 +383,11 @@ export function executeWorkflow(profile: WorkflowProfile, request: WorkflowReque
   }
   const currentIndex = completed.length;
   if (currentIndex >= profile.stages.length) {
-    return resultBase(request, profile, "completed", null, null, null, { completedStages: completed });
+    // 幂等重跑：全部阶段都已在 completedStages 里。完成态必须与「本轮刚推完最后一站」
+    // 产出同一形状，否则同一份分析重跑一次就会把 publishedInputs 丢掉，
+    // 下游按产物取值的门禁会把一份合法完成的分析判成缺字段。
+    const last = profile.stages[profile.stages.length - 1];
+    return resultBase(request, profile, "completed", null, null, null, stageOutputs(request, last, completed));
   }
   const current = profile.stages[currentIndex];
   const inputs = stageInputError(profile, current, request);

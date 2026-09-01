@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "6f32026925c2674e1b95b38857e51f001088c36b",
+  "reviewedCommit": "6898b581c05ad4eaa282b2bb12ebc032a0602fe2",
+  "reviewer": "independent-implementation-review session (未参与实施)",
+  "reviewedAt": "2026-09-01T02:45:00Z",
+  "findings": [
+    {
+      "id": "REV-001",
+      "severity": "CRITICAL",
+      "path": "openspec/tools/intake-control.ts",
+      "line": 66,
+      "summary": "强制分析线立项门与分析线真实产物形状不匹配，端到端永不可通过。requireAnalysisLine 读 result.outputs.disposition，而 workflow-control run 对 requirement-analysis profile 产出的是 outputs.publishedInputs.disposition（disposition 声明在 decision 阶段的 outputInputs 里，executeWorkflow 只把它放进 publishedInputs）。复审实测：完整跑完 capture/clarify/discover/evaluate/decision 五阶段、judgments.decision=build、status=completed 后 promote 仍被拒，报「分析结论不是建造，outputs.disposition 实际为 (缺失)」。后果是所有 requiresAnalysis=true 的改动对象（governance-contract、tool-code 与全部未匹配对象）都无法通过合法途径立项，唯一出路是手写一份运行时永远不会产出的 workflow-result.json。这使本 Change 的旗舰需求在真实路径上不可用，并使 delta spec「成功 Promote」场景不可满足。VC-007..VC-011 未抓住是因为 test/intake.test.ts 的 writeAnalysis 手写 outputs:{disposition}，从未经由 workflow-control run 生成产物——正是 VC-003 要根除的两侧互抄，只是发生在生产者/消费者维度。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-002",
+      "severity": "HIGH",
+      "path": "openspec/profiles/change-routing-v1.json",
+      "line": 33,
+      "summary": "分析线豁免仍可由调用方自选，自估绕开路径未根治。changeObject 是条目自身 frontmatter 里的自报字段，promote 只做查表不做任何交叉校验；复审实测把一条 changeObject 从 tool-code 改成 ledger-only 并删掉全部分析线产物后，promote 返回 exit 0 并成功立项。rejectSelfDeclaredRouting 只挡住 --exempt/--profile-id 等 CLI 开关，挡不住改一行 frontmatter。更矛盾的是 ledger-only 的路由定义原文为「只在 openspec/intake/** 内增删改条目本身，不产生任何 Change 目录与代码改动」，而 promote 恰恰就是产生 Change 的操作，代码不拦这一自相矛盾。delta spec 的场景「禁止为绕过失败而降档」因此没有被真正强制。SKILL.md:37「你在登记时建议重量，人在首个门顺带认可」进一步说明档位由 agent 提出，而豁免档位根本不会到达任何人工门。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-003",
+      "severity": "HIGH",
+      "path": "(general)",
+      "line": null,
+      "summary": "openspec/contracts/artifact-approvals.schema.json 未随 schema v6 更新：artifacts 的 properties 仍列已移除的 business-current 与 technical-current，且缺少新的 current-state，同时 additionalProperties 为 false。因此任何 v6 Change 由 delivery-control approval set 写出的 artifact-approvals.json 都会违反本仓自己公开分发（public-allowlist.json）的机器合同。仓内没有任何测试或工具用该 schema 做校验，所以门禁没能拦住这处漏改——这与本 Change「要求必须活在门禁里」的立论相悖。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-004",
+      "severity": "HIGH",
+      "path": "(general)",
+      "line": null,
+      "summary": "rehearsal 演练模式移除不彻底，且证据陈述与事实不符。.omp/command-sources/bodies/{opsx-verify.md:46,162, opsx-sync.md:40, opsx-continue.md:72,112} 及其五份渲染产物仍保留肯定式的「演练…」行为指令（如「演练变更必须停止」「对于演练，这要求存在 NO-GO 09」），指向已随 change-mode.json 一并退场、且 delivery-control.ts:172 会直接报错拒绝的模式。VC-036 的禁词表只含拉丁文正则 /rehearsal/，未含中文「演练」，因此这一整类残留漏网。证据文件 07-实施任务/证据/6.2.md 声称「.omp/ 下已无指向已移除命令与文件的肯定式引用」，与实测不符。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-005",
+      "severity": "HIGH",
+      "path": "(general)",
+      "line": null,
+      "summary": "批准记录出现 agent 代签：S8（6898b58）在 26 条证据回填导致 07-实施任务/实施任务.md 的 digest 变化后，未取得任何新的维护者表态，即以 approvedBy=\"维护者\" 重新签发了 tasks 工件的批准（digest dd00ed5f→f135f713，approvedAt 01:15:08→02:24:36），唯一依据是自述的「按仓内既有惯例重批准，内容裁决未变」，并借此把 guard 从 stale 拒绝翻成放行。digest 新鲜度机制的设计意图（内容变了就要重新过人）被这一动作绕过。加重情节：本仓最近两个归档 Change 的同类重批准都把代笔如实写进 approvedBy 字段本身（\"Runtime 维护者（验证证据回填后重批准，Claude 代笔）\"），本 Change 的 9 项 approvedBy 一律是裸字符串「维护者」，代笔披露被降级到 migrationSource，人读第一眼看不出是转录还是亲签。两个转录 commit 5a05383/6f32026 本身如实（migrationSource 写明「由实施代理转录」、且明确不代为过门），问题集中在 S8 这次重签。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-006",
+      "severity": "MEDIUM",
+      "path": "openspec/tools/intake-control.ts",
+      "line": 275,
+      "summary": "路由表的档位（profileId）只回显不生效。promote 里 decision.profileId 仅出现在 stdout，既不写入 Intake 或 Change 的任何状态，也不校验目标 Change 的形状与该档位相符；被判为 light-change 的条目照样落进 delivery-change 目录结构。change-routing.schema.json 的 description 自称「本表是立项门与档位选择的唯一真源」，其中「档位选择」这一半在实现中没有任何执行力。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-007",
+      "severity": "MEDIUM",
+      "path": "(general)",
+      "line": null,
+      "summary": "长期 spec 在实施提交中被直接改写，绕过 delta→sync 链。S7（15a7c27）向 openspec/specs/intake-workflow/spec.md 直接写入 46 行、四条 Inventory 需求（复审用 diff 确认与被归档 delta 逐字节一致），其来源 Change establish-intake-inventory 从未通过验收，其 artifact-approvals.json 为空 {}、无 implementation-review/acceptance-state/archive-readiness，即这四条需求进入权威长期 spec 时未经任何批准或验收门。同时 delivery-lifecycle.ts:120 的 isLifecyclePath 把 openspec/specs/** 排除在 review 自算范围外，本站的 reviewedPaths 结构性地看不到这段改动——审查面对这类写入是盲的。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-008",
+      "severity": "MEDIUM",
+      "path": "(general)",
+      "line": null,
+      "summary": "规范重叠已核实且不止一处，不应留到 sync 站临时处置。（a）本 Change delta 的 ADDED 需求「Runtime SHALL report a deterministic intake inventory」与已并入长期 spec 的四条 Inventory 需求（确定性排序、重复 id 分组、不落盘）语义重复，sync 后同一 capability 将有五条重叠条款；（b）S7 逐字并入的「Legacy Intake SHALL be visible and non-authoritative」与长期 spec 原有的「Legacy Intake records SHALL have a controlled migration path」是孪生条款，Scenario 几乎逐句同构，合并时未去重也未指认权威；（c）被并入 delta 的 ## Purpose 段未随之并入，长期 spec 的 Purpose 至今不覆盖 inventory 只读侧面。处置意见：在本 Change 内先裁定去重方案并改写 delta，不接受「建议在 sync 站合并去重」这种把裁决推给下一站的写法——sync 站没有改写 delta 的权限，到那里只能二选一硬合。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-009",
+      "severity": "MEDIUM",
+      "path": "test/intake.test.ts",
+      "line": null,
+      "summary": "test/intake.test.ts 源码里含一个裸 NUL 字节（U+0000，offset 4444，写在 snapshot() 的模板字面量里当分隔符，本应写成 \\0 转义）。git 因此把整份文件判为 binary：diff 显示为「Bin 7917 -> 23832 bytes」、无法逐行审阅、不参与行尾归一化。恰好是唯一证明立项门行为的那份测试变得不可 diff 审查，对本 Change 的可复核性是实质损失。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-010",
+      "severity": "LOW",
+      "path": "openspec/tools/delivery-control.ts",
+      "line": 48,
+      "summary": "v5/v6 双表的判别与文本残留三处小账。（a）artifactPathsFor 用「03-现状/现状.md 是否存在」判版本，新建 v6 Change 在写出该文件之前会被判成 v5，报错文案会要求已经不存在模板的 business-current / technical-current，对新用户是误导（复审确认存量 10 个归档目录与本 Change 自身仍按 v5 正确解析，validate --all --strict 10/10，这部分成立）；（b）openspec/config.yaml 的 rules 仍按 v5 工件 id 分 business-current / technical-current 两节，没有 current-state 分节，该文件是活体（被 openspec-upgrade.ts 复制进升级候选、被 opsx-explore 指示读取）；（c）04 层已不存在，但 README.md:12、schemas/delivery-change/schema.yaml:3、bootstrap.ts:120 仍称「九层」。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-011",
+      "severity": "LOW",
+      "path": "openspec/tools/delivery-control.ts",
+      "line": 122,
+      "summary": "validateEvidence 只做词法越界判断（isAbsolute、盘符、.. 分段、relative 前缀），不做 realpath 解析，因此 Change 目录内一条指向仓外的软链可以充当 evidence 通过校验。同仓 delivery-lifecycle.ts:141 的 safeRepoFile 对 specSync 与 cleanup 证据是做 realpathSync 逃逸校验的，两处标准不一致。复审实测四种拒绝（不存在／空文件／绝对路径／.. 越界）全部成立且 fail closed，另附带拒绝目录；缺的只是软链这一路。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-012",
+      "severity": "LOW",
+      "path": "test/station-authority.test.ts",
+      "line": 107,
+      "summary": "一致性合同测试的判别力部分来自一份隐式的第二清单。七个探针里只有 decision / acceptance / archive 三站真的抹掉了该站的人工表态字段，proposal / implementation / review / sync 四站什么都不抹、直接跑一条已经全部批准的 happy path，因此它们被观测为 false 的根据是「完整 fixture 能通过」，而不是「该站不索取人工表态」。「每站抹掉哪个字段」这一手工选择本身就编码了与 humanJudgment 等价的信息，而 VC-003 只禁止显式的站位→布尔硬编码映射，抓不到这种形态。复审已验证篡改检测确实有效（把 profile 的 sync 单边改成 true 后测试失败并报出分叉，改回即复绿），故这条只是强度不足，不是失效。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-013",
+      "severity": "LOW",
+      "path": "(general)",
+      "line": null,
+      "summary": "全量回归的陈述强于可复现事实。复审本机四次运行 test/openspec-upgrade.test.ts 的「升级评估只在临时根生成并输出三类脱敏delta」，三败一过（失败签名恒为某个合成消费仓 fixture 的 runtime-check 返回 1）；全量 node --test 实测 74 tests / 73 pass / 1 fail。复审已独立复现该失败于本 Change 之前的基线 c69bf78，确认非本单引入，与 INT-20260831-010 在案的 Windows git racy dirty submodule 同一签名。但证据 8.2 与 verify-自查.md 的结论表头写的是「74 passed / 0 failed」，把一次幸运绿灯写成终态；已知噪音的披露虽然写在同一份文件的末尾，仍应在结论表里直接标注。openspec validate --all --strict 10/10、runtime-check allowed、render check 9 files 0 changed 三项复审复跑全部与报告一致。",
+      "status": "OPEN",
+      "resolution": null
+    }
+  ]
+}

@@ -3,9 +3,9 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, openSync,
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fail, parseArgs, readJson, requiredOption, now } from "./runtime-lib.ts";
 
-type Route = { changeObject: string; profileId: string; requiresAnalysis: boolean; reason: string };
-type Routing = { unmatched: Omit<Route, "changeObject">; routes: Route[] };
-type RoutingDecision = { changeObject: string | null; matched: boolean; profileId: string; requiresAnalysis: boolean; reason: string };
+type Route = { changeObject: string; profileId: string; requiresAnalysis: boolean; rank: number; pathPrefixes: string[]; promotable: boolean; reason: string };
+type Routing = { unmatched: Omit<Route, "changeObject" | "pathPrefixes" | "promotable">; routes: Route[] };
+type RoutingDecision = { changeObject: string | null; matched: boolean; profileId: string; requiresAnalysis: boolean; rank: number; promotable: boolean; reason: string };
 
 const routingRelativePath = "openspec/profiles/change-routing-v1.json";
 const analysisBindingName = "workflow-binding.json";
@@ -25,6 +25,8 @@ function loadRouting(runtimeRoot: string): Routing {
   if (!value || typeof value !== "object" || value.schemaVersion !== 1 || !Array.isArray(value.routes) || !value.unmatched) fail("change-routing 合同非法");
   const unmatchedValue = value.unmatched as Record<string, unknown>;
   if (unmatchedValue.profileId !== "delivery-change" || unmatchedValue.requiresAnalysis !== true) fail("change-routing.unmatched 必须是最重档且不豁免");
+  const unmatchedRank = unmatchedValue.rank;
+  if (typeof unmatchedRank !== "number" || !Number.isInteger(unmatchedRank)) fail("change-routing.unmatched.rank 必须是整数");
   const seen = new Set<string>();
   const routes = (value.routes as Array<Record<string, unknown>>).map((route, index) => {
     const changeObject = str(route.changeObject, `routes[${index}].changeObject`);
@@ -33,14 +35,24 @@ function loadRouting(runtimeRoot: string): Routing {
     const profileId = str(route.profileId, `routes[${index}].profileId`);
     if (profileId !== "delivery-change" && profileId !== "light-change") fail(`routes[${index}].profileId 非法: ${profileId}`);
     if (typeof route.requiresAnalysis !== "boolean") fail(`routes[${index}].requiresAnalysis 必须是布尔值`);
-    return { changeObject, profileId, requiresAnalysis: route.requiresAnalysis as boolean, reason: str(route.reason, `routes[${index}].reason`) };
+    const rank = route.rank;
+    if (typeof rank !== "number" || !Number.isInteger(rank)) fail(`routes[${index}].rank 必须是整数`);
+    if (rank >= (unmatchedRank as number)) fail(`routes[${index}].rank 必须严格小于 unmatched.rank`);
+    if (!Array.isArray(route.pathPrefixes) || route.pathPrefixes.length === 0) fail(`routes[${index}].pathPrefixes 必须是非空数组`);
+    const pathPrefixes = (route.pathPrefixes as unknown[]).map((prefix, prefixIndex) => str(prefix, `routes[${index}].pathPrefixes[${prefixIndex}]`));
+    if (route.promotable !== undefined && typeof route.promotable !== "boolean") fail(`routes[${index}].promotable 必须是布尔值`);
+    return {
+      changeObject, profileId, requiresAnalysis: route.requiresAnalysis as boolean, rank,
+      pathPrefixes, promotable: route.promotable === undefined ? true : (route.promotable as boolean),
+      reason: str(route.reason, `routes[${index}].reason`),
+    };
   });
-  return { unmatched: { profileId: "delivery-change", requiresAnalysis: true, reason: str(unmatchedValue.reason, "unmatched.reason") }, routes };
+  return { unmatched: { profileId: "delivery-change", requiresAnalysis: true, rank: unmatchedRank as number, reason: str(unmatchedValue.reason, "unmatched.reason") }, routes };
 }
 function routeFor(routing: Routing, changeObject: string | null): RoutingDecision {
   const matched = changeObject === null ? undefined : routing.routes.find((route) => route.changeObject === changeObject);
-  if (!matched) return { changeObject, matched: false, ...routing.unmatched };
-  return { changeObject, matched: true, profileId: matched.profileId, requiresAnalysis: matched.requiresAnalysis, reason: matched.reason };
+  if (!matched) return { changeObject, matched: false, promotable: true, ...routing.unmatched };
+  return { changeObject, matched: true, profileId: matched.profileId, requiresAnalysis: matched.requiresAnalysis, rank: matched.rank, promotable: matched.promotable, reason: matched.reason };
 }
 /**
  * 立项门的分析线校验。任一不满足即抛错；调用方必须在改动任何状态之前调用它。
@@ -62,8 +74,13 @@ function requireAnalysisLine(root: string, id: string): { bindingPath: string; r
   if (binding.matterId !== id) fail(`立项门拒绝：${analysisBindingName} 的 matterId ${String(binding.matterId ?? "(缺失)")} 与条目 id ${id} 不一致，不接受他项产物`);
   if (result.matterId !== id) fail(`立项门拒绝：${analysisResultName} 的 matterId ${String(result.matterId ?? "(缺失)")} 与条目 id ${id} 不一致，不接受他项产物`);
   if (result.status !== "completed") fail(`立项门拒绝：分析线未完成，${analysisResultName}.status 实际为 ${String(result.status ?? "(缺失)")}，要求 completed`);
+  // disposition 落在 outputs.publishedInputs 下：它是 requirement-analysis profile 在 decision 站
+  // 用 outputInputs 声明要发布的输入，workflow 引擎经 publishedInputs 这一通用机制透出。
+  // 不去引擎里把 disposition 提升到 outputs 顶层，是因为那会把某个 profile 专有的输入名
+  // 硬编码进服务所有 profile 的通用引擎；取值点该知道 profile 细节的是门，不是引擎。
   const outputs = (result.outputs ?? {}) as Record<string, unknown>;
-  if (outputs.disposition !== "build") fail(`立项门拒绝：分析结论不是建造，${analysisResultName}.outputs.disposition 实际为 ${String(outputs.disposition ?? "(缺失)")}，要求 build`);
+  const published = (outputs.publishedInputs ?? {}) as Record<string, unknown>;
+  if (published.disposition !== "build") fail(`立项门拒绝：分析结论不是建造，${analysisResultName}.outputs.publishedInputs.disposition 实际为 ${String(published.disposition ?? "(缺失)")}，要求 build`);
   return { bindingPath, resultPath };
 }
 function rejectSelfDeclaredRouting(options: Map<string, string>): void {
@@ -264,6 +281,10 @@ function promote(options: Map<string, string>): void {
   if (!existsSync(changeFile)) fail("目标 Change 缺少原始需求索引");
   const routing = loadRouting(resolve(options.get("runtime-root") ?? root));
   const decision = routeFor(routing, parsed.state.changeObject);
+  // 有的改动对象按其自身定义就不产生 Change（ledger-only 自述「不产生任何 Change 目录」），
+  // 与 promote 这一「恰恰产生 Change」的操作自相矛盾。这类条目只能 hold 或 close；
+  // 要立项就必须先改声明，并因此落入需要分析线的档位——而不是借着最轻档位溜进来。
+  if (!decision.promotable) fail(`立项门拒绝：改动对象 ${decision.changeObject} 在路由表中声明为不可立项（其定义即「不产生任何 Change 目录」）。该条目只能 hold 或 close；若确需立项，先修正条目的 changeObject 声明。`);
   if (decision.requiresAnalysis) requireAnalysisLine(root, parsed.state.id);
   let target = replaceFrontmatter(parsed.content, "state", "promoted");
   target = replaceFrontmatter(target, "promotedTo", change);
