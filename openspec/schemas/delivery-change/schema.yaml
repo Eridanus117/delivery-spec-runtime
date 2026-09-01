@@ -1,5 +1,5 @@
 name: delivery-change
-version: 5
+version: 6
 description: 面向真实交付的提案、决策、实现审查、验收、先归档后PR九层工作流
 
 artifacts:
@@ -31,26 +31,19 @@ artifacts:
     requires:
       - raw-requirements
 
-  - id: business-current
-    generates: 03-业务现状/业务现状.md
-    description: 当前业务事实、角色、状态和业务时序
-    template: business-current.md
+  - id: current-state
+    generates: 03-现状/现状.md
+    description: 改造前的业务与技术现状（v6 起合并为一份）
+    template: current-state.md
     instruction: |
-      描述改造前业务如何运行。覆盖角色、触发、业务对象、状态、主路径、失败分支和上下游责任。
-      使用 Mermaid 表达关键业务时序或状态转换。不得把目标方案写成当前事实。
+      描述改造前业务如何运行，以及它当前由什么技术实现。
+      业务面覆盖角色、触发、业务对象、状态、主路径、失败分支和上下游责任；
+      技术面引用实际仓库、分支、模块、类、接口、数据、事务、缓存、通知、部署和运行态证据。
+      使用 Mermaid 分别表达关键业务时序与技术流程。先锁定入口和关键边界，细节随调查补充。
+      区分源码事实、运行态事实和推断；不得把目标方案写成当前事实。
     requires:
       - raw-requirements
       - specs
-
-  - id: technical-current
-    generates: 04-技术现状/技术现状.md
-    description: 当前代码、接口、数据和运行态技术流程
-    template: technical-current.md
-    instruction: |
-      描述改造前技术实现。引用实际仓库、分支、模块、类、接口、数据、事务、缓存、通知、部署和运行态证据。
-      先锁定入口和关键边界；细节随调查补充。区分源码事实、运行态事实和推断。
-    requires:
-      - business-current
 
   - id: solution-proposal
     generates: 05-改造方案/方案提案.md
@@ -61,8 +54,7 @@ artifacts:
       可以给出推荐，但不得把推荐写成最终决策；保留需要维护者决定的未决问题。
     requires:
       - specs
-      - business-current
-      - technical-current
+      - current-state
 
   - id: solution-decision
     generates: 05-改造方案/方案决策.md
@@ -115,10 +107,9 @@ artifacts:
     template: acceptance.md
     instruction: |
       先使用 runtime-entry 的 guard acceptance 校验批准、任务投影和当前 implementation-review。
-      delivery 模式存在任意非 verified 任务、Review 非 PASS、存在 OPEN finding 或 Review stale 时停止。
+      存在任意非 verified 任务、Review 非 PASS、存在 OPEN finding 或 Review stale 时停止。
       保存实际 run 后生成验收正文，再通过 delivery-lifecycle acceptance write 生成内容寻址
       `acceptance-state.json`；正文或 Review 后续变化必须使状态 stale。
-      rehearsal 模式逐项记录未完成、跳过和阻塞，结论只能是 PARTIAL、FAIL 或 BLOCKED。
     requires:
       - test-plan
       - tasks
@@ -128,11 +119,11 @@ artifacts:
     description: 归档前发布计划、回滚和最终PR交付准备
     template: release-plan.md
     instruction: |
-      delivery 模式先要求当前 acceptance-state PASS，再形成发布范围、依赖、观察、停止和回滚计划。
+      先要求当前 acceptance-state PASS，再形成发布范围、依赖、观察、停止和回滚计划。
       本文件只规划归档后创建的最终 PR，不保存尚未发生的 PR URL、合并 commit 或 release-id。
       Spec Sync、strict validation 和清理完成后，通过 delivery-lifecycle readiness write 绑定本文件摘要、
       spec 输入输出摘要、cleanup 证据和 `prStarted=false`，再执行 archive guard。
-      rehearsal 模式只允许 NO-GO，禁止同步 specs、归档和创建 PR。
+      readiness 的 attestedBy 由 acceptance-state 的 acceptedBy 派生，归档不再索取第二次人工表态。
     requires:
       - acceptance
 
@@ -141,8 +132,8 @@ apply:
     - tasks
   tracks: 07-实施任务/实施任务.md
   instruction: |
-    先使用 openspec/tools/runtime-entry.ts guard apply 校验模式、批准状态和运行时锁；rehearsal 模式禁止执行实现。
-    delivery 模式只读取 01～07 实现前产物，按已批准的 `07-实施任务/实施任务.md` 顺序实施，
+    先使用 openspec/tools/runtime-entry.ts guard apply 校验批准状态和运行时锁。
+    只读取 01～07 实现前产物，按已批准的 `07-实施任务/实施任务.md` 顺序实施，
     通过 runtime-entry 的 task set 在排他锁内原子更新状态，再用 task render 更新人工审阅视图。
     本操作不生成 08 验收或 09 发布资产；全部任务完成后停止，并提示调用 /opsx-continue 进入严格验收。
     遇到需求、架构或高风险环境门禁未解决时写入 blocked_external 并停止，不通过默认值掩盖问题。

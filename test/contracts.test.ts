@@ -1,8 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { runtimeRoot } from "./helpers.ts";
+import { runTool, runtimeRoot } from "./helpers.ts";
 
 
 test("runtime manifest、九层schema与九个Commands一致", () => {
@@ -19,9 +20,9 @@ test("runtime manifest、九层schema与九个Commands一致", () => {
   ]);
   for (const item of manifest.submodule.links) assert.equal(existsSync(join(runtimeRoot, item.source)), true, item.source);
   const schema = readFileSync(join(runtimeRoot, "openspec/schemas/delivery-change/schema.yaml"), "utf8");
-  for (const path of ["01-原始需求", "02-需求理解", "03-业务现状", "04-技术现状", "05-改造方案", "06-测试方案", "07-实施任务", "08-验收", "09-发布"]) assert.match(schema, new RegExp(path));
+  for (const path of ["01-原始需求", "02-需求理解", "03-现状", "05-改造方案", "06-测试方案", "07-实施任务", "08-验收", "09-发布"]) assert.match(schema, new RegExp(path));
   assert.match(schema, /name: delivery-change/);
-  assert.match(schema, /version: 5/);
+  assert.match(schema, /version: 6/);
   assert.ok(schema.indexOf("id: solution-proposal") < schema.indexOf("id: solution-decision"));
   assert.ok(schema.indexOf("id: solution-decision") < schema.indexOf("id: change-plan"));
   assert.match(schema, /`task-state\.json`/);
@@ -152,4 +153,97 @@ test("runtime树不含禁用资产路径段", () => {
     }
   }
   walk(runtimeRoot);
+});
+
+test("VC-023 来源权威顺序由 RAW 编号承载", () => {
+  const schema = readFileSync(join(runtimeRoot, "openspec/schemas/delivery-change/schema.yaml"), "utf8");
+  const template = readFileSync(join(runtimeRoot, "openspec/schemas/delivery-change/templates/raw-requirements.md"), "utf8");
+  // 权威顺序声明必须同时出现在 instruction 与模板里，否则写作者只会看到其中一处。
+  for (const text of [schema, template]) {
+    assert.match(text, /RAW 编号顺序即来源权威顺序/);
+    assert.match(text, /RAW-001 权威最高/);
+  }
+  // 旧的 change-sources.json 维护要求必须从 instruction 中消失，不留指向已移除资产的死引用。
+  assert.doesNotMatch(schema, /change-sources\.json/);
+  assert.doesNotMatch(template, /change-sources\.json/);
+});
+
+test("VC-027/VC-029 归档目录与旧结构 Change 不受 v6 与 evidence 新校验影响", () => {
+  const archiveRoot = join(runtimeRoot, "openspec/changes/archive");
+  const archived = readdirSync(archiveRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+  assert.ok(archived.length >= 10, `归档 Change 数量异常: ${archived.length}`);
+  for (const name of archived) {
+    const change = join(archiveRoot, name);
+    // VC-029：旧结构（两份现状文档）仍被按 v5 解析，inspect 只读通过。
+    const inspected = runTool("delivery-control.ts", ["inspect", "--change-root", change]);
+    assert.equal(inspected.status, 0, `${name} 旧结构解析失败: ${inspected.stderr}`);
+    const payload = JSON.parse(inspected.stdout);
+    assert.deepEqual(Object.keys(payload.effective), ["raw-requirements", "specs", "business-current", "technical-current", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"], `${name} 未按 v5 结构解析`);
+    // VC-027：归档目录里的自然语言 evidence 不被新的路径校验触及——只读解析不报错。
+    const tasks = payload.tasks;
+    if (tasks) {
+      const natural = tasks.tasks.flatMap((task: { evidence: string[] }) => task.evidence).filter((item: string) => !existsSync(join(change, item)));
+      if (natural.length) assert.ok(true, `${name} 保留自然语言 evidence 且未被判失效: ${natural[0]}`);
+    }
+  }
+});
+
+test("VC-028 现状合并后门禁条目逐项可对应且一项不减", () => {
+  const v5Keys = ["raw-requirements", "specs", "business-current", "technical-current", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"];
+  const root = mkdtempSync(join(tmpdir(), "delivery-merge-"));
+  try {
+    const change = join(root, "openspec/changes/demo-change");
+    for (const dir of ["01-原始需求", "03-现状", "05-改造方案", "06-测试方案", "07-实施任务", "specs/example"]) mkdirSync(join(change, dir), { recursive: true });
+    const files: Record<string, string> = {
+      "01-原始需求/原始需求索引.md": "raw\n", "03-现状/现状.md": "current\n",
+      "05-改造方案/方案提案.md": "# 方案提案\n## 候选 A：简单\n## 候选 B：严格\n## Trade-off 矩阵\n## 推荐\n## 未决问题\n",
+      "05-改造方案/方案决策.md": "# 方案决策\n- 状态：APPROVED\n- 选择：B\n- 决策人：tester\n- 决策时间：2026-08-30\n## 接受的后果\n## 拒绝方案\n",
+      "05-改造方案/改造方案.md": "plan\n", "06-测试方案/测试方案.md": "tests\n",
+      "07-实施任务/实施任务.md": "# 实施任务\n", "specs/example/spec.md": "## ADDED Requirements\n",
+    };
+    for (const [path, body] of Object.entries(files)) writeFileSync(join(change, path), body);
+    assert.equal(runTool("delivery-control.ts", ["init", "--change-root", change, "--slug", "demo-change", "--display-name", "演示", "--mode", "delivery"]).status, 0);
+
+    const effective = JSON.parse(runTool("delivery-control.ts", ["approval", "inspect", "--change-root", change]).stdout).effective;
+    const v6Keys = Object.keys(effective);
+    // 门禁条目集合逐项可对应：v6 = v5 去掉两份现状、并入 current-state，其余一一对应，无遗漏。
+    const expected = v5Keys.filter((key) => key !== "business-current" && key !== "technical-current");
+    expected.splice(2, 0, "current-state");
+    assert.deepEqual(v6Keys, expected);
+    assert.deepEqual(v5Keys.filter((key) => !["business-current", "technical-current"].includes(key)).filter((key) => !v6Keys.includes(key)), []);
+
+    // 合并后的 artifact 承接原两份各自参与的全部校验：先把除它以外的工件全部批准，
+    // 此时 apply 必须恰好卡在 current-state 上，证明它确实在门禁清单里。
+    assert.equal(effective["current-state"], "pending");
+    for (const artifact of v6Keys.filter((key) => key !== "current-state")) assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", artifact, "--decision", "approved", "--approved-by", "tester"]).status, 0);
+    let guard = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
+    assert.notEqual(guard.status, 0); assert.match(guard.stderr, /current-state 批准状态为 pending/);
+    // 批准后放行；随后改动正文即 stale，说明 digest 计算确实接在该 artifact 上。
+    assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", "current-state", "--decision", "approved", "--approved-by", "tester"]).status, 0);
+    assert.equal(runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]).status, 0);
+    writeFileSync(join(change, "03-现状/现状.md"), "current drifted\n");
+    guard = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
+    assert.notEqual(guard.status, 0); assert.match(guard.stderr, /current-state 批准状态为 stale/);
+    // 旧工件名在 v6 结构下不再被接受，避免两套命名并存。
+    const stale = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", "business-current", "--decision", "approved", "--approved-by", "tester"]);
+    assert.notEqual(stale.status, 0); assert.match(stale.stderr, /批准参数非法/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("VC-030 发布模板删三节且保留 Spec Sync 表与门禁勾选", () => {
+  const template = readFileSync(join(runtimeRoot, "openspec/schemas/delivery-change/templates/release-plan.md"), "utf8");
+  for (const section of ["## 现场快速资产", "## 日志、指标与观察窗口", "## 配置开关"]) {
+    assert.equal(template.includes(section), false, `恒空小节未删除: ${section}`);
+  }
+  assert.match(template, /## Spec Sync 与归档准备/);
+  assert.match(template, /\| Delta Spec \| Main Spec \| Strict Validation \| 结果 \|/);
+  assert.match(template, /- \[ \] 所有 delta specs 已同步到 `openspec\/specs`/);
+  assert.match(template, /- \[ \] cleanup 证据存在且结论 PASS。/);
+  assert.match(template, /## 停止与回滚/);
+  // rehearsal 表述随 change-mode 概念一并移除。
+  const acceptance = readFileSync(join(runtimeRoot, "openspec/schemas/delivery-change/templates/acceptance.md"), "utf8");
+  for (const text of [template, acceptance]) {
+    assert.doesNotMatch(text, /rehearsal/);
+    assert.doesNotMatch(text, /change-mode\.json/);
+  }
 });

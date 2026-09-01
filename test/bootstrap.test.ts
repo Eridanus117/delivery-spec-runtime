@@ -57,8 +57,12 @@ test("bootstrap stage必须外部批准，activation可恢复且保持受保护�
     const active = join(f.work, "openspec/changes", slug);
     assert.equal(existsSync(join(active, "change-info.json")), true); assert.equal(existsSync(join(active, ".delivery")), false); assert.equal(existsSync(join(active, "06-测试方案/测试方案.md")), true);
     assert.deepEqual(JSON.parse(readFileSync(join(active, "artifact-approvals.json"), "utf8")), { schemaVersion: 1, artifacts: {} });
-    // VC-038：bootstrap 候选不再产出 change-sources.json，其余候选语义不变。
+    // VC-038：bootstrap 候选产出 v6 结构——不再有 change-sources.json，目录为 03-现状，其余语义不变。
     assert.equal(existsSync(join(active, "change-sources.json")), false);
+    assert.equal(existsSync(join(active, "03-现状/现状.md")), true);
+    assert.equal(existsSync(join(active, "03-业务现状")), false);
+    assert.equal(existsSync(join(active, "04-技术现状")), false);
+    assert.equal(existsSync(join(active, "04-technical-current")), false);
     const task = JSON.parse(readFileSync(join(active, "task-state.json"), "utf8")).tasks[0]; assert.deepEqual(Object.keys(task).sort(), ["blocker", "deliverables", "evidence", "id", "state", "verification"]);
     for (const name of removed) assert.equal(existsSync(join(f.work, "openspec/changes", name)), false);
     assert.equal(tree(join(f.work, "openspec/specs")).digest, specsBefore); assert.equal(tree(join(f.work, "openspec/changes/archive")).digest, archivesBefore);

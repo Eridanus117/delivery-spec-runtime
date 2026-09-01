@@ -1,6 +1,6 @@
 #!/usr/bin/env -S node --experimental-strip-types
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, isAbsolute, join, resolve } from "node:path";
+import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import {
   atomicWriteJson, exactKeys, fail, integer, now, object, parseArgs, readJson, requiredOption,
   sha256File, sha256Paths, stringArray, text, withFileLock,
@@ -18,7 +18,22 @@ type ApprovalState = { schemaVersion: 1; artifacts: Record<string, Approval> };
 type Task = { id: string; state: TaskStateName; deliverables: string[]; verification: string[]; evidence: string[]; blocker: string | null };
 type TaskState = { schemaVersion: 1; tasks: Task[] };
 
-const artifactPaths: Record<string, string[]> = {
+// v6 起 business-current 与 technical-current 合并为单一 current-state。
+// 存量 Change（10 个归档目录与最后一个 v5 Change）按各自版本解析，不迁移——
+// 显式迁移会改写历史治理证据，代价高于收益。分界线是 Change 的目录形状本身：
+// 有 03-现状/现状.md 即 v6，否则按 v5 解析。
+const currentStatePath = "03-现状/现状.md";
+const v6ArtifactPaths: Record<string, string[]> = {
+  "raw-requirements": ["01-原始需求/原始需求索引.md"],
+  specs: ["specs"],
+  "current-state": [currentStatePath],
+  "solution-proposal": ["05-改造方案/方案提案.md"],
+  "solution-decision": ["05-改造方案/方案决策.md"],
+  "change-plan": ["05-改造方案/改造方案.md"],
+  "test-plan": ["06-测试方案/测试方案.md"],
+  tasks: ["07-实施任务/实施任务.md"],
+};
+const v5ArtifactPaths: Record<string, string[]> = {
   "raw-requirements": ["01-原始需求/原始需求索引.md"],
   specs: ["specs"],
   "business-current": ["03-业务现状/业务现状.md"],
@@ -29,7 +44,11 @@ const artifactPaths: Record<string, string[]> = {
   "test-plan": ["06-测试方案/测试方案.md"],
   tasks: ["07-实施任务/实施任务.md"],
 };
-const requiredBeforeAcceptance = Object.keys(artifactPaths);
+function artifactPathsFor(root: string): Record<string, string[]> {
+  return existsSync(join(root, currentStatePath)) ? v6ArtifactPaths : v5ArtifactPaths;
+}
+/** 门禁清单永远等于该 Change 结构下的全部工件：合并只减少工件数，不减少任何一项校验。 */
+function requiredBeforeAcceptanceFor(root: string): string[] { return Object.keys(artifactPathsFor(root)); }
 function validateDecisionArtifacts(root: string): void {
   const proposal = readFileSync(join(root, "05-改造方案/方案提案.md"), "utf8");
   const decision = readFileSync(join(root, "05-改造方案/方案决策.md"), "utf8");
@@ -60,7 +79,7 @@ function digestPattern(value: string, label: string): string {
   return value;
 }
 function artifactDigest(root: string, artifact: string): string {
-  const paths = artifactPaths[artifact]; if (!paths) fail(`未知artifact: ${artifact}`);
+  const paths = artifactPathsFor(root)[artifact]; if (!paths) fail(`未知artifact: ${artifact}`);
   if (paths.length === 1 && paths[0] !== "specs") return sha256File(join(root, paths[0]));
   return sha256Paths(root, paths);
 }
@@ -72,13 +91,13 @@ function parseApproval(value: unknown, label: string): Approval {
   const migrationSource = item.migrationSource === null ? null : text(item.migrationSource, `${label}.migrationSource`);
   return { digest: digestPattern(text(item.digest, `${label}.digest`), `${label}.digest`), decision, approvedBy: text(item.approvedBy, `${label}.approvedBy`), approvedAt: text(item.approvedAt, `${label}.approvedAt`), migrationSource };
 }
-function parseApprovals(path: string): ApprovalState {
+function parseApprovals(path: string, root: string): ApprovalState {
   const value = object(readJson(path), "artifact-approvals");
   exactKeys(value, ["schemaVersion", "artifacts"], ["schemaVersion", "artifacts"], "artifact-approvals");
   if (value.schemaVersion !== 1) fail("artifact-approvals.schemaVersion 仅支持 1");
   const input = object(value.artifacts, "artifact-approvals.artifacts"); const artifacts: Record<string, Approval> = {};
   for (const [artifact, approval] of Object.entries(input)) {
-    if (!(artifact in artifactPaths)) fail(`未知批准artifact: ${artifact}`);
+    if (!(artifact in artifactPathsFor(root))) fail(`未知批准artifact: ${artifact}`);
     artifacts[artifact] = parseApproval(approval, `artifact-approvals.artifacts.${artifact}`);
   }
   return { schemaVersion: 1, artifacts };
@@ -93,6 +112,22 @@ function requireApproved(root: string, state: ApprovalState, artifacts: string[]
   for (const artifact of artifacts) {
     const status = approvalStatus(root, state, artifact);
     if (status !== "approved") fail(`${artifact} 批准状态为 ${status}`);
+  }
+}
+/**
+ * 任务证据必须机器可校验：按 Change 内相对路径解析，存在且内容非空。
+ * 绝对路径与 `..` 越界一律 fail closed 且不写入任何状态——证据指到 Change 外面就等于没有证据，
+ * 归档后没人能凭它复核。只作用于 active Change 的写入路径，不回溯归档目录。
+ */
+function validateEvidence(root: string, evidence: string[], label: string): void {
+  for (const item of evidence) {
+    if (isAbsolute(item) || /^[A-Za-z]:/.test(item)) fail(`${label} evidence 必须是 Change 内相对路径，不接受绝对路径: ${item}`);
+    if (item.split(/[\\/]/).includes("..")) fail(`${label} evidence 不得使用 .. 越界: ${item}`);
+    const target = resolve(root, item);
+    const rel = relative(root, target);
+    if (!rel || rel.startsWith("..") || isAbsolute(rel)) fail(`${label} evidence 越出 Change 目录: ${item}`);
+    if (!existsSync(target)) fail(`${label} evidence 不存在: ${item}`);
+    if (!statSync(target).isFile() || statSync(target).size === 0) fail(`${label} evidence 必须是非空文件: ${item}`);
   }
 }
 function parseTask(value: unknown, index: number): Task {
@@ -140,19 +175,19 @@ function init(root: string, options: Map<string, string>): void {
   parseInfo(infoPath(root)); console.log(JSON.stringify({ slug, displayName: info.displayName, mode }, null, 2));
 }
 function inspect(root: string): void {
-  const info = parseInfo(infoPath(root)); const approvals = parseApprovals(approvalsPath(root)); const effective: Record<string, string> = {};
-  for (const artifact of Object.keys(artifactPaths)) effective[artifact] = approvalStatus(root, approvals, artifact);
+  const info = parseInfo(infoPath(root)); const approvals = parseApprovals(approvalsPath(root), root); const effective: Record<string, string> = {};
+  for (const artifact of Object.keys(artifactPathsFor(root))) effective[artifact] = approvalStatus(root, approvals, artifact);
   const tasks = existsSync(tasksPath(root)) ? parseTasks(tasksPath(root)) : null; if (tasks && existsSync(taskMarkdownPath(root))) verifyTaskProjection(root, tasks);
   console.log(JSON.stringify({ slug: slugFor(root), displayName: info.displayName, mode, approvals, effective, tasks }, null, 2));
 }
 function approvalSet(root: string, options: Map<string, string>): void {
-  const artifact = requiredOption(options, "artifact"); const decision = requiredOption(options, "decision"); if (!(artifact in artifactPaths) || (decision !== "approved" && decision !== "rejected")) fail("批准参数非法");
-  withFileLock(lockPath(root), () => { const state = parseApprovals(approvalsPath(root)); state.artifacts[artifact] = { digest: artifactDigest(root, artifact), decision, approvedBy: requiredOption(options, "approved-by"), approvedAt: now(), migrationSource: options.get("migration-source") ?? null }; atomicWriteJson(approvalsPath(root), state); console.log(JSON.stringify(state, null, 2)); });
+  const artifact = requiredOption(options, "artifact"); const decision = requiredOption(options, "decision"); if (!(artifact in artifactPathsFor(root)) || (decision !== "approved" && decision !== "rejected")) fail("批准参数非法");
+  withFileLock(lockPath(root), () => { const state = parseApprovals(approvalsPath(root), root); state.artifacts[artifact] = { digest: artifactDigest(root, artifact), decision, approvedBy: requiredOption(options, "approved-by"), approvedAt: now(), migrationSource: options.get("migration-source") ?? null }; atomicWriteJson(approvalsPath(root), state); console.log(JSON.stringify(state, null, 2)); });
 }
-function approvalsInspect(root: string): void { const state = parseApprovals(approvalsPath(root)); const effective: Record<string, string> = {}; for (const artifact of Object.keys(artifactPaths)) effective[artifact] = approvalStatus(root, state, artifact); console.log(JSON.stringify({ ...state, effective }, null, 2)); }
-function taskWrite(root: string, options: Map<string, string>): void { const imported = parseTasks(requiredOption(options, "file")); parseInfo(infoPath(root)); withFileLock(lockPath(root), () => atomicWriteJson(tasksPath(root), imported)); console.log(JSON.stringify(imported, null, 2)); }
+function approvalsInspect(root: string): void { const state = parseApprovals(approvalsPath(root), root); const effective: Record<string, string> = {}; for (const artifact of Object.keys(artifactPathsFor(root))) effective[artifact] = approvalStatus(root, state, artifact); console.log(JSON.stringify({ ...state, effective }, null, 2)); }
+function taskWrite(root: string, options: Map<string, string>): void { const imported = parseTasks(requiredOption(options, "file")); parseInfo(infoPath(root)); for (const task of imported.tasks) validateEvidence(root, task.evidence, `tasks[${task.id}]`); withFileLock(lockPath(root), () => atomicWriteJson(tasksPath(root), imported)); console.log(JSON.stringify(imported, null, 2)); }
 function taskSet(root: string, options: Map<string, string>): void {
-  withFileLock(lockPath(root), () => { const state = parseTasks(tasksPath(root)); const task = state.tasks.find((item) => item.id === requiredOption(options, "id")); if (!task) fail("未知 task id"); const next = requiredOption(options, "state"); if (!( ["planned", "implemented_unverified", "blocked_external", "verified"] as string[]).includes(next)) fail("任务状态非法"); task.state = next as TaskStateName; task.evidence = options.has("evidence") ? [requiredOption(options, "evidence")] : []; task.blocker = options.has("blocker") ? requiredOption(options, "blocker") : null; parseTask(task, 0); atomicWriteJson(tasksPath(root), state); console.log(JSON.stringify(state, null, 2)); });
+  withFileLock(lockPath(root), () => { const state = parseTasks(tasksPath(root)); const task = state.tasks.find((item) => item.id === requiredOption(options, "id")); if (!task) fail("未知 task id"); const next = requiredOption(options, "state"); if (!( ["planned", "implemented_unverified", "blocked_external", "verified"] as string[]).includes(next)) fail("任务状态非法"); task.state = next as TaskStateName; task.evidence = options.has("evidence") ? [requiredOption(options, "evidence")] : []; task.blocker = options.has("blocker") ? requiredOption(options, "blocker") : null; parseTask(task, 0); validateEvidence(root, task.evidence, `tasks[${task.id}]`); atomicWriteJson(tasksPath(root), state); console.log(JSON.stringify(state, null, 2)); });
 }
 function renderTasks(root: string): void {
   const state = parseTasks(tasksPath(root));
@@ -167,7 +202,7 @@ function renderTasks(root: string): void {
   console.log(JSON.stringify({ path: taskMarkdownPath(root), tasks: state.tasks.length }, null, 2));
 }
 function guard(root: string, operation: string): void {
-  parseInfo(infoPath(root)); const approvals = parseApprovals(approvalsPath(root));
+  parseInfo(infoPath(root)); const approvals = parseApprovals(approvalsPath(root), root); const requiredBeforeAcceptance = requiredBeforeAcceptanceFor(root);
   if (operation === "apply") { requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); }
   else if (operation === "acceptance") { requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); if (state.tasks.some((task) => task.state !== "verified")) fail("验收前全部任务必须 verified"); requireReview(root); }
   else if (operation === "release") { guard(root, "acceptance"); requireAcceptance(root); }

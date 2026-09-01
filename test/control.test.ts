@@ -1,19 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createArtifactTree, runTool } from "./helpers.ts";
 
 const artifactFiles: Record<string, string> = {
-  "01-原始需求/原始需求索引.md": "raw\n", "02-需求理解/需求理解.md": "requirements\n", "03-业务现状/业务现状.md": "business\n",
-  "04-技术现状/技术现状.md": "technical\n",
+  "01-原始需求/原始需求索引.md": "raw\n", "02-需求理解/需求理解.md": "requirements\n", "03-现状/现状.md": "current\n",
   "05-改造方案/方案提案.md": "# 方案提案\n## 候选 A：简单\n## 候选 B：严格\n## Trade-off 矩阵\n## 推荐\n## 未决问题\n",
   "05-改造方案/方案决策.md": "# 方案决策\n- 状态：APPROVED\n- 选择：B\n- 决策人：tester\n- 决策时间：2026-08-30\n## 接受的后果\n## 拒绝方案\n",
   "05-改造方案/改造方案.md": "plan\n", "06-测试方案/测试方案.md": "tests\n",
   "07-实施任务/实施任务.md": "# 实施任务\n- [ ] 1.1 [planned] 完成演示\n- [ ] 9.9 [planned] 已删除任务\n  - 交付物：obsolete\n",
 };
-const artifacts = ["raw-requirements", "specs", "business-current", "technical-current", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"];
+const artifacts = ["raw-requirements", "specs", "current-state", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"];
 test("严格来源、批准失效、任务状态和投影合同", () => {
   const root = mkdtempSync(join(tmpdir(), "delivery-control-"));
   try {
@@ -34,7 +33,24 @@ test("严格来源、批准失效、任务状态和投影合同", () => {
     for (const artifact of artifacts) { result = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", artifact, "--decision", "approved", "--approved-by", "tester"]); assert.equal(result.status, 0, result.stderr); }
     result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]); assert.equal(result.status, 0, result.stderr);
     result = runTool("delivery-control.ts", ["task", "set", "--change-root", change, "--id", "1.1", "--state", "verified"]); assert.notEqual(result.status, 0); assert.match(result.stderr, /缺少 evidence/);
-    result = runTool("delivery-control.ts", ["task", "set", "--change-root", change, "--id", "1.1", "--state", "verified", "--evidence", "test-output/control.tap"]); assert.equal(result.status, 0, result.stderr);
+    // VC-026：evidence 四类负向全部 fail closed，且 task-state.json 逐字节不变。
+    mkdirSync(join(change, "08-验收"), { recursive: true });
+    writeFileSync(join(change, "08-验收/empty.tap"), "");
+    const taskStateBefore = readFileSync(join(change, "task-state.json"), "utf8");
+    const negatives: Array<[string, RegExp]> = [
+      ["08-验收/missing.tap", /evidence 不存在/],
+      ["08-验收/empty.tap", /evidence 必须是非空文件/],
+      [join(root, "outside.tap"), /不接受绝对路径/],
+      ["../outside.tap", /不得使用 \.\. 越界/],
+    ];
+    for (const [evidence, pattern] of negatives) {
+      result = runTool("delivery-control.ts", ["task", "set", "--change-root", change, "--id", "1.1", "--state", "verified", "--evidence", evidence]);
+      assert.notEqual(result.status, 0, `应当拒绝: ${evidence}`); assert.match(result.stderr, pattern);
+      assert.equal(readFileSync(join(change, "task-state.json"), "utf8"), taskStateBefore, `拒绝后不得写入: ${evidence}`);
+    }
+    // VC-025：Change 内存在的非空证据文件被接受。
+    writeFileSync(join(change, "08-验收/control.tap"), "ok\n");
+    result = runTool("delivery-control.ts", ["task", "set", "--change-root", change, "--id", "1.1", "--state", "verified", "--evidence", "08-验收/control.tap"]); assert.equal(result.status, 0, result.stderr);
     result = runTool("delivery-control.ts", ["task", "render", "--change-root", change]); assert.equal(result.status, 0, result.stderr);
     result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "acceptance"]); assert.notEqual(result.status, 0); assert.match(result.stderr, /tasks 批准状态为 stale/);
     result = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", "tasks", "--decision", "approved", "--approved-by", "tester"]); assert.equal(result.status, 0, result.stderr);

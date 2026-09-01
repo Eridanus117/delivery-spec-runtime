@@ -18,14 +18,14 @@ function write(path: string, content: string): void {
 }
 const proposal = "# 方案提案\n## 候选 A：简单\n## 候选 B：严格\n## Trade-off 矩阵\n## 推荐\n## 未决问题\n";
 const decision = "# 方案决策\n- 状态：APPROVED\n- 选择：B\n- 决策人：tester\n- 决策时间：2026-08-30\n## 接受的后果\n## 拒绝方案\n";
-const artifacts = ["raw-requirements", "specs", "business-current", "technical-current", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"];
+const artifacts = ["raw-requirements", "specs", "current-state", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"];
 
 function prepareChange(repo: string): { change: string; baseline: string; reviewed: string } {
   git(repo, ["init", "-q", "-b", "master"]); git(repo, ["config", "user.email", "test@example.com"]); git(repo, ["config", "user.name", "Test"]);
   write(join(repo, "base.txt"), "base\n"); git(repo, ["add", "."]); git(repo, ["commit", "-qm", "base"]); const baseline = git(repo, ["rev-parse", "HEAD"]);
   const change = join(repo, "openspec/changes/demo-change"); createArtifactTree(change);
   const files: Record<string, string> = {
-    "01-原始需求/原始需求索引.md": "raw\n", "03-业务现状/业务现状.md": "business\n", "04-技术现状/技术现状.md": "technical\n",
+    "01-原始需求/原始需求索引.md": "raw\n", "03-现状/现状.md": "current\n",
     "05-改造方案/方案提案.md": proposal, "05-改造方案/方案决策.md": decision, "05-改造方案/改造方案.md": "plan\n", "06-测试方案/测试方案.md": "tests\n",
     "07-实施任务/实施任务.md": "# 实施任务\n- [x] 1.1 [verified] 完成演示\n", "specs/example/spec.md": "## ADDED Requirements\n### Requirement: Demo\n#### Scenario: Demo\n- **WHEN** x\n- **THEN** y\n",
   };

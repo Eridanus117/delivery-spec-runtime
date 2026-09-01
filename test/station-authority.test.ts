@@ -18,7 +18,7 @@ import { createArtifactTree, runTool, runtimeRoot } from "./helpers.ts";
 const profilePath = join(runtimeRoot, "openspec/profiles/delivery-change-v1.json");
 const proposal = "# 方案提案\n## 候选 A：简单\n## 候选 B：严格\n## Trade-off 矩阵\n## 推荐\n## 未决问题\n";
 const approvedDecision = "# 方案决策\n- 状态：APPROVED\n- 选择：B\n- 决策人：maintainer\n- 决策时间：2026-08-30\n## 接受的后果\n## 拒绝方案\n";
-const artifacts = ["raw-requirements", "specs", "business-current", "technical-current", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"];
+const artifacts = ["raw-requirements", "specs", "current-state", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"];
 const deltaSpec = "openspec/changes/demo-change/specs/example/spec.md";
 const mainSpec = "openspec/specs/example/spec.md";
 
@@ -51,8 +51,7 @@ function prepare(repo: string): Fixture {
   createArtifactTree(change);
   const files: Record<string, string> = {
     "01-原始需求/原始需求索引.md": "raw\n",
-    "03-业务现状/业务现状.md": "business\n",
-    "04-技术现状/技术现状.md": "technical\n",
+    "03-现状/现状.md": "current\n",
     "05-改造方案/方案提案.md": proposal,
     "05-改造方案/方案决策.md": approvedDecision,
     "05-改造方案/改造方案.md": "plan\n",

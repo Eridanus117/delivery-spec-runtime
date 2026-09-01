@@ -10,8 +10,11 @@ const removeSlugs = ["official-return-cp-quality-sort", "cross-border-template-a
 const directoryMap: Record<string, string> = {
   "01-requirements-raw": "01-原始需求",
   "02-requirements-understanding": "02-需求理解",
-  "03-business-current": "03-业务现状",
-  "04-technical-current": "04-技术现状",
+  // v6 起两份现状合并为一份，因此两个旧目录都并入 03-现状；copyTree 会把两侧内容并到同一目录。
+  // business-current.md 被改名为正文 现状.md，technical-current.md 原样留在旁边，
+  // 由维护者在首次编辑时并入——bootstrap 只做机械搬运，不代写合并后的叙述。
+  "03-business-current": "03-现状",
+  "04-technical-current": "03-现状",
   "05-change-plan": "05-改造方案",
   "06-test-plan": "06-测试方案",
   "07-implementation-tasks": "07-实施任务",
@@ -158,8 +161,7 @@ function buildCandidate(workRoot: string, candidate: string): void {
   const primaryFiles: Array<[string, string]> = [
     ["01-原始需求/index.md", "01-原始需求/原始需求索引.md"],
     ["02-需求理解/index.md", "02-需求理解/需求理解.md"],
-    ["03-业务现状/business-current.md", "03-业务现状/业务现状.md"],
-    ["04-技术现状/technical-current.md", "04-技术现状/技术现状.md"],
+    ["03-现状/business-current.md", "03-现状/现状.md"],
     ["05-改造方案/change-plan.md", "05-改造方案/改造方案.md"],
     ["06-测试方案/test-plan.md", "06-测试方案/测试方案.md"],
     ["07-实施任务/tasks.md", "07-实施任务/实施任务.md"],
