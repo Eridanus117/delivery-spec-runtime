@@ -14,7 +14,6 @@ const artifactFiles: Record<string, string> = {
   "07-实施任务/实施任务.md": "# 实施任务\n- [ ] 1.1 [planned] 完成演示\n- [ ] 9.9 [planned] 已删除任务\n  - 交付物：obsolete\n",
   "specs/example/spec.md": "## ADDED Requirements\n",
 };
-const artifacts = ["raw-requirements", "specs", "solution-proposal", "solution-decision", "test-plan", "tasks"];
 test("严格来源、批准失效、任务状态和投影合同", () => {
   const root = mkdtempSync(join(tmpdir(), "delivery-control-"));
   try {

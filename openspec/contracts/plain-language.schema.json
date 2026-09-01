@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "delivery-change/plain-language.schema.json",
   "title": "Plain language policy",
-  "description": "说人话关的配置：哪些文字必须先交给一个没有本仓上下文的读者审读、哪些明确豁免、以及一份不许再出现的词的名单。被机器强制的部分是：mustPass（Change 内必过路径，缺审读记录即拒绝）、repoMustPass（仓内必过路径，供禁词扫描）、bannedWords（命中即拒绝）。exempt 参与机器判定的方式是划出「已声明豁免」的范围：两张清单都没命中的文件会被报为「未归类」——未归类是清单的缺口，机器如实报出但不拦流程，处置方式是补清单。manualMustPass 不参与机器判定，它们记录的是「为什么这一类不由机器管」，缺了这个说明，后来人会把「机器没查」误读成「不用过」。",
+  "description": "说人话关的配置：哪些文字必须先交给一个没有本仓上下文的读者审读、哪些明确豁免、以及一份不许再出现的词的名单。被机器强制的部分是：mustPass（Change 内必过路径，缺审读记录即拒绝）、repoMustPass（仓内必过路径：本次改动碰过的那些，同样要求审读记录与禁词零命中）、bannedWords（命中即拒绝）。exempt 参与机器判定的方式是划出「已声明豁免」的范围：两张清单都没命中的文件会被报为「未归类」——未归类是清单的缺口，机器如实报出但不拦流程，处置方式是补清单。manualMustPass 不参与机器判定，它们记录的是「为什么这一类不由机器管」，缺了这个说明，后来人会把「机器没查」误读成「不用过」。",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -14,7 +14,8 @@
     "manualMustPass",
     "exempt",
     "bannedWords",
-    "bannedWordsPolicy"
+    "bannedWordsPolicy",
+    "repoScope"
   ],
   "properties": {
     "schemaVersion": {
@@ -201,6 +202,11 @@
     "bannedWordsPolicy": {
       "type": "string",
       "minLength": 1
+    },
+    "repoScope": {
+      "type": "string",
+      "minLength": 1,
+      "description": "仓级必过文件的作用范围说明。它是硬的：门禁按「本次改动碰过哪些仓级必过文件」取集合。"
     }
   }
 }

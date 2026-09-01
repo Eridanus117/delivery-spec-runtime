@@ -13,7 +13,7 @@
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
-import { exactKeys, fail, object, readJson, text } from "./runtime-lib.ts";
+import { exactKeys, fail, object, readJson, sha256File, text } from "./runtime-lib.ts";
 
 export const policyRelativePath = "openspec/profiles/plain-language-v1.json";
 export const reviewFileName = "readability-review.json";
@@ -22,6 +22,7 @@ export type BannedWord = { word: string; replacement: string; reason: string; ad
 export type MustPassEntry = { id: string; displayName: string; patterns: string[]; reason: string };
 export type PlainLanguagePolicy = {
   policyVersion: string;
+  repoScope: string;
   mustPass: MustPassEntry[];
   repoMustPass: MustPassEntry[];
   manualMustPass: Array<{ id: string; displayName: string; reason: string }>;
@@ -29,7 +30,7 @@ export type PlainLanguagePolicy = {
   bannedWords: BannedWord[];
 };
 export type Finding = { id: string; quote: string; issue: string; status: "RESOLVED" | "ACCEPTED" | "OPEN"; resolution: string | null };
-export type Review = { target: string; reviewedAt: string; reviewer: string; findings: Finding[] };
+export type Review = { target: string; digest: string; reviewedAt: string; reviewer: string; findings: Finding[] };
 export type BannedHit = { path: string; line: number; word: string; replacement: string };
 
 /**
@@ -75,7 +76,7 @@ export function loadPolicy(runtimeRoot: string): PlainLanguagePolicy {
   const path = join(runtimeRoot, policyRelativePath);
   if (!existsSync(path)) fail(`说人话关配置不存在: ${policyRelativePath}（--runtime-root 指向 ${runtimeRoot}）`);
   const value = object(readJson(path), "plain-language");
-  exactKeys(value, ["schemaVersion", "policyVersion", "note", "mustPass", "repoMustPass", "manualMustPass", "exempt", "bannedWords", "bannedWordsPolicy"], ["schemaVersion", "policyVersion", "note", "mustPass", "repoMustPass", "manualMustPass", "exempt", "bannedWords", "bannedWordsPolicy"], "plain-language");
+  exactKeys(value, ["schemaVersion", "policyVersion", "note", "mustPass", "repoMustPass", "repoScope", "manualMustPass", "exempt", "bannedWords", "bannedWordsPolicy"], ["schemaVersion", "policyVersion", "note", "mustPass", "repoMustPass", "repoScope", "manualMustPass", "exempt", "bannedWords", "bannedWordsPolicy"], "plain-language");
   if (value.schemaVersion !== 1) fail("plain-language.schemaVersion 仅支持 1");
   if (!Array.isArray(value.manualMustPass)) fail("plain-language.manualMustPass 必须是数组");
   if (!Array.isArray(value.bannedWords) || value.bannedWords.length === 0) fail("plain-language.bannedWords 必须是非空数组");
@@ -93,6 +94,7 @@ export function loadPolicy(runtimeRoot: string): PlainLanguagePolicy {
   });
   return {
     policyVersion: text(value.policyVersion, "plain-language.policyVersion"),
+    repoScope: text(value.repoScope, "plain-language.repoScope"),
     mustPass: entries(value.mustPass, "plain-language.mustPass", "changePathPatterns", 1),
     exempt: entries(value.exempt, "plain-language.exempt", "changePathPatterns", 1),
     repoMustPass: entries(value.repoMustPass, "plain-language.repoMustPass", "repoPathPatterns", 1),
@@ -134,6 +136,22 @@ export function unclassifiedFiles(changeRoot: string, policy: PlainLanguagePolic
   const known = [...policy.mustPass, ...policy.exempt].flatMap((entry) => entry.patterns);
   return all.filter((path) => !known.some((pattern) => matchesPattern(path, pattern))).sort();
 }
+/**
+ * 仓级必过文件里，**本次改动实际碰过的那些**。
+ *
+ * 只取碰过的，是因为两头都要顾：一头是「此后产出的文字不许留口子」——本单自己就在说明文档、
+ * 规则文件、交互指引里写了大量新文字，它们必须受同一套检查；另一头是「不把一次用词修正变成
+ * 全仓翻新」——没碰过的历史文件不扫。判据取「碰没碰过」而不是「哪几行是新的」，理由与禁词
+ * 那条一致：按行判定要维护一份会漂移的账。
+ */
+export function touchedRepoMustPass(repoRoot: string, changedPaths: string[], policy: PlainLanguagePolicy): string[] {
+  const patterns = policy.repoMustPass.flatMap((entry) => entry.patterns);
+  return changedPaths
+    .map((path) => path.split("\\").join("/"))
+    .filter((path) => patterns.some((pattern) => matchesPattern(path, pattern)))
+    .filter((path) => existsSync(join(repoRoot, path)))
+    .sort();
+}
 /** 逐行扫禁词。返回命中而不是直接抛错，好让调用方一次报全所有命中，而不是改一个报一个。 */
 export function scanBannedWords(root: string, relativePaths: string[], policy: PlainLanguagePolicy): BannedHit[] {
   const hits: BannedHit[] = [];
@@ -158,7 +176,7 @@ export function parseReadabilityReviews(path: string): Review[] {
   const targets = new Set<string>();
   return (value.reviews as unknown[]).map((item, index) => {
     const record = object(item, `reviews[${index}]`);
-    exactKeys(record, ["target", "reviewedAt", "reviewer", "findings"], ["target", "reviewedAt", "reviewer", "findings"], `reviews[${index}]`);
+    exactKeys(record, ["target", "digest", "reviewedAt", "reviewer", "findings"], ["target", "digest", "reviewedAt", "reviewer", "findings"], `reviews[${index}]`);
     const target = text(record.target, `reviews[${index}].target`);
     if (targets.has(target)) fail(`同一份文字出现两条审读记录: ${target}`);
     targets.add(target);
@@ -175,7 +193,9 @@ export function parseReadabilityReviews(path: string): Review[] {
       if (status !== "OPEN" && (resolution === null || resolution.length === 0)) fail(`审读意见 ${id} 已处置却没有写处置说明`);
       return { id, quote: text(finding.quote, `reviews[${index}].findings[${at}].quote`), issue: text(finding.issue, `reviews[${index}].findings[${at}].issue`), status: status as Finding["status"], resolution };
     });
-    return { target, reviewedAt: text(record.reviewedAt, `reviews[${index}].reviewedAt`), reviewer: text(record.reviewer, `reviews[${index}].reviewer`), findings };
+    const digest = text(record.digest, `reviews[${index}].digest`);
+    if (!/^sha256:[0-9a-f]{64}$/.test(digest)) fail(`审读记录 ${target} 的内容哈希格式非法`);
+    return { target, digest, reviewedAt: text(record.reviewedAt, `reviews[${index}].reviewedAt`), reviewer: text(record.reviewer, `reviews[${index}].reviewer`), findings };
   });
 }
 
@@ -183,22 +203,37 @@ export function parseReadabilityReviews(path: string): Review[] {
  * 这道关的收口判定，在归档前的门禁上调用——「发出」在本仓就是开 PR，所以关口设在归档前。
  * 三件事同时满足才放行：必过文件都有审读记录、没有挂着未处置的意见、人读文字里没有禁词。
  */
-export function verifyPlainLanguage(changeRoot: string, runtimeRoot: string): { checkedFiles: string[]; reviewedTargets: string[]; unclassified: string[] } {
+export function verifyPlainLanguage(changeRoot: string, runtimeRoot: string, repoScope: { repoRoot: string; changedPaths: string[] } | null = null): { checkedFiles: string[]; repoFiles: string[]; reviewedTargets: string[]; unclassified: string[] } {
   const policy = loadPolicy(runtimeRoot);
   const files = changeMustPassFiles(changeRoot, policy);
+  // 仓级必过文件与 Change 内必过文件走同一套判定，只是路径基准不同：
+  // 前者相对仓库根，后者相对 Change 根。审读记录里用各自的相对路径作 target。
+  const repoFiles = repoScope === null ? [] : touchedRepoMustPass(repoScope.repoRoot, repoScope.changedPaths, policy);
   const reviewPath = join(changeRoot, reviewFileName);
-  if (files.length && !existsSync(reviewPath)) {
+  if ((files.length || repoFiles.length) && !existsSync(reviewPath)) {
     fail(`说人话关拒绝：缺少审读记录 ${reviewFileName}，而本 Change 有 ${files.length} 份文字落在必过清单里：\n  ${files.join("\n  ")}`);
   }
-  const reviews = files.length ? parseReadabilityReviews(reviewPath) : [];
+  const reviews = files.length || repoFiles.length ? parseReadabilityReviews(reviewPath) : [];
   const reviewed = new Set(reviews.map((review) => review.target));
-  const missing = files.filter((path) => !reviewed.has(path));
+  const missing = [...files, ...repoFiles].filter((path) => !reviewed.has(path));
   if (missing.length) fail(`说人话关拒绝：下列文字在必过清单里但没有审读记录：\n  ${missing.join("\n  ")}`);
+  // 审读之后又把文字改了，这条审读就不算数了——与工件批准、实施评审、验收、归档就绪同规格。
+  // 「伪造」与「过期」是两回事：伪造面由独立评审抽查兜，过期这一侧必须由内容哈希兜。
+  const bases = new Map<string, string>();
+  for (const path of files) bases.set(path, changeRoot);
+  for (const path of repoFiles) bases.set(path, (repoScope as { repoRoot: string }).repoRoot);
+  const stale: string[] = [];
+  for (const review of reviews) {
+    const base = bases.get(review.target);
+    if (base === undefined) continue; // 记录里可以留手动项（例如 PR 正文），它们没有落盘位置，不参与新鲜度。
+    if (sha256File(join(base, review.target)) !== review.digest) stale.push(review.target);
+  }
+  if (stale.length) fail(`说人话关拒绝：下列文字在审读之后又被改动，审读记录已过期，需要重新审读：\n  ${stale.join("\n  ")}`);
   const open = reviews.flatMap((review) => review.findings.filter((finding) => finding.status === "OPEN").map((finding) => `${review.target} ${finding.id}: ${finding.issue}`));
   if (open.length) fail(`说人话关拒绝：下列审读意见还挂着没有处置：\n  ${open.join("\n  ")}`);
-  const hits = scanBannedWords(changeRoot, files, policy);
+  const hits = [...scanBannedWords(changeRoot, files, policy), ...(repoScope === null ? [] : scanBannedWords(repoScope.repoRoot, repoFiles, policy))];
   if (hits.length) {
     fail(`说人话关拒绝：人读文字里出现了禁词（名单在 ${policyRelativePath}）：\n  ${hits.map((hit) => `${hit.path}:${hit.line} 「${hit.word}」→ 改用「${hit.replacement}」`).join("\n  ")}`);
   }
-  return { checkedFiles: files, reviewedTargets: [...reviewed].sort(), unclassified: unclassifiedFiles(changeRoot, policy) };
+  return { checkedFiles: files, repoFiles, reviewedTargets: [...reviewed].sort(), unclassified: unclassifiedFiles(changeRoot, policy) };
 }

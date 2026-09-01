@@ -321,7 +321,7 @@ test("VC-030 发布模板删三节且保留 Spec Sync 表与门禁勾选", () =>
 });
 
 /**
- * VC-039 / T-09（记录型断言的处置示范）。
+ * VC-039 / T-09（记账型断言的处置示范）。
  *
  * 这条断言原先用一份写死的目录清单来表达「早期目录已经归档」。它在 `fix-thorn-batch` 一单里
  * 撞红两次（建立时登记、归档时注销），在本单建立时又撞红第三次——**三次都没有暴露任何真问题，
@@ -454,7 +454,7 @@ test("REV-003/T-07.4 批准合同同时容纳两种口径，并校验仓内全�
  * 预算取当前实测最大值（裁定 #3：冻结而非缩名存量），作用是挡住继续恶化：
  * 新增的验收与归档证据一旦超限，这里当场点名，而不是等某次冒烟以「偶发 dirty」的面目失败。
  *
- * **T-09.3：这条断言形态上像快照，但它保留原强度，不按记录型断言处置。**
+ * **T-09.3：这条断言形态上像快照，但它保留原强度，不按记账型断言处置。**
  * 判据是「背后有没有真不变量」，不是「像不像快照」。这里背后的不变量是硬的：Windows 上路径
  * 超过 260 会把一份干净文件误报成已修改，症状与真实漂移无法区分，人也没有办法在起文件名时
  * 心算它。常量取等于实测最大值是刻意的棘轮——一旦允许「为了让某条长路径通过顺手把预算调宽」，
@@ -732,7 +732,7 @@ test("T-06.5 任务清单渲染保留人写的实施切片一节", () => {
 });
 
 /**
- * T-09.2：记录型断言处置到位的验收方式——新建或归档一个 Change 之后，
+ * T-09.2：记账型断言处置到位的验收方式——新建或归档一个 Change 之后，
  * 上面那条断言不需要任何改动就仍然成立。这里用一个临时仓做同构验证：
  * 造两个在途目录，断言的两条不变量照样成立；把其中一个变成半截目录，立刻被抓。
  */
@@ -776,4 +776,92 @@ test("REV-004 批准合同要求刷新记录逐份问责且不覆写原表态", 
   // 原表态那一对字段的说明必须写明「机械回填不得覆写」，这是这条设计的要害。
   assert.match(record.properties.approvedBy.description, /不得覆写|不得降级/);
   assert.match(refreshes.description, /逐份问责/);
+});
+
+/**
+ * REV-006/REV-007 渲染边界。两条都必须按行锚定，早先的写法两条都错过：
+ * 起点用裸子串查找，正文里提到那五个字就把文件腰斩；没有终点，模板界线以下自带的两节
+ * 在首次渲染时被静默删掉。这里三种情形各测一遍。
+ */
+test("REV-006/007 渲染只重写任务清单那一段，人写内容与模板自带节都不动", () => {
+  const root = mkdtempSync(join(tmpdir(), "delivery-boundary-"));
+  const prepare = (body: string) => {
+    const change = join(root, "openspec/changes/demo-change");
+    mkdirSync(join(change, "07-实施任务"), { recursive: true });
+    writeFileSync(join(change, "change-info.json"), JSON.stringify({ schemaVersion: 1, displayName: "演示", deliverySchemaVersion: 7 }));
+    writeFileSync(join(change, "artifact-approvals.json"), JSON.stringify({ schemaVersion: 2, gates: {} }));
+    writeFileSync(join(change, "task-state.json"), JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "planned", deliverables: ["d"], verification: ["v"], evidence: [], blocker: null, replayable: true }] }));
+    writeFileSync(join(change, "07-实施任务/实施任务.md"), body, "utf8");
+    return change;
+  };
+  try {
+    // REV-006：把模板原样放进来，模板界线以下自带的两节必须活下来。
+    const template = readFileSync(join(runtimeRoot, "openspec/schemas/delivery-change/templates/tasks.md"), "utf8");
+    let change = prepare(template);
+    assert.equal(runTool("delivery-control.ts", ["task", "render", "--change-root", change]).status, 0);
+    let out = readFileSync(join(change, "07-实施任务/实施任务.md"), "utf8");
+    assert.match(out, /^## 依赖关系$/m, "模板自带的「依赖关系」被渲染删掉了");
+    assert.match(out, /^## 关于证据$/m, "模板自带的「关于证据」被渲染删掉了——那正是解释可否重跑判据的那一节");
+    assert.match(out, /^## 实施切片、迁移与回滚$/m);
+    assert.match(out, /- \[ \] 1\.1 \[planned\]/);
+    rmSync(join(root, "openspec"), { recursive: true, force: true });
+
+    // REV-007：人写正文里**提到**这五个字，不得触发腰斩。
+    change = prepare("# 实现任务拆分\n\n## 实施切片、迁移与回滚\n\n渲染规则：以 `## 任务清单` 这一行为界，界线以上原样保留。\n这句话后面的内容必须活着。\n\n## 任务清单\n旧的\n\n## 依赖关系\n\n收尾。\n");
+    assert.equal(runTool("delivery-control.ts", ["task", "render", "--change-root", change]).status, 0);
+    out = readFileSync(join(change, "07-实施任务/实施任务.md"), "utf8");
+    assert.match(out, /这句话后面的内容必须活着。/, "正文提到边界字符串就被腰斩了");
+    assert.match(out, /渲染规则：以 `## 任务清单` 这一行为界/, "人写的那句话被截断了");
+    assert.match(out, /^## 依赖关系$/m);
+    assert.doesNotMatch(out, /旧的/, "界线内的旧渲染结果没有被重新生成");
+    // 只应存在一个整行的任务清单标题——腰斩的另一个症状是标题被复制。
+    assert.equal(out.split(/\r?\n/).filter((line) => line.trim() === "## 任务清单").length, 1);
+    rmSync(join(root, "openspec"), { recursive: true, force: true });
+
+    // 边界行带尾随空格同样算数：按行锚定不该被空白骗过。
+    change = prepare("# 实现任务拆分\n\n## 任务清单  \n旧的\n\n## 依赖关系\n\n收尾。\n");
+    assert.equal(runTool("delivery-control.ts", ["task", "render", "--change-root", change]).status, 0);
+    out = readFileSync(join(change, "07-实施任务/实施任务.md"), "utf8");
+    assert.doesNotMatch(out, /旧的/);
+    assert.match(out, /^## 依赖关系$/m);
+  } finally { rmSync(root, removeOptions); }
+});
+
+/**
+ * REV-001：`openspec/config.yaml` 的 rules 段给每类工件挂治理规则，键必须是 schema 里真实存在的
+ * 工件 id。工件合并升版时漏改这里，规则就挂到了一个不存在的 id 上——外部工具只打印一行
+ * 「Unknown artifact ID in rules」就过去了，规则**静默失效**，而承接了那些内容的工件并没有补上。
+ * 这条断言把两侧钉在一起：rules 的键集必须是 schema 工件 id 的子集。
+ */
+test("REV-001 config.yaml 的规则不得挂到不存在的工件上", () => {
+  const config = readFileSync(join(runtimeRoot, "openspec/config.yaml"), "utf8");
+  const schema = readFileSync(join(runtimeRoot, "openspec/schemas/delivery-change/schema.yaml"), "utf8");
+  const artifactIds = new Set((schema.match(/^  - id: (\S+)$/gm) ?? []).map((line) => line.replace(/^  - id: /, "").trim()));
+  assert.ok(artifactIds.size > 0, "没能从 schema 里解析出任何工件 id");
+  // rules 段的键：缩进两格、以冒号结尾、且位于 rules: 之后。
+  const rulesBody = config.slice(config.indexOf("\nrules:"));
+  const ruleKeys = (rulesBody.match(/^ {2}([a-z][a-z0-9-]*):$/gm) ?? []).map((line) => line.trim().replace(/:$/, ""));
+  assert.ok(ruleKeys.length > 0, "没能从 config.yaml 里解析出任何规则键");
+  const orphan = ruleKeys.filter((key) => !artifactIds.has(key));
+  assert.deepEqual(orphan, [], `config.yaml 的规则挂在不存在的工件上，这些规则已经静默失效：${orphan.join("、")}`);
+  // 反向也钉一句：被合并掉的两个旧 id 不得再出现在 rules 里。
+  for (const gone of ["current-state", "change-plan"]) assert.ok(!ruleKeys.includes(gone), `已合并的工件仍挂着规则: ${gone}`);
+});
+
+/**
+ * REV-002：命令正文与它的渲染副本同源，所以「渲染一致性检查」发现不了两边同时过时。
+ * 这条从内容侧钉：命令正文不得再提已取消的工件，也不得再讲已废止的按份批准口径。
+ */
+test("REV-002 命令正文不得停留在已废止的工件与批准口径上", () => {
+  const commandRoot = join(runtimeRoot, ".omp/command-sources/bodies");
+  const rendered = join(runtimeRoot, ".omp/commands");
+  for (const dir of [commandRoot, rendered]) {
+    for (const name of readdirSync(dir).filter((item) => item.endsWith(".md"))) {
+      const body = readFileSync(join(dir, name), "utf8");
+      for (const gone of ["change-plan", "03-现状", "改造方案.md"]) {
+        assert.ok(!body.includes(gone), `${name} 仍在提已取消的工件: ${gone}`);
+      }
+      assert.ok(!body.includes("分别批准"), `${name} 仍在讲已废止的按份批准口径`);
+    }
+  }
 });

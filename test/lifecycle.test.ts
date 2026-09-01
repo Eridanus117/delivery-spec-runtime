@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { mkdtempSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { createArtifactTree, runTool, runtimeRoot, removeOptions } from "./helpers.ts";
+import { sha256File } from "../openspec/tools/runtime-lib.ts";
 
 function git(root: string, args: string[]): string {
   const result = spawnSync("git", args, { cwd: root, encoding: "utf8" });
@@ -18,30 +19,28 @@ function write(path: string, content: string): void {
 }
 const proposal = "# 方案提案\n## 候选 A：简单\n## 候选 B：严格\n## Trade-off 矩阵\n## 推荐\n## 未决问题\n";
 const decision = "# 方案决策\n- 状态：APPROVED\n- 选择：B\n- 决策人：tester\n- 决策时间：2026-08-30\n## 接受的后果\n## 拒绝方案\n";
-const artifacts = ["raw-requirements", "specs", "solution-proposal", "solution-decision", "test-plan", "tasks"];
 
 function prepareChange(repo: string): { change: string; baseline: string; reviewed: string } {
   git(repo, ["init", "-q", "-b", "master"]); git(repo, ["config", "user.email", "test@example.com"]); git(repo, ["config", "user.name", "Test"]);
   write(join(repo, "base.txt"), "base\n"); git(repo, ["add", "."]); git(repo, ["commit", "-qm", "base"]); const baseline = git(repo, ["rev-parse", "HEAD"]);
   const change = join(repo, "openspec/changes/demo-change"); createArtifactTree(change);
   const files: Record<string, string> = {
-    // 双方意图都保留：本分支的 v6 结构（两份现状合并为 03-现状/现状.md）
-    // 与 main 的 test-plan 工件改名（06-测试方案/000-测试方案索引.md）。
-    "01-原始需求/原始需求索引.md": "raw\n", "03-现状/现状.md": "current\n",
-    "05-改造方案/方案提案.md": proposal, "05-改造方案/方案决策.md": decision, "05-改造方案/改造方案.md": "plan\n", "06-测试方案/000-测试方案索引.md": "tests\n",
+    // 第 7 版结构：现状并进方案提案、改造方案并进实施任务，所以这里不再单独造那两份。
+    "01-原始需求/原始需求索引.md": "raw\n",
+    "05-改造方案/方案提案.md": proposal, "05-改造方案/方案决策.md": decision, "06-测试方案/000-测试方案索引.md": "tests\n",
     "07-实施任务/实施任务.md": "# 实施任务\n- [x] 1.1 [verified] 完成演示\n", "specs/example/spec.md": "## ADDED Requirements\n### Requirement: Demo\n#### Scenario: Demo\n- **WHEN** x\n- **THEN** y\n",
   };
   for (const [path, content] of Object.entries(files)) write(join(change, path), content);
   write(join(change, "task-state.json"), `${JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "verified", deliverables: ["src/app.ts"], verification: ["node --test"], evidence: ["PASS"], blocker: null, replayable: false }] }, null, 2)}\n`);
-  // 说人话关在归档前的门禁上生效，所以这个能走到归档的 fixture 必须带审读记录。
+  // 说人话关在归档前的门禁上生效，所以这个能走到归档的样本必须带审读记录。
+  // 审读记录绑被审文件的内容哈希（审完再改就过期），所以哈希按实际文件现算，不写死。
   // 它同时是这道关的正向对照：记录齐备、没有挂着的意见时，归档照常放行。
+  write(join(change, "08-验收/验收记录.md"), "# 验收\n- 结论：PASS\n");
+  const reviewTargets = ["01-原始需求/原始需求索引.md", "05-改造方案/方案提案.md", "05-改造方案/方案决策.md", "06-测试方案/000-测试方案索引.md", "specs/example/spec.md", "08-验收/验收记录.md"];
   write(join(change, "readability-review.json"), `${JSON.stringify({
     schemaVersion: 1,
-    reviews: [
-      { target: "specs/example/spec.md", reviewedAt: "2026-08-30T11:00:00Z", reviewer: "无本仓上下文的空白会话", findings: [] },
-      { target: "08-验收/验收记录.md", reviewedAt: "2026-08-30T11:00:00Z", reviewer: "无本仓上下文的空白会话", findings: [{ id: "RD-001", quote: "结论：PASS", issue: "PASS 是什么意思", status: "ACCEPTED", resolution: "通用词，保留" }] },
-    ],
-  }, null, 2)}\n`);
+    reviews: reviewTargets.map((target) => ({ target, digest: sha256File(join(change, target)), reviewedAt: "2026-08-30T11:00:00Z", reviewer: "无本仓上下文的空白会话", findings: [] })),
+  }, null, 2)}`);
   let result = runTool("delivery-control.ts", ["init", "--change-root", change, "--slug", "demo-change", "--display-name", "演示", "--mode", "delivery"], { cwd: repo }); assert.equal(result.status, 0, result.stderr);
   result = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--gate", "decision", "--decision", "approved", "--approved-by", "tester", "--runtime-root", runtimeRoot], { cwd: repo }); assert.equal(result.status, 0, result.stderr);
   write(join(repo, "src/app.ts"), "export const value = 1;\n");
@@ -83,6 +82,12 @@ test("Acceptance与Archive Readiness取代Markdown关键词并支持受控reopen
     write(join(change, "09-发布/发布计划.md"), "# 发布计划\nrelease-not-required\n");
     result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "archive"], { cwd: repo }); assert.notEqual(result.status, 0); assert.match(result.stderr, /archive-readiness/);
     const delta = "openspec/changes/demo-change/specs/example/spec.md"; const main = "openspec/specs/example/spec.md"; write(join(repo, main), readFileSync(join(repo, delta), "utf8"));
+    // 规范同步把增量合进了仓级长期规范，那份文件因此也落进仓级必过清单——补一条审读记录。
+    // 这正是 repoMustPass 真接进门禁之后的新要求：本次改动碰过的仓级必过文件，同样要过这道关。
+    const reviewFile = join(change, "readability-review.json");
+    const reviewState = JSON.parse(readFileSync(reviewFile, "utf8")) as { reviews: Array<Record<string, unknown>> };
+    reviewState.reviews.push({ target: main, digest: sha256File(join(repo, main)), reviewedAt: "2026-08-30T11:00:00Z", reviewer: "无本仓上下文的空白会话", findings: [] });
+    write(reviewFile, JSON.stringify(reviewState, null, 2));
     const readinessInput = join(change, "readiness-input.json"); write(readinessInput, JSON.stringify({ schemaVersion: 1, specSync: [{ deltaPath: delta, mainPath: main }], strictValidation: "PASS", cleanupEvidence: "openspec/changes/demo-change/08-验收/cleanup/cleanup.md", prStarted: false, migrationSource: null, historicalPr: null }));
     write(join(change, "08-验收/cleanup/cleanup.md"), "- 结论：FAIL\n");
     result = runTool("delivery-lifecycle.ts", ["readiness", "write", "--change-root", change, "--file", readinessInput], { cwd: repo }); assert.notEqual(result.status, 0); assert.match(result.stderr, /cleanupEvidence.*PASS/);
@@ -223,6 +228,13 @@ test("T-04.1/T-04.2 实施提交里直接改长期规范时评审看得见，同
     write(join(repo, "openspec/specs/example/spec.md"), "## ADDED Requirements\n### Requirement: 同步站合入的\n#### Scenario: X\n- **WHEN** a\n- **THEN** b\n");
     const afterSync = runTool("delivery-lifecycle.ts", ["review", "inspect", "--change-root", change], { cwd: repo });
     assert.equal(afterSync.status, 0, `同步站写长期规范后评审被误判为过期: ${afterSync.stderr}`);
+
+    // T-04.2：把规范同步**提交**掉再查，同样不得让评审过期。两侧判据必须一致——
+    // 只排除工作树那一侧，「先提交同步、再跑归档门禁」这条顺序就会拿到一句不该出现的过期。
+    git(repo, ["add", "openspec/specs"]);
+    git(repo, ["commit", "-qm", "spec sync"]);
+    const afterCommit = runTool("delivery-lifecycle.ts", ["review", "inspect", "--change-root", change], { cwd: repo });
+    assert.equal(afterCommit.status, 0, `提交规范同步后评审被误判为过期: ${afterCommit.stderr}`);
 
     // 但改实现代码仍然让评审过期——放行同步站不得把漂移检查一并放开。
     write(join(repo, "src/app.ts"), "export const value = 99;\n");

@@ -449,9 +449,19 @@ function taskSet(root: string, options: Map<string, string>): void {
  * 任务清单渲染。
  *
  * 第 7 版起「实施切片、迁移与回滚」并进了这份文件，而那一节是人写的、不参与渲染。
- * 所以渲染不再整份覆盖：以 `## 任务清单` 这一行为界，界线以上原样保留，界线以下重新生成。
- * 文件里没有这条界线时（存量 Change 都没有）行为与从前逐字节一致——整份覆盖。
+ * 所以渲染只重写**一段**，不整份覆盖。这一段的边界是两条：
  *
+ *   起点：**整行等于**「## 任务清单」的那一行；
+ *   终点：其后第一个整行以「## 」开头的标题（没有就到文件末尾）。
+ *
+ * 两条边界都必须按行锚定，早先的写法两条都错过：
+ *   - 起点用裸子串查找，于是人写部分只要在正文里**提到**这五个字（模板与 schema 的写作说明
+ *     恰恰都在要求作者理解这条边界规则，提到它一点也不罕见），文件就从那句话中间被腰斩，
+ *     其后的人写内容全部消失，而任务投影校验照样通过、没有任何报警。
+ *   - 没有终点，于是界线以下的一切都被重新生成，模板自带的「依赖关系」「关于证据」两节
+ *     在首次渲染时就被静默删掉——后者恰恰是解释可否重跑判据的那一节。
+ *
+ * 文件里没有这条起点行时（存量 Change 都没有）行为与从前一致：整份覆盖。
  * 状态真源仍然只有 task-state.json 一处；这里保留的是人写的说明，不是状态。
  */
 const taskListHeading = "## 任务清单";
@@ -463,12 +473,21 @@ function renderTasks(root: string): void {
     list += `  - 交付物：${task.deliverables.join("；")}\n`;
     list += `  - 验证：${task.verification.join("；")}`;
   }
+  const rendered = `${taskListHeading}\n${list.replace(/\n+$/, "")}\n`;
   const existing = existsSync(taskMarkdownPath(root)) ? readFileSync(taskMarkdownPath(root), "utf8") : "";
-  const boundary = existing.indexOf(taskListHeading);
-  const content = boundary >= 0
-    ? `${existing.slice(0, boundary)}${taskListHeading}\n${list.replace(/\n+$/, "")}\n`
-    : `# 实现任务拆分\n\n> 状态真源：\`task-state.json\`。本文件由 \`delivery-control.ts task render\` 生成，只用于人工审阅；禁止反向解析复选框。\n${list.replace(/\n+$/, "")}\n`;
-  writeFileSync(taskMarkdownPath(root), content, "utf8");
+  const lines = existing.split(/\r?\n/);
+  const start = lines.findIndex((line) => line.trim() === taskListHeading);
+  let content: string;
+  if (start < 0) {
+    content = `# 实现任务拆分\n\n> 状态真源：\`task-state.json\`。本文件由 \`delivery-control.ts task render\` 生成，只用于人工审阅；禁止反向解析复选框。\n\n${rendered}`;
+  } else {
+    const rest = lines.slice(start + 1);
+    const nextHeading = rest.findIndex((line) => line.startsWith("## "));
+    const before = lines.slice(0, start).join("\n");
+    const after = nextHeading < 0 ? "" : rest.slice(nextHeading).join("\n");
+    content = `${before}${before && !before.endsWith("\n") ? "\n" : ""}${rendered}${after ? `\n${after}` : ""}`;
+  }
+  writeFileSync(taskMarkdownPath(root), content.replace(/\n*$/, "\n"), "utf8");
   verifyTaskProjection(root, state);
   console.log(JSON.stringify({ path: taskMarkdownPath(root), tasks: state.tasks.length }, null, 2));
 }
@@ -558,6 +577,20 @@ function touchedPaths(repo: string, root: string): string[] | null {
   // Change 目录自身是治理产物，不是被声明档位约束的实现改动。
   return [...collected].filter((path) => path !== changeRel && !path.startsWith(`${changeRel}/`)).sort();
 }
+/**
+ * 说人话关的仓级作用域：仓库根，加上本次改动实际碰过的路径。
+ *
+ * 与越档交叉校验共用 touchedPaths，取的是同一份「这次到底动了什么」的事实——两处判定用两份
+ * 不同的改动清单，迟早会给出互相矛盾的结论。拿不到 git 事实时返回 null：此时仓级那一侧不检查，
+ * 而不是拿一份猜出来的清单去拦人。Change 内那一侧照常检查，不受影响。
+ */
+function repoScopeFor(root: string): { repoRoot: string; changedPaths: string[] } | null {
+  const repoOutput = git(root, ["rev-parse", "--show-toplevel"]);
+  if (!repoOutput) return null;
+  const repo = realpathSync(repoOutput.trim());
+  const paths = touchedPaths(repo, root);
+  return paths === null ? null : { repoRoot: repo, changedPaths: paths };
+}
 function verifyDeclaredScope(root: string, options: Map<string, string>): void {
   const table = loadRoutingTable(runtimeRootFor(options));
   if (!table) return;
@@ -592,7 +625,7 @@ function guard(root: string, operation: string, options: Map<string, string> = n
   else if (operation === "acceptance") { requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); if (state.tasks.some((task) => task.state !== "verified")) fail("验收前全部任务必须 verified"); requireReview(root); }
   // 说人话关的关口设在归档之前：本仓的「发出」就是开 PR，而 PR 在归档之后才创建。
   // 放在验收门之前会拦住验收记录自己（它要先写出来才能被审读），放在归档之后就来不及了。
-  else if (operation === "release") { guard(root, "acceptance", options); requireAcceptance(root); verifyPlainLanguage(root, runtimeRootFor(options)); }
+  else if (operation === "release") { guard(root, "acceptance", options); requireAcceptance(root); verifyPlainLanguage(root, runtimeRootFor(options), repoScopeFor(root)); }
   else if (operation === "verify") { requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); verifyDeclaredScope(root, options); }
   else if (operation === "sync") { requireAcceptance(root); }
   else if (operation === "archive") { guard(root, "release", options); requireReadiness(root); }
@@ -610,7 +643,7 @@ function adapterInspect(options: Map<string, string>): void { const registry = o
 function plainLanguage(root: string, options: Map<string, string>, action: string | undefined): void {
   const runtime = runtimeRootFor(options);
   if (action === undefined || action === "check") {
-    const result = verifyPlainLanguage(root, runtime);
+    const result = verifyPlainLanguage(root, runtime, repoScopeFor(root));
     console.log(JSON.stringify({ allowed: true, ...result }, null, 2));
     return;
   }
