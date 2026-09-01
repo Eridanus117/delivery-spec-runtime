@@ -103,18 +103,36 @@ function nulPaths(buffer: Buffer): string[] {
 function changeRelative(repo: string, changeRoot: string): string {
   return relative(repo, realpathSync(changeRoot)).split(sep).join("/");
 }
-function isLifecyclePath(path: string, changeRel: string): boolean {
-  return path === changeRel || path.startsWith(`${changeRel}/`) || path === "openspec/specs" || path.startsWith("openspec/specs/");
+/**
+ * Change 目录自身是治理产物，不是实现改动，任何时候都不进评审范围。
+ */
+function isChangeOwnedPath(path: string, changeRel: string): boolean {
+  return path === changeRel || path.startsWith(`${changeRel}/`);
+}
+/**
+ * 长期规范目录的处置分两种情形，此前被一刀切地整体排除，于是漏掉了一整类改动。
+ *
+ * 情形一：**实施提交里直接写长期规范**。正常入口是「先在 Change 内写增量，验收后由规范同步站
+ * 合入」，绕过这条链路直接写，评审应该看得见——上一单就真的发生过一次，46 行长期规范被直接写入，
+ * 而评审在结构上看不见它。这不是审查者疏忽，是范围计算把它排除了。所以 baseline→reviewed
+ * 这段区间**必须包含**长期规范目录。
+ *
+ * 情形二：**评审之后由规范同步站写长期规范**。那是流程自己的收尾动作，发生在评审之后、归档之前，
+ * 不该让已完成的评审失效。所以「评审后有没有漂移」这项检查**继续排除**长期规范目录；
+ * 这一段的完整性另有守卫——归档就绪记录会绑定每一对增量与主规范的内容哈希。
+ */
+function isPostReviewWritablePath(path: string): boolean {
+  return path === "openspec/specs" || path.startsWith("openspec/specs/");
 }
 function implementationPaths(repo: string, from: string, to: string, changeRoot: string): string[] {
   const changeRel = changeRelative(repo, changeRoot);
-  return [...new Set(nulPaths(git(repo, ["diff", "--name-only", "-z", from, to, "--"])).filter((path) => !isLifecyclePath(path, changeRel)))].sort();
+  return [...new Set(nulPaths(git(repo, ["diff", "--name-only", "-z", from, to, "--"])).filter((path) => !isChangeOwnedPath(path, changeRel)))].sort();
 }
 function dirtyImplementationPaths(repo: string, changeRoot: string): string[] {
   const changeRel = changeRelative(repo, changeRoot);
   const tracked = nulPaths(git(repo, ["diff", "--name-only", "-z", "HEAD", "--"]));
   const untracked = nulPaths(git(repo, ["ls-files", "--others", "--exclude-standard", "-z"]));
-  return [...new Set([...tracked, ...untracked].filter((path) => !isLifecyclePath(path, changeRel)))].sort();
+  return [...new Set([...tracked, ...untracked].filter((path) => !isChangeOwnedPath(path, changeRel) && !isPostReviewWritablePath(path)))].sort();
 }
 function commitHasPath(repo: string, reviewedCommit: string, path: string): boolean {
   return spawnSync("git", ["cat-file", "-e", `${reviewedCommit}:${path}`], { cwd: repo, encoding: "utf8" }).status === 0;

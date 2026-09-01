@@ -56,7 +56,7 @@
     },
     {
       "id": "4.1",
-      "state": "planned",
+      "state": "implemented_unverified",
       "deliverables": [
         "delivery-lifecycle.ts 评审自算范围纳入 openspec/specs 的直接改动"
       ],

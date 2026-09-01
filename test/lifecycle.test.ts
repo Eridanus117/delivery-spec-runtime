@@ -190,3 +190,44 @@ test("VC-031/VC-032 不得削弱项：Review 自算与 Acceptance 四 digest 新
     assert.notEqual(drifted.status, 0); assert.match(drifted.stderr, /stale/);
   } finally { rmSync(repo, removeOptions); }
 });
+
+/**
+ * T-04（INT-20260901-021 之二）
+ *
+ * 长期规范目录此前被整体排除在「实现改动」之外，于是实施提交里绕过增量链路直接写长期规范时，
+ * 评审在结构上看不见——上一单真的发生过一次，46 行长期规范被直接写入。
+ * 修法要分两种情形：实施区间里的直接改动必须进评审范围；评审之后由规范同步站写的不算漂移。
+ */
+test("T-04.1/T-04.2 实施提交里直接改长期规范时评审看得见，同步站事后写入不算漂移", () => {
+  const repo = mkdtempSync(join(tmpdir(), "delivery-review-specs-"));
+  try {
+    const { change, baseline } = prepareChange(repo);
+    // 在实施提交之后，再补一笔「绕过增量链路直接写长期规范」的改动，并提交。
+    write(join(repo, "openspec/specs/example/spec.md"), "## ADDED Requirements\n### Requirement: 直接写进来的\n#### Scenario: X\n- **WHEN** a\n- **THEN** b\n");
+    git(repo, ["add", "."]); git(repo, ["commit", "-qm", "sneak long-term spec into implementation"]);
+    const reviewed = git(repo, ["rev-parse", "HEAD"]);
+
+    const input = join(change, "review-input.json");
+    write(input, JSON.stringify({ schemaVersion: 1, baselineCommit: baseline, reviewedCommit: reviewed, reviewer: "reviewer", reviewedAt: "2026-09-01T12:00:00Z", findings: [] }));
+    const result = runTool("delivery-lifecycle.ts", ["review", "write", "--change-root", change, "--file", input], { cwd: repo });
+    assert.equal(result.status, 0, result.stderr);
+    const review = JSON.parse(readFileSync(join(change, "implementation-review.json"), "utf8")) as { reviewedPaths: Array<{ path: string }> };
+    const paths = review.reviewedPaths.map((item) => item.path);
+    // T-04.1：直接写进长期规范的那一笔必须出现在被审路径里。
+    assert.ok(paths.includes("openspec/specs/example/spec.md"), `长期规范的直接改动没有进评审范围: ${paths.join(", ")}`);
+    // T-04.2：Change 目录自身仍然被排除——它是治理产物，不是实现改动。
+    assert.ok(!paths.some((path) => path.startsWith("openspec/changes/demo-change/")), `Change 目录自身不该进评审范围: ${paths.join(", ")}`);
+
+    // 评审之后规范同步站再写长期规范，不得让已完成的评审失效——那是流程自己的收尾动作，
+    // 它的完整性由归档就绪记录里的增量与主规范哈希对绑定另行守住。
+    write(join(repo, "openspec/specs/example/spec.md"), "## ADDED Requirements\n### Requirement: 同步站合入的\n#### Scenario: X\n- **WHEN** a\n- **THEN** b\n");
+    const afterSync = runTool("delivery-lifecycle.ts", ["review", "inspect", "--change-root", change], { cwd: repo });
+    assert.equal(afterSync.status, 0, `同步站写长期规范后评审被误判为过期: ${afterSync.stderr}`);
+
+    // 但改实现代码仍然让评审过期——放行同步站不得把漂移检查一并放开。
+    write(join(repo, "src/app.ts"), "export const value = 99;\n");
+    const drifted = runTool("delivery-lifecycle.ts", ["review", "inspect", "--change-root", change], { cwd: repo });
+    assert.notEqual(drifted.status, 0);
+    assert.match(drifted.stderr, /stale/);
+  } finally { rmSync(repo, removeOptions); }
+});
