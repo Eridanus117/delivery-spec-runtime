@@ -1,4 +1,61 @@
 {
   "schemaVersion": 1,
-  "artifacts": {}
+  "artifacts": {
+    "raw-requirements": {
+      "digest": "sha256:df15f6432641db48eca4b92e962e4c75a4ba3b46340cf384a429195a8d1c12cd",
+      "decision": "approved",
+      "approvedBy": "维护者（2026-09-01 方案门口头表态「同意」，Claude 代笔转录）",
+      "approvedAt": "2026-09-01T07:25:30.197Z",
+      "migrationSource": null
+    },
+    "specs": {
+      "digest": "sha256:7e9b336c180ca9e68c7a5f7474a586acffea9c7b602b37de9e14a949c2b5caf1",
+      "decision": "approved",
+      "approvedBy": "维护者（2026-09-01 方案门口头表态「同意」，Claude 代笔转录）",
+      "approvedAt": "2026-09-01T07:25:30.690Z",
+      "migrationSource": null
+    },
+    "current-state": {
+      "digest": "sha256:9a5cd4efcfab9d88e632ab664119477c65b95abfd340469f1ed96fa87e7895b1",
+      "decision": "approved",
+      "approvedBy": "维护者（2026-09-01 方案门口头表态「同意」，Claude 代笔转录）",
+      "approvedAt": "2026-09-01T07:25:31.211Z",
+      "migrationSource": null
+    },
+    "solution-proposal": {
+      "digest": "sha256:8c396063f54b2e0aad64c0ad8e6aaafaf1075e77fecde5944237865b7b712826",
+      "decision": "approved",
+      "approvedBy": "维护者（2026-09-01 方案门口头表态「同意」，Claude 代笔转录）",
+      "approvedAt": "2026-09-01T07:25:31.723Z",
+      "migrationSource": null
+    },
+    "solution-decision": {
+      "digest": "sha256:d6f7709bf39d56a2f119e8da528884e7aa7aae85f71385ad97e138cda0c883c7",
+      "decision": "approved",
+      "approvedBy": "维护者（2026-09-01 方案门口头表态「同意」，Claude 代笔转录）",
+      "approvedAt": "2026-09-01T07:25:32.256Z",
+      "migrationSource": null
+    },
+    "change-plan": {
+      "digest": "sha256:8dc9bd14bb54f204a19eb73db6285ee12e2dd4efe8a70cbc335dff8d68dd85bb",
+      "decision": "approved",
+      "approvedBy": "维护者（方案门「同意」授权下由 agent 起草，批准按同惯例转录，Claude 代笔）",
+      "approvedAt": "2026-09-01T07:25:32.788Z",
+      "migrationSource": null
+    },
+    "test-plan": {
+      "digest": "sha256:889190a8fcd74a1abc6c2e62cf56045236f2c9c02c0e63b27d4cfb4769ac500e",
+      "decision": "approved",
+      "approvedBy": "维护者（测试文件落点更正后的机械重批准，Claude 代笔）",
+      "approvedAt": "2026-09-01T07:43:14.477Z",
+      "migrationSource": "T-QUIET-1 的承载文件由 control.test.ts 更正为 submodule.test.ts，覆盖面与通过标准未变"
+    },
+    "tasks": {
+      "digest": "sha256:f748a186a8f7af37590d12541abc90a232e823363e58bb0dbfdd92f43a6b97d1",
+      "decision": "approved",
+      "approvedBy": "维护者（证据回填后的机械重批准，Claude 代笔）",
+      "approvedAt": "2026-09-01T07:43:13.958Z",
+      "migrationSource": "task-state.json 的 verified 状态与 evidence 路径回填，语义未变"
+    }
+  }
 }

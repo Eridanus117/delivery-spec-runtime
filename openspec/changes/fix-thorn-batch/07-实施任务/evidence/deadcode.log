@@ -1,0 +1,10 @@
+=== 未用导入回扫（去掉导入语句自身后计数为零者） ===
+(以上为空 = 无未用导入)
+=== 全仓零调用函数回扫 ===
+(以上为空 = 无零调用函数)
+=== 修复前的基线（HEAD 41a1a14） ===
+bootstrap.ts: statSync, basename, sha256Buffer
+intake-control.ts: requiredOption
+public-candidate.ts: readdirSync
+runtime-lib.ts: findUp(exported), gitCommit(exported), ensureInside(exported)
+openspec-upgrade.ts: 局部变量 afterLinkStatus 声明后从未使用（本次已赋予用途：并入冒烟失败原因）
