@@ -8,6 +8,11 @@
   "properties": {
     "schemaVersion": { "const": 1 },
     "profileId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
-    "profileVersion": { "type": "string", "pattern": "^v[0-9]+\\.[0-9]+(?:\\.[0-9]+)?$" }
+    "profileVersion": { "type": "string", "pattern": "^v[0-9]+\\.[0-9]+(?:\\.[0-9]+)?$" },
+    "matterId": {
+      "type": "string",
+      "pattern": "^INT-[0-9]{8}-[0-9]{3}-[a-z0-9][a-z0-9-]*$",
+      "description": "可选。该 binding 所服务的 Intake 条目 id；分析线产物以它作目录名，立项门按条目 id 定位产物。"
+    }
   }
 }

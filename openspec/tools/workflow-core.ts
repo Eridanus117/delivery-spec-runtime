@@ -46,6 +46,8 @@ export type WorkflowBinding = {
  schemaVersion: 1;
  profileId: string;
  profileVersion: string;
+ /** 可选：该 binding 所服务的 Intake 条目 id，供立项门按条目 id 定位分析线产物。 */
+ matterId?: string;
 };
 
 export type WorkflowRequest = {
@@ -96,14 +98,23 @@ function assertVersion(value: unknown, label: string): string {
   return version;
 }
 
+/** Intake 条目 id。分析线产物以它作目录名，故必须是路径安全的固定形状。 */
+export const intakeIdPattern = /^INT-[0-9]{8}-[0-9]{3}-[a-z0-9][a-z0-9-]*$/;
+export function assertMatterId(value: unknown, label: string): string {
+  const matterId = text(value, label);
+  if (!intakeIdPattern.test(matterId)) fail(`${label} 必须是 Intake 条目 id（形如 INT-YYYYMMDD-NNN-slug）: ${matterId}`);
+  return matterId;
+}
+
 function assertBinding(value: unknown, label = "binding"): WorkflowBinding {
   const binding = object(value, label);
-  exactKeys(binding, ["schemaVersion", "profileId", "profileVersion"], ["schemaVersion", "profileId", "profileVersion"], label);
+  exactKeys(binding, ["schemaVersion", "profileId", "profileVersion", "matterId"], ["schemaVersion", "profileId", "profileVersion"], label);
   if (binding.schemaVersion !== 1) fail(`${label}.schemaVersion 必须为 1`);
   return {
     schemaVersion: 1,
     profileId: assertId(binding.profileId, `${label}.profileId`),
     profileVersion: assertVersion(binding.profileVersion, `${label}.profileVersion`),
+    ...(binding.matterId === undefined ? {} : { matterId: assertMatterId(binding.matterId, `${label}.matterId`) }),
   };
 }
 
