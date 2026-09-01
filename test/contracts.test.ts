@@ -871,7 +871,11 @@ test("REV-002 命令正文不得停留在已废止的工件与批准口径上", 
       for (const gone of ["change-plan", "03-现状", "改造方案.md"]) {
         assert.ok(!body.includes(gone), `${name} 仍在提已取消的工件: ${gone}`);
       }
-      assert.ok(!body.includes("分别批准"), `${name} 仍在讲已废止的按份批准口径`);
+      // 按份批准这条路已经封死，它在正文里有三种出现形态：口径说法、参数名、以及「分项记录」
+      // 这类描述。只堵一种，换个说法就漏过去了——这次漏网的正是参数名那一种。
+      for (const stale of ["分别批准", "--artifact", "分项记录"]) {
+        assert.ok(!body.includes(stale), `${name} 仍在教已废止的按份批准: ${stale}`);
+      }
       // 工件计数：本单把八份并成六份，任何写死「九项/八项规划工件」的说法都已过时。
       for (const stale of ["九项规划", "八项规划", "九项 artifact", "八层"]) {
         assert.ok(!body.includes(stale), `${name} 停留在旧的工件计数: ${stale}`);

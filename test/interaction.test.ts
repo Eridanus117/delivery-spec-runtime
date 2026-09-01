@@ -119,8 +119,23 @@ test("REV-005/REV-015 规则文本写死批准的三条路与代笔披露", () =
   assert.ok(refreshCommand.includes("--refreshed-artifact"), "刷新的示例命令没有示范声明刷新范围");
   // 新人卡住的两样东西必须查得到：门名的合法取值从哪来、工件代号怎么对应文件。
   assert.ok(governance.includes("openspec/profiles/delivery-change-v1.json"), "没有说清 --gate 的合法取值从哪推导");
-  for (const code of ["raw-requirements", "solution-proposal", "tasks"]) {
-    assert.ok(governance.includes(bt + code + bt), `工件代号对照表缺: ${code}`);
+  // 代号对照表不许手写：它一手写就会和真正的工件路径表分叉，而分叉的表现是
+  // 「照着文档填代号，却被门禁拒绝」——文档越详细，错得越理直气壮。
+  // 所以从 delivery-control 里那张当前版本的路径表推导，逐条核对说明文档。
+  const controlSource = readFileSync(join(runtimeRoot, "openspec/tools/delivery-control.ts"), "utf8");
+  const tableStart = controlSource.indexOf("const v7ArtifactPaths");
+  const tableBody = controlSource.slice(tableStart, controlSource.indexOf("};", tableStart));
+  const pairs = [...tableBody.matchAll(/^\s*"?([a-z][a-z-]*)"?:\s*\[([^\]]*)\]/gm)].map((match) => ({
+    code: match[1],
+    paths: [...match[2].matchAll(/"([^"]+)"/g)].map((item) => item[1]),
+  }));
+  assert.ok(pairs.length >= 6, `没能从工件路径表里解析出条目: ${pairs.length}`);
+  for (const { code, paths } of pairs) {
+    assert.ok(governance.includes(bt + code + bt), `代号对照表缺代号: ${code}`);
+    for (const path of paths) {
+      // specs 那一份是整个目录一起算哈希，文档写成通配形态，所以只核对目录名本身。
+      assert.ok(governance.includes(path), `代号 ${code} 对应的路径没写进对照表: ${path}`);
+    }
   }
   assert.match(governance, /驳回/, "没有给出维护者驳回时的出口");
 });
