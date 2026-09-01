@@ -14,6 +14,11 @@
     "displayName": {
       "type": "string",
       "minLength": 1
+    },
+    "deliverySchemaVersion": {
+      "type": "integer",
+      "minimum": 5,
+      "description": "该 Change 所用 delivery-change schema 的版本。v6 起由 init 显式写入；缺省表示 v5 结构（两份现状文档），存量 Change 与归档目录不迁移。"
     }
   }
 }

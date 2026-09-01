@@ -79,3 +79,30 @@ test("VC-035 校准条款双向记录且预置了新的复盘触发点", () => {
     assert.ok(clause.includes("（理由："), `硬规则缺少大白话理由: ${anchor}`);
   }
 });
+
+test("REV-005 治理文本定义重批准的合法条件与代笔披露", () => {
+  const agents = readFileSync(join(runtimeRoot, "AGENTS.md"), "utf8");
+  const lines = agents.split(/\r?\n/);
+  // 代笔披露必须落在 approvedBy 字段本身，不得只写进 migrationSource。
+  const disclosure = lines.find((line) => line.includes("`approvedBy` 必须写明表态的真实形态"));
+  assert.ok(disclosure, "AGENTS.md 缺少 approvedBy 代笔披露条款");
+  assert.match(disclosure, /不得只把代笔信息藏在 `migrationSource` 里/);
+  assert.ok(disclosure.includes("（理由："), "该硬规则缺少大白话理由");
+  // 重批准的合法边界必须写死：只允许不改语义的机械回填。
+  const reapproval = lines.find((line) => line.includes("**重批准**"));
+  assert.ok(reapproval, "AGENTS.md 缺少重批准条款");
+  assert.match(reapproval, /机械回填、不改变工件的任何语义/);
+  assert.match(reapproval, /任何改变语义的改动都必须重新取得维护者表态，不得由 agent 重签/);
+  assert.ok(reapproval.includes("（理由："), "该硬规则缺少大白话理由");
+});
+
+test("REV-005 本 Change 的批准记录在 approvedBy 中如实披露代笔", () => {
+  const approvals = JSON.parse(readFileSync(join(runtimeRoot, "openspec/changes/enforce-analysis-line-and-prune-pipeline/artifact-approvals.json"), "utf8"));
+  const entries = Object.entries(approvals.artifacts) as Array<[string, { approvedBy: string }]>;
+  assert.ok(entries.length >= 9);
+  for (const [artifact, approval] of entries) {
+    // 裸「维护者」不合格：读者第一眼分不出是亲签还是转录。
+    assert.notEqual(approval.approvedBy, "维护者", `${artifact} 的 approvedBy 未披露代笔`);
+    assert.match(approval.approvedBy, /代笔/, `${artifact} 的 approvedBy 未标注代笔`);
+  }
+});

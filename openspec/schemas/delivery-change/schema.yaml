@@ -1,6 +1,6 @@
 name: delivery-change
 version: 6
-description: 面向真实交付的提案、决策、实现审查、验收、先归档后PR九层工作流
+description: 面向真实交付的提案、决策、实现审查、验收、先归档后PR八层工作流
 
 artifacts:
   - id: raw-requirements

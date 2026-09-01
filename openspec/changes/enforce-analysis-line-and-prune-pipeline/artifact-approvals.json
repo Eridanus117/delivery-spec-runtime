@@ -4,65 +4,65 @@
     "raw-requirements": {
       "digest": "sha256:671e8a865f730e2a846bd789365488bda36b2579cd5c9bd5b48c53d661308586",
       "decision": "approved",
-      "approvedBy": "维护者",
-      "approvedAt": "2026-08-31T23:25:11.806Z",
-      "migrationSource": "主会话门口表态，由实施代理转录：2026-08-31 复盘处置包整包「同意」"
+      "approvedBy": "维护者（门口表态，Claude 代笔转录）",
+      "approvedAt": "2026-09-01T03:12:47.030Z",
+      "migrationSource": "主会话门口表态：2026-08-31 复盘处置包整包「同意」"
     },
     "specs": {
-      "digest": "sha256:fd804f3b3f17f58e31c7de43d505345c27a4354a610f8214a5385d53e04ab7bf",
+      "digest": "sha256:0f5e777de53df7e6b7118c5ec9571b56b52dc6138dbaee481eaa2e841178b6e1",
       "decision": "approved",
-      "approvedBy": "维护者",
-      "approvedAt": "2026-08-31T23:25:11.925Z",
-      "migrationSource": "主会话门口表态，由实施代理转录：2026-08-31 复盘处置包整包「同意」"
+      "approvedBy": "维护者（门口表态，Claude 代笔转录）",
+      "approvedAt": "2026-09-01T03:14:10.100Z",
+      "migrationSource": "主会话门口表态：2026-08-31 复盘处置包整包「同意」；REV-007/008 返工使 intake-workflow delta 形态变化（4 条 Inventory 需求改挂 delta 并去重），新形态的显式确认在验收门取得"
     },
     "business-current": {
       "digest": "sha256:ac33505a8aa8b966f362f88b8751ecb08f23d29e4cc1cf25351c881a206e4790",
       "decision": "approved",
-      "approvedBy": "维护者",
-      "approvedAt": "2026-08-31T23:25:12.040Z",
-      "migrationSource": "主会话门口表态，由实施代理转录：2026-08-31 复盘处置包整包「同意」"
+      "approvedBy": "维护者（门口表态，Claude 代笔转录）",
+      "approvedAt": "2026-09-01T03:12:47.253Z",
+      "migrationSource": "主会话门口表态：2026-08-31 复盘处置包整包「同意」"
     },
     "technical-current": {
       "digest": "sha256:6125cbe747dd986ee04692b25a3b67a20b3f77c0cbee4c017ab79aba93d57c73",
       "decision": "approved",
-      "approvedBy": "维护者",
-      "approvedAt": "2026-08-31T23:25:12.157Z",
-      "migrationSource": "主会话门口表态，由实施代理转录：2026-08-31 复盘处置包整包「同意」"
+      "approvedBy": "维护者（门口表态，Claude 代笔转录）",
+      "approvedAt": "2026-09-01T03:12:47.363Z",
+      "migrationSource": "主会话门口表态：2026-08-31 复盘处置包整包「同意」"
     },
     "solution-proposal": {
       "digest": "sha256:245805deddd3e095598cec84a65231f89f91ce14256ef62bb66a1e5f910e09e5",
       "decision": "approved",
-      "approvedBy": "维护者",
-      "approvedAt": "2026-08-31T23:25:17.077Z",
-      "migrationSource": "主会话门口表态，由实施代理转录：2026-08-31 方案门「我觉得走 A 就行」"
+      "approvedBy": "维护者（门口表态，Claude 代笔转录）",
+      "approvedAt": "2026-09-01T03:12:47.475Z",
+      "migrationSource": "主会话门口表态：2026-08-31 方案门「我觉得走 A 就行」"
     },
     "solution-decision": {
       "digest": "sha256:51c87a4d822682b444242dfdf000fbf4347718b90f7f83869c68dcdb7e89e263",
       "decision": "approved",
-      "approvedBy": "维护者",
-      "approvedAt": "2026-08-31T23:25:17.193Z",
-      "migrationSource": "主会话门口表态，由实施代理转录：2026-08-31 方案门「我觉得走 A 就行」"
+      "approvedBy": "维护者（门口表态，Claude 代笔转录）",
+      "approvedAt": "2026-09-01T03:12:47.585Z",
+      "migrationSource": "主会话门口表态：2026-08-31 方案门「我觉得走 A 就行」"
     },
     "change-plan": {
       "digest": "sha256:10f38918d11d83ed7eabfcc79535d64d9ee6637e3f1dbd01714f9c04c4e3bebd",
       "decision": "approved",
-      "approvedBy": "维护者",
-      "approvedAt": "2026-08-31T23:25:17.311Z",
-      "migrationSource": "主会话门口表态，由实施代理转录：2026-08-31 方案门「我觉得走 A 就行」"
+      "approvedBy": "维护者（门口表态，Claude 代笔转录）",
+      "approvedAt": "2026-09-01T03:12:47.696Z",
+      "migrationSource": "主会话门口表态：2026-08-31 方案门「我觉得走 A 就行」"
     },
     "test-plan": {
       "digest": "sha256:59304589c854ecebd12fbc4b8153df4a8e141b00ad943e1c6c0c5c8a2d41ebee",
       "decision": "approved",
-      "approvedBy": "维护者",
-      "approvedAt": "2026-09-01T01:15:08.518Z",
-      "migrationSource": "主会话门口表态，由实施代理转录：同意（对测试方案与任务拆分一屏摆盘的表态）"
+      "approvedBy": "维护者（门口表态，Claude 代笔转录）",
+      "approvedAt": "2026-09-01T03:12:47.814Z",
+      "migrationSource": "主会话门口表态：同意（对测试方案与任务拆分一屏摆盘的表态）"
     },
     "tasks": {
       "digest": "sha256:f135f713fc62b90da1eca636773e755631c5c8f489c8ace1e1e079d8e2997c9a",
       "decision": "approved",
-      "approvedBy": "维护者",
-      "approvedAt": "2026-09-01T02:24:36.512Z",
-      "migrationSource": "主会话门口表态，由实施代理转录：同意（对测试方案与任务拆分一屏摆盘的表态）；26 项验证证据回填后按仓内既有惯例重批准，内容裁决未变"
+      "approvedBy": "维护者（证据回填后重批准，Claude 代笔）",
+      "approvedAt": "2026-09-01T03:12:47.930Z",
+      "migrationSource": "主会话门口表态：同意（对测试方案与任务拆分一屏摆盘的表态）；26 条验证证据回填导致 digest 变化，按 AGENTS.md「重批准仅限不改语义的机械回填」条款重签，最终显式确认在验收门取得"
     }
   }
 }

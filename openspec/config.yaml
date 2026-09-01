@@ -13,9 +13,8 @@ rules:
     - 记录问题复现、用户决定、上游版本和可重放证据，不把推断写成事实
   specs:
     - 每项 Requirement 至少包含一个可观测 Scenario，并覆盖禁止写入实时仓的负向场景
-  business-current:
+  current-state:
     - 说明维护者、项目仓与资产仓的升级职责、触发条件和失败处置
-  technical-current:
     - 记录软链、gitlink、版本 pin、CLI/JSON 合同和实际写入路径
   change-plan:
     - 区分安全修复、升级框架与候选版本评估，不把多个 Change 静默合并

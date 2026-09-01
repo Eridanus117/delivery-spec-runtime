@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "delivery-change/change-routing.schema.json",
   "title": "Change routing table",
-  "description": "按改动对象把 Intake 条目路由到交付档位，并声明该类改动是否必须先走分析线。本表是立项门与档位选择的唯一真源：调用方不得自述豁免，也不得为绕过门禁失败而降档；未匹配的改动对象一律取最重档且不豁免。",
+  "description": "按改动对象把 Intake 条目路由到交付档位，并声明该类改动是否必须先走分析线。本表是立项门的唯一真源，其中被机器强制的部分是：requiresAnalysis（是否必须有分析线产物）、analysisProfileId（产物须由哪个 profile 产出）、promotable（该改动对象是否允许立项）、rank + pathPrefixes（guard verify 用来核对声明与实际触碰路径是否相符）。profileId 记录该改动对象对应的交付档位，由 promote 写入条目 History 留痕；调用方不得自述豁免，也不得为绕过门禁失败而降档；未匹配的改动对象一律取最重档且不豁免。",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "routingVersion", "unmatched", "routes"],
@@ -13,10 +13,11 @@
       "description": "改动对象未在 routes 中命中、或实际触碰路径不属于任何已声明前缀时的兜底判定。必须是最重档且不豁免，rank 必须严格大于任何 route 的 rank。",
       "type": "object",
       "additionalProperties": false,
-      "required": ["profileId", "requiresAnalysis", "rank", "reason"],
+      "required": ["profileId", "requiresAnalysis", "analysisProfileId", "rank", "reason"],
       "properties": {
         "profileId": { "const": "delivery-change" },
         "requiresAnalysis": { "const": true },
+        "analysisProfileId": { "type": "string", "minLength": 1 },
         "rank": { "type": "integer", "minimum": 0 },
         "reason": { "type": "string", "minLength": 1 }
       }
@@ -34,6 +35,7 @@
           "description": { "type": "string", "minLength": 1 },
           "profileId": { "enum": ["delivery-change", "light-change"] },
           "requiresAnalysis": { "type": "boolean" },
+          "analysisProfileId": { "type": "string", "minLength": 1, "description": "必走分析线时必填：立项门要求分析线产物的 workflow-binding.profileId 必须等于该值，避免随便绑一个 profile 跑出来的 result 也算数。" },
           "rank": {
             "type": "integer",
             "minimum": 0,

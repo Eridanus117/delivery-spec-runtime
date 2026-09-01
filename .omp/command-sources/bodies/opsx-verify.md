@@ -43,7 +43,7 @@
      --change-root "<changeRoot>" --operation verify
    ```
 
-   对于演练，这要求存在 NO-GO 09 且没有 `release-id`。非零结果具有权威性。
+   非零结果具有权威性：批准状态未齐、任务投影漂移，或登记时声明的改动对象与实际触碰路径不符时，必须在此停止。
 
 3. **获取规划上下文并加载工件**
 
@@ -159,7 +159,7 @@
 
    - 交付包含未处置问题时：“实现审查未通过；修复或由维护者明确接受后重新 Review。”
    - 没有未处置问题时，说明 Implementation Review 已准备写入，下一步是严格 Acceptance，而不是直接归档。
-   - 演练时始终说明发布、规范同步和归档仍被禁止，不写 delivery Review PASS。
+   - 自查结论不替代 review 站：`implementation-review.json` 的 `reviewedPaths` 与 `result` 由代码自算，不接受本段结论作为输入。
 
 9. **写入持久化 Implementation Review**
 

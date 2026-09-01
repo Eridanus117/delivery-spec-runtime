@@ -2,11 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { runTool, runtimeRoot } from "./helpers.ts";
 
 
-test("runtime manifest、九层schema与九个Commands一致", () => {
+test("runtime manifest、八层schema与九个Commands一致", () => {
   const manifest = JSON.parse(readFileSync(join(runtimeRoot, "runtime-manifest.json"), "utf8"));
   assert.equal(manifest.schemaVersion, 2);
   assert.equal(manifest.node.minimum, "22.6.0");
@@ -265,17 +265,68 @@ test("VC-039 早期目录归档后 active Change 只剩两个", () => {
   assert.match(superseded, /superseded/);
   assert.match(superseded, /5daf1bd/);
   assert.match(superseded, /workflow-profiles/);
-  // intake-inventory 的 4 条需求必须在长期能力里有规范来源。
-  const spec = readFileSync(join(runtimeRoot, "openspec/specs/intake-workflow/spec.md"), "utf8");
-  for (const requirement of [
-    "Inventory SHALL scan only controlled Intake assets",
-    "Inventory SHALL report duplicate identities without choosing an authority",
-    "Legacy Intake SHALL be visible and non-authoritative",
-    "Inventory output SHALL preserve fail-closed boundaries",
-  ]) {
-    assert.match(spec, new RegExp(`### Requirement: ${requirement}`), `spec 缺少并入的需求: ${requirement}`);
+  // REV-007：被归档 Change 的 Inventory 需求只能经本 Change 的 delta 随 sync 站合入，
+  // 实施提交不得直接改写长期 spec——那会让未经任何批准或验收的需求进入权威规范。
+  const longTerm = readFileSync(join(runtimeRoot, "openspec/specs/intake-workflow/spec.md"), "utf8");
+  assert.doesNotMatch(longTerm, /Inventory SHALL scan only controlled Intake assets/);
+  const delta = readFileSync(join(runtimeRoot, "openspec/changes/enforce-analysis-line-and-prune-pipeline/specs/intake-workflow/spec.md"), "utf8");
+  // REV-008：合并稿是语义并集的单一来源，不留孪生条款。
+  const deltaNames = (delta.match(/^### Requirement: (.+)$/gm) ?? []);
+  assert.equal(new Set(deltaNames).size, deltaNames.length, "delta 内出现重名 Requirement");
+  assert.equal(deltaNames.filter((n) => /[Ii]nventory/.test(n)).length, 1, "Inventory 需求必须合并为单一来源");
+  // 扫描范围、确定性排序、重复 id 分组、不写盘、fail-closed 分类五项语义全部并入该条。
+  for (const fragment of [/只扫描调用方指定项目根下/, /按稳定的字节序返回/, /重复 .id. SHALL 被分组报告/, /SHALL NOT 落盘为第二份状态/, /SHALL NOT 通过默认值伪造身份/]) {
+    assert.match(delta, fragment, "合并稿丢失了原 4 条需求的语义");
   }
-  // intake list 的扫描/排序/重复 id 报告三项行为在 specs 中有规范来源。
-  assert.match(spec, /按相对路径稳定排序/);
-  assert.match(spec, /列出该 ID 和全部冲突文件/);
+  // 与长期 spec 原有的 Legacy 条款是孪生，必须以 MODIFIED 合并而不是新增一条。
+  const modifiedBlock = delta.slice(delta.indexOf("## MODIFIED Requirements"), delta.indexOf("## ADDED Requirements"));
+  assert.match(modifiedBlock, /### Requirement: Legacy Intake records SHALL have a controlled migration path/);
+  assert.doesNotMatch(delta, /Legacy Intake SHALL be visible and non-authoritative/);
+  // delta 的 Purpose 段必须覆盖 inventory 这一只读侧面。
+  assert.match(delta, /^## Purpose/m);
+  assert.match(delta, /只读的条目清单/);
+});
+
+test("REV-003 artifact-approvals 合同覆盖 v5/v6 两种工件集且校验真实批准文件", () => {
+  const schema = JSON.parse(readFileSync(join(runtimeRoot, "openspec/contracts/artifact-approvals.schema.json"), "utf8"));
+  const allowed = Object.keys(schema.properties.artifacts.properties);
+  // 两种形态的工件名都必须被合同接受，否则 v6 Change 写出的批准文件违反本仓自己分发的合同。
+  for (const key of ["raw-requirements", "specs", "current-state", "business-current", "technical-current", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"]) {
+    assert.ok(allowed.includes(key), `artifact-approvals 合同缺少工件名: ${key}`);
+  }
+  assert.equal(schema.properties.artifacts.additionalProperties, false);
+  // 但不允许两种形态混写进同一个文件。
+  assert.deepEqual(schema.properties.artifacts.not.required, ["current-state", "business-current"]);
+
+  const approvalRequired: string[] = schema.$defs.approval.required;
+  const approvalAllowed = Object.keys(schema.$defs.approval.properties);
+  /** 针对本合同形状的定向校验：仓内没有 JSON Schema 引擎，也不为一条断言引入依赖。 */
+  const validate = (path: string, label: string) => {
+    const value = JSON.parse(readFileSync(path, "utf8"));
+    assert.equal(value.schemaVersion, 1, `${label} schemaVersion`);
+    assert.deepEqual(Object.keys(value).sort(), ["artifacts", "schemaVersion"], `${label} 顶层键`);
+    const names = Object.keys(value.artifacts);
+    for (const name of names) assert.ok(allowed.includes(name), `${label} 出现合同外工件: ${name}`);
+    assert.equal(names.includes("current-state") && names.includes("business-current"), false, `${label} 混写了 v5 与 v6 工件集`);
+    for (const [name, approval] of Object.entries(value.artifacts) as Array<[string, Record<string, unknown>]>) {
+      assert.deepEqual(Object.keys(approval).sort(), [...approvalAllowed].sort(), `${label}.${name} 字段集`);
+      for (const key of approvalRequired) assert.ok(key in approval, `${label}.${name} 缺 ${key}`);
+      assert.match(approval.digest as string, /^sha256:[0-9a-f]{64}$/, `${label}.${name}.digest`);
+      assert.ok(["approved", "rejected"].includes(approval.decision as string), `${label}.${name}.decision`);
+      assert.ok(typeof approval.approvedBy === "string" && approval.approvedBy.length > 0, `${label}.${name}.approvedBy`);
+    }
+  };
+  // 用合同校验仓内全部真实批准文件：active 的 v6/v5 Change 与 12 个归档目录。
+  let checked = 0;
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const child = join(dir, entry.name);
+      const approvals = join(child, "artifact-approvals.json");
+      if (existsSync(approvals)) { validate(approvals, relative(runtimeRoot, approvals).split(sep).join("/")); checked += 1; }
+      else walk(child);
+    }
+  };
+  walk(join(runtimeRoot, "openspec/changes"));
+  assert.ok(checked >= 12, `被校验的批准文件数异常: ${checked}`);
 });

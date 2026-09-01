@@ -14,7 +14,7 @@ import { requireAcceptance, requireReadiness, requireReview } from "./delivery-l
 // 将来若需要演练模式，须重新立法而非恢复旧文件。
 const mode = "delivery" as const;
 type TaskStateName = "planned" | "implemented_unverified" | "blocked_external" | "verified";
-type ChangeInfo = { schemaVersion: 1; displayName: string };
+type ChangeInfo = { schemaVersion: 1; displayName: string; deliverySchemaVersion: number | null };
 type Approval = { digest: string; decision: "approved" | "rejected"; approvedBy: string; approvedAt: string; migrationSource: string | null };
 type ApprovalState = { schemaVersion: 1; artifacts: Record<string, Approval> };
 type Task = { id: string; state: TaskStateName; deliverables: string[]; verification: string[]; evidence: string[]; blocker: string | null };
@@ -22,8 +22,8 @@ type TaskState = { schemaVersion: 1; tasks: Task[] };
 
 // v6 起 business-current 与 technical-current 合并为单一 current-state。
 // 存量 Change（10 个归档目录与最后一个 v5 Change）按各自版本解析，不迁移——
-// 显式迁移会改写历史治理证据，代价高于收益。分界线是 Change 的目录形状本身：
-// 有 03-现状/现状.md 即 v6，否则按 v5 解析。
+// 显式迁移会改写历史治理证据，代价高于收益。分界线是 change-info.json 的
+// deliverySchemaVersion 显式标记，缺省即 v5。
 const currentStatePath = "03-现状/现状.md";
 const v6ArtifactPaths: Record<string, string[]> = {
   "raw-requirements": ["01-原始需求/原始需求索引.md"],
@@ -47,6 +47,14 @@ const v5ArtifactPaths: Record<string, string[]> = {
   tasks: ["07-实施任务/实施任务.md"],
 };
 function artifactPathsFor(root: string): Record<string, string[]> {
+  // 优先用 change-info.json 的显式标记判版本：靠「03-现状/现状.md 是否存在」推断，
+  // 会让一个新建的 v6 Change 在写出该文件之前被判成 v5，报错文案还会要求已经不存在的模板。
+  // 缺省（存量 Change 与 10 个归档目录都没有该字段）按 v5 解析，不迁移。
+  try {
+    const value = object(readJson(infoPath(root)), "change-info");
+    const declared = value.deliverySchemaVersion;
+    if (typeof declared === "number") return declared >= 6 ? v6ArtifactPaths : v5ArtifactPaths;
+  } catch {}
   return existsSync(join(root, currentStatePath)) ? v6ArtifactPaths : v5ArtifactPaths;
 }
 /** 门禁清单永远等于该 Change 结构下的全部工件：合并只减少工件数，不减少任何一项校验。 */
@@ -70,11 +78,13 @@ function slugFor(root: string): string {
 }
 function parseInfo(path: string): ChangeInfo {
   const value = object(readJson(path), "change-info");
-  exactKeys(value, ["schemaVersion", "displayName"], ["schemaVersion", "displayName"], "change-info");
+  exactKeys(value, ["schemaVersion", "displayName", "deliverySchemaVersion"], ["schemaVersion", "displayName"], "change-info");
   if (integer(value.schemaVersion, "change-info.schemaVersion") !== 1) fail("change-info.schemaVersion 仅支持 1");
   const displayName = text(value.displayName, "change-info.displayName");
   if (displayName !== displayName.trim()) fail("change-info.displayName 不得包含首尾空白");
-  return { schemaVersion: 1, displayName };
+  const declared = value.deliverySchemaVersion === undefined ? null : integer(value.deliverySchemaVersion, "change-info.deliverySchemaVersion");
+  if (declared !== null && declared < 5) fail("change-info.deliverySchemaVersion 仅支持 5 及以上");
+  return { schemaVersion: 1, displayName, deliverySchemaVersion: declared };
 }
 function digestPattern(value: string, label: string): string {
   if (!/^sha256:[0-9a-f]{64}$/.test(value)) fail(`${label} 不是小写SHA-256`);
@@ -129,6 +139,11 @@ function validateEvidence(root: string, evidence: string[], label: string): void
     const rel = relative(root, target);
     if (!rel || rel.startsWith("..") || isAbsolute(rel)) fail(`${label} evidence 越出 Change 目录: ${item}`);
     if (!existsSync(target)) fail(`${label} evidence 不存在: ${item}`);
+    // 词法越界判断挡不住软链：Change 目录内一条指向仓外的软链，路径串本身完全合法。
+    // 与 delivery-lifecycle.ts 的 safeRepoFile 同标准，做 realpath 逃逸校验。
+    const real = realpathSync(target);
+    const realRel = relative(realpathSync(root), real);
+    if (!realRel || realRel.startsWith("..") || isAbsolute(realRel)) fail(`${label} evidence 软链逃逸 Change 目录: ${item}`);
     if (!statSync(target).isFile() || statSync(target).size === 0) fail(`${label} evidence 必须是非空文件: ${item}`);
   }
 }
@@ -172,7 +187,8 @@ function verifyTaskProjection(root: string, state: TaskState): void {
 function init(root: string, options: Map<string, string>): void {
   if (existsSync(infoPath(root))) fail("Change 已初始化"); const slug = requiredOption(options, "slug"); if (slug !== slugFor(root)) fail("--slug 必须等于Change目录名");
   const requestedMode = options.get("mode") ?? mode; if (requestedMode !== mode) fail(`--mode 只能是 ${mode}：rehearsal 演练模式已随 change-mode.json 一并移除，如需演练模式须重新立法`);
-  const info = { schemaVersion: 1, displayName: requiredOption(options, "display-name") };
+  // 新建 Change 一律显式标记为当前 schema 版本，使版本判别不再依赖目录形状推断。
+  const info = { schemaVersion: 1, displayName: requiredOption(options, "display-name"), deliverySchemaVersion: 6 };
   withFileLock(lockPath(root), () => { atomicWriteJson(infoPath(root), info); atomicWriteJson(approvalsPath(root), { schemaVersion: 1, artifacts: {} }); });
   parseInfo(infoPath(root)); console.log(JSON.stringify({ slug, displayName: info.displayName, mode }, null, 2));
 }

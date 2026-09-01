@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
@@ -49,6 +49,18 @@ test("严格来源、批准失效、任务状态和投影合同", () => {
       assert.notEqual(result.status, 0, `应当拒绝: ${evidence}`); assert.match(result.stderr, pattern);
       assert.equal(readFileSync(join(change, "task-state.json"), "utf8"), taskStateBefore, `拒绝后不得写入: ${evidence}`);
     }
+    // REV-011：Change 目录内指向仓外的软链不得充当证据（词法校验挡不住，需 realpath）。
+    const outside = join(root, "outside-evidence.tap");
+    writeFileSync(outside, "outside\n");
+    let symlinked = true;
+    try { symlinkSync(outside, join(change, "08-验收/escape.tap")); } catch { symlinked = false; }
+    if (symlinked) {
+      result = runTool("delivery-control.ts", ["task", "set", "--change-root", change, "--id", "1.1", "--state", "verified", "--evidence", "08-验收/escape.tap"]);
+      assert.notEqual(result.status, 0, "软链逃逸的证据应被拒绝");
+      assert.match(result.stderr, /软链逃逸 Change 目录/);
+      assert.equal(readFileSync(join(change, "task-state.json"), "utf8"), taskStateBefore);
+    }
+
     // VC-025：Change 内存在的非空证据文件被接受。
     writeFileSync(join(change, "08-验收/control.tap"), "ok\n");
     result = runTool("delivery-control.ts", ["task", "set", "--change-root", change, "--id", "1.1", "--state", "verified", "--evidence", "08-验收/control.tap"]); assert.equal(result.status, 0, result.stderr);

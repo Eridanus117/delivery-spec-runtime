@@ -117,7 +117,7 @@ function dryRun(workRoot: string, privateRoot: string, consumerRoot: string): vo
     status: "ready_to_stage",
     baselineCommit: object(manifest.workSpec, "baseline.workSpec").baselineCommit,
     operations: [
-      `迁移 ${changeSlug} 到 delivery-change 中文九层并保持 active，严格完成08、09和verify后再归档`,
+      `迁移 ${changeSlug} 到 delivery-change 中文八层并保持 active，严格完成08、09和verify后再归档`,
       ...removeSlugs.map((slug) => `删除 active ${slug}，不迁移、不归档、不写 legacy`),
       "保留既有 openspec/changes/archive 与 openspec/specs 内容",
       `初始化私人资产仓 ${privateRoot}`,

@@ -70,6 +70,8 @@ test("VC-036 渲染产物不含已删除的命令段与已移除资产", () => {
     ["change-mode.json", /change-mode\.json/],
     ["change-sources.json", /change-sources\.json/],
     ["rehearsal 模式", /rehearsal/],
+    ["中文「演练」", /演练/],
+    ["NO-GO 演练结论", /NO-GO/],
     [".delivery-update-snapshot.json", /\.delivery-update-snapshot\.json/],
     ["sources 子命令", /sources\s+(inspect|write)/],
   ];

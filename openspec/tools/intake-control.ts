@@ -3,9 +3,9 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, openSync,
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fail, parseArgs, readJson, requiredOption, now } from "./runtime-lib.ts";
 
-type Route = { changeObject: string; profileId: string; requiresAnalysis: boolean; rank: number; pathPrefixes: string[]; promotable: boolean; reason: string };
+type Route = { changeObject: string; profileId: string; requiresAnalysis: boolean; rank: number; analysisProfileId: string | null; pathPrefixes: string[]; promotable: boolean; reason: string };
 type Routing = { unmatched: Omit<Route, "changeObject" | "pathPrefixes" | "promotable">; routes: Route[] };
-type RoutingDecision = { changeObject: string | null; matched: boolean; profileId: string; requiresAnalysis: boolean; rank: number; promotable: boolean; reason: string };
+type RoutingDecision = { changeObject: string | null; matched: boolean; profileId: string; requiresAnalysis: boolean; rank: number; analysisProfileId: string | null; promotable: boolean; reason: string };
 
 const routingRelativePath = "openspec/profiles/change-routing-v1.json";
 const analysisBindingName = "workflow-binding.json";
@@ -41,24 +41,28 @@ function loadRouting(runtimeRoot: string): Routing {
     if (!Array.isArray(route.pathPrefixes) || route.pathPrefixes.length === 0) fail(`routes[${index}].pathPrefixes 必须是非空数组`);
     const pathPrefixes = (route.pathPrefixes as unknown[]).map((prefix, prefixIndex) => str(prefix, `routes[${index}].pathPrefixes[${prefixIndex}]`));
     if (route.promotable !== undefined && typeof route.promotable !== "boolean") fail(`routes[${index}].promotable 必须是布尔值`);
+    // 必走分析线的行必须声明由哪个 profile 产出分析：否则「有产物」就能过门，
+    // 随便绑一个 profile 跑出来的 result 也算数。
+    if (route.requiresAnalysis === true && route.analysisProfileId === undefined) fail(`routes[${index}] 必走分析线但未声明 analysisProfileId`);
+    const analysisProfileId = route.analysisProfileId === undefined ? null : str(route.analysisProfileId, `routes[${index}].analysisProfileId`);
     return {
-      changeObject, profileId, requiresAnalysis: route.requiresAnalysis as boolean, rank,
+      changeObject, profileId, requiresAnalysis: route.requiresAnalysis as boolean, rank, analysisProfileId,
       pathPrefixes, promotable: route.promotable === undefined ? true : (route.promotable as boolean),
       reason: str(route.reason, `routes[${index}].reason`),
     };
   });
-  return { unmatched: { profileId: "delivery-change", requiresAnalysis: true, rank: unmatchedRank as number, reason: str(unmatchedValue.reason, "unmatched.reason") }, routes };
+  return { unmatched: { profileId: "delivery-change", requiresAnalysis: true, rank: unmatchedRank as number, analysisProfileId: str(unmatchedValue.analysisProfileId, "unmatched.analysisProfileId"), reason: str(unmatchedValue.reason, "unmatched.reason") }, routes };
 }
 function routeFor(routing: Routing, changeObject: string | null): RoutingDecision {
   const matched = changeObject === null ? undefined : routing.routes.find((route) => route.changeObject === changeObject);
   if (!matched) return { changeObject, matched: false, promotable: true, ...routing.unmatched };
-  return { changeObject, matched: true, profileId: matched.profileId, requiresAnalysis: matched.requiresAnalysis, rank: matched.rank, promotable: matched.promotable, reason: matched.reason };
+  return { changeObject, matched: true, profileId: matched.profileId, requiresAnalysis: matched.requiresAnalysis, rank: matched.rank, analysisProfileId: matched.analysisProfileId, promotable: matched.promotable, reason: matched.reason };
 }
 /**
  * 立项门的分析线校验。任一不满足即抛错；调用方必须在改动任何状态之前调用它。
  * 只读，不写盘——fail closed 的前提是失败时两侧文件逐字节不变。
  */
-function requireAnalysisLine(root: string, id: string): { bindingPath: string; resultPath: string } {
+function requireAnalysisLine(root: string, id: string, analysisProfileId: string): { bindingPath: string; resultPath: string } {
   const dir = join(root, "openspec", "intake", "analysis", id);
   const bindingPath = join(dir, analysisBindingName);
   const resultPath = join(dir, analysisResultName);
@@ -71,6 +75,7 @@ function requireAnalysisLine(root: string, id: string): { bindingPath: string; r
   try { binding = readJson(bindingPath) as Record<string, unknown>; } catch (error) { fail(`立项门拒绝：${analysisBindingName} 不可解析: ${(error as Error).message}`); }
   try { result = readJson(resultPath) as Record<string, unknown>; } catch (error) { fail(`立项门拒绝：${analysisResultName} 不可解析: ${(error as Error).message}`); }
   if (!binding || typeof binding !== "object" || !result || typeof result !== "object") fail("立项门拒绝：分析线产物不是合法对象");
+  if (binding.profileId !== analysisProfileId) fail(`立项门拒绝：分析线由 profile ${String(binding.profileId ?? "(缺失)")} 产出，路由表要求该改动对象的分析必须由 ${analysisProfileId} 产出`);
   if (binding.matterId !== id) fail(`立项门拒绝：${analysisBindingName} 的 matterId ${String(binding.matterId ?? "(缺失)")} 与条目 id ${id} 不一致，不接受他项产物`);
   if (result.matterId !== id) fail(`立项门拒绝：${analysisResultName} 的 matterId ${String(result.matterId ?? "(缺失)")} 与条目 id ${id} 不一致，不接受他项产物`);
   if (result.status !== "completed") fail(`立项门拒绝：分析线未完成，${analysisResultName}.status 实际为 ${String(result.status ?? "(缺失)")}，要求 completed`);
@@ -285,10 +290,10 @@ function promote(options: Map<string, string>): void {
   // 与 promote 这一「恰恰产生 Change」的操作自相矛盾。这类条目只能 hold 或 close；
   // 要立项就必须先改声明，并因此落入需要分析线的档位——而不是借着最轻档位溜进来。
   if (!decision.promotable) fail(`立项门拒绝：改动对象 ${decision.changeObject} 在路由表中声明为不可立项（其定义即「不产生任何 Change 目录」）。该条目只能 hold 或 close；若确需立项，先修正条目的 changeObject 声明。`);
-  if (decision.requiresAnalysis) requireAnalysisLine(root, parsed.state.id);
+  if (decision.requiresAnalysis) requireAnalysisLine(root, parsed.state.id, decision.analysisProfileId ?? fail("change-routing 合同非法：requiresAnalysis 为真却无 analysisProfileId"));
   let target = replaceFrontmatter(parsed.content, "state", "promoted");
   target = replaceFrontmatter(target, "promotedTo", change);
-  target = history(target, `promoted to ${change}`);
+  target = history(target, `promoted to ${change}（交付档位 ${decision.profileId}，改动对象 ${decision.changeObject ?? "未声明"}${decision.matched ? "" : "，未匹配取最重档"}）`);
   const sourceLine = `- Intake 来源：${relative(root, file).split(sep).join("/")}`;
   const changeContent = readFileSync(changeFile, "utf8");
   if (!changeContent.includes(sourceLine)) atomic(changeFile, `${changeContent.trimEnd()}\n${sourceLine}\n`);

@@ -19,9 +19,9 @@ const intakeRelative = `openspec/intake/${intakeId}.md`;
 const minimalRouting = {
   schemaVersion: 1,
   routingVersion: "v1.0.0",
-  unmatched: { profileId: "delivery-change", requiresAnalysis: true, rank: 99, reason: "未匹配取最重档" },
+  unmatched: { profileId: "delivery-change", requiresAnalysis: true, analysisProfileId: "requirement-analysis", rank: 99, reason: "未匹配取最重档" },
   routes: [
-    { changeObject: "tool-code", displayName: "工具代码", description: "改工具行为", profileId: "delivery-change", requiresAnalysis: true, rank: 20, pathPrefixes: ["openspec/tools/", "test/"], reason: "门禁执行体" },
+    { changeObject: "tool-code", displayName: "工具代码", description: "改工具行为", profileId: "delivery-change", requiresAnalysis: true, analysisProfileId: "requirement-analysis", rank: 20, pathPrefixes: ["openspec/tools/", "test/"], reason: "门禁执行体" },
     { changeObject: "doc-expression", displayName: "文档表达", description: "只改说明面", profileId: "light-change", requiresAnalysis: false, rank: 10, pathPrefixes: ["docs/"], reason: "零风险" },
     { changeObject: "ledger-only", displayName: "纯台账", description: "只改台账条目", profileId: "light-change", requiresAnalysis: false, rank: 0, promotable: false, pathPrefixes: ["openspec/intake/"], reason: "自指循环" },
   ],
@@ -476,4 +476,31 @@ test("legacy Intake inspect 返回迁移缺口且保持文件不变", () => {
   } finally {
     rmSync(rootPath, { recursive: true, force: true });
   }
+});
+
+test("REV-006 路由表的 analysisProfileId 真正生效", () => {
+  const rootPath = root();
+  const runtimePath = makeRuntimeRoot();
+  try {
+    const changeRoot = promoteReady(rootPath, "tool-code");
+    const before = snapshot(rootPath, changeRoot);
+    // 用另一个 profile 跑出的分析线产物不算数：路由表声明该改动对象的分析须由
+    // requirement-analysis 产出，绑 light-change 跑出来的 result 必须被拒。
+    rmSync(analysisDir(rootPath), { recursive: true, force: true });
+    assert.equal(runTool("workflow-control.ts", ["bind", "--runtime-root", runtimeRoot, "--asset-root", rootPath, "--intake-id", intakeId, "--profile-id", "light-change", "--profile-version", "v1.0.0"]).status, 0);
+    const wrongRequest = join(rootPath, "wrong-profile-request.json");
+    writeFileSync(wrongRequest, JSON.stringify({ schemaVersion: 1, matterId: intakeId, binding: { schemaVersion: 1, profileId: "light-change", profileVersion: "v1.0.0" }, inputs: { intake: "x", implementation: "y", verification: "z" }, judgments: { verification: "accept" }, completedStages: ["intake", "implementation"] }), "utf8");
+    runTool("workflow-control.ts", ["run", "--runtime-root", runtimeRoot, "--asset-root", rootPath, "--intake-id", intakeId, "--request-file", wrongRequest]);
+    const wrong = promote(rootPath, runtimePath, changeRoot);
+    assert.notEqual(wrong.status, 0);
+    assert.match(wrong.stderr, /路由表要求该改动对象的分析必须由 requirement-analysis 产出/);
+    assert.equal(snapshot(rootPath, changeRoot), before);
+
+    // 换回正确 profile 后放行，且交付档位被写进条目 History 留痕（不再只回显 stdout）。
+    runAnalysis(rootPath);
+    const ok = promote(rootPath, runtimePath, changeRoot);
+    assert.equal(ok.status, 0, ok.stderr);
+    assert.equal(JSON.parse(ok.stdout).routing.analysisProfileId, "requirement-analysis");
+    assert.match(readFileSync(file(rootPath), "utf8"), /promoted to target（交付档位 delivery-change，改动对象 tool-code）/);
+  } finally { rmSync(rootPath, { recursive: true, force: true }); rmSync(runtimePath, { recursive: true, force: true }); }
 });

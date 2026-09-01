@@ -47,7 +47,9 @@ no evidence: []
 
 ### 场景覆盖
 
-`06-测试方案/测试方案.md` 定义的 VC-001…VC-040 共 40 个场景，全部有对应断言落在 `test/` 下的 10 份测试文件中（新增 `station-authority.test.ts` 一份）。全量 `node --test`：**74 passed / 0 failed**（改造前基线 53）。
+`06-测试方案/测试方案.md` 定义的 VC-001…VC-040 共 40 个场景，全部有对应断言落在 `test/` 下的 10 份测试文件中（新增 `station-authority.test.ts` 一份）。全量 `node --test`：**稳定通过 73/74，余 1 项为已知环境 flake `INT-20260831-010`**（改造前基线 53）。
+
+> 口径说明（复审 REV-013 订正）：本段原先写「74 passed / 0 failed」，把一次幸运绿灯当成终态。该 flake 在本 Change 之前的基线上同样可复现，非本单引入，但结论表不得强于可复现事实，故按「73/74 + 已知噪音」记。
 
 ### 偏离检查
 
@@ -69,6 +71,14 @@ no evidence: []
 
 - CRITICAL：0
 - WARNING：0
-- SUGGESTION：1 —— 任务 7.1 记录的 Inventory 需求语义重叠，建议在 sync 站合并去重（不阻塞本站）。
+- SUGGESTION：0
 
 自查通过，可进入 review 站。
+
+## 自查失效记录（复审后补写）
+
+本自查段最初给出的结论是「CRITICAL 0 / WARNING 0 / SUGGESTION 1」，随后的**独立评审**判定 FAIL，报出 1 CRITICAL + 4 MAJOR + 8 MINOR。两者的差距本身是本单最值得记的一条事实：
+
+- 最严重的一条（REV-001，立项门读 `outputs.disposition` 而分析线产出 `outputs.publishedInputs.disposition`，导致强制分析线在真实路径上永不可通过）没被自查发现，**根因是自查沿用了实施时手写的分析线产物**——生产者与消费者在测试里互相迁就，端到端从未真正连通过。这与 VC-003 要根除的「两侧互抄」是同一种病，只是发生在生产者/消费者维度而非 profile/门禁维度。
+- 由此得出的通则：**自查不能复用实施时构造的 fixture**。凡声称「端到端」的结论，其证据必须由真实命令链生成，而不是由实施方按自己的理解手写。本单已据此把 VC-007…011 的分析线产物改为经 `workflow-control bind/run` 真实生成。
+- 上述 13 条 finding 的逐条处置见 `07-实施任务/证据/REV-返工.md`；其中 REV-012 判为强度不足而非失效，已登记 `INT-20260901-021` 留待下次复盘。
