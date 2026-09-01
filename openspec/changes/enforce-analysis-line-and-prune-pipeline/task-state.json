@@ -145,7 +145,7 @@
     },
     {
       "id": "3.1",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
         "openspec/tools/intake-control.ts：state 收敛为 captured/promoted/held/closed 四元；advance 对 triage/evidence/options 一律非零并说明中间站已合并；reopen 回到 captured"
       ],
@@ -155,24 +155,28 @@
         "VC-018 四元枚举",
         "VC-019 reopen 保留理由与 History"
       ],
-      "evidence": [],
+      "evidence": [
+        "07-实施任务/证据/3.1.md"
+      ],
       "blocker": null
     },
     {
       "id": "3.2",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
         "openspec/tools/intake-control.ts：处置时一次性执行五小节最小结构校验并逐项返回全部缺失小节名"
       ],
       "verification": [
         "VC-020：同时缺 Evidence 与 Disposition 时一次拒绝返回两项"
       ],
-      "evidence": [],
+      "evidence": [
+        "07-实施任务/证据/3.2.md"
+      ],
       "blocker": null
     },
     {
       "id": "3.3",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
         "openspec/intake/stages.json 与 openspec/contracts/intake-state.schema.json 收敛为两状态模型；phase 降为只读兼容字段",
         "openspec/intake/template.md 保留五小节结构"
@@ -180,7 +184,9 @@
       "verification": [
         "VC-021：19 条存量 intake 经 intake list 仍全 current、duplicateIds 为空、重复执行逐字节一致"
       ],
-      "evidence": [],
+      "evidence": [
+        "07-实施任务/证据/3.3.md"
+      ],
       "blocker": null
     },
     {

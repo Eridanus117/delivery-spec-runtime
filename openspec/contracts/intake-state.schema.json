@@ -7,11 +7,22 @@
   "properties": {
     "schemaVersion": { "const": 1 },
     "id": { "type": "string", "pattern": "^INT-[0-9]{8}-[0-9]{3}-[a-z0-9][a-z0-9-]*$" },
-    "state": { "enum": ["captured", "triaged", "held", "promoted", "closed"] },
-    "phase": { "enum": ["capture", "triage", "evidence", "options", "disposition"] },
+    "state": {
+      "enum": ["captured", "triaged", "held", "promoted", "closed"],
+      "description": "两节点模型：captured 为已登记，promoted / held / closed 为已处置的三个出口。triaged 是只读兼容值，仅存量条目持有，不再由任何命令写入。"
+    },
+    "phase": {
+      "enum": ["capture", "triage", "evidence", "options", "disposition"],
+      "description": "只读兼容字段。中间站已随登记并站移除，该字段不再由任何命令写入，仅用于解析存量条目。"
+    },
     "source": { "type": "string", "minLength": 1 },
     "capturedAt": { "type": "string", "format": "date" },
     "promotedTo": { "type": ["string", "null"] },
+    "changeObject": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "description": "可选。条目自身声明的改动对象，供立项门查 change-routing-v1.json 判定交付档位与是否必走分析线。未声明即按未匹配取最重档。"
+    },
     "history": { "type": "array", "items": { "type": "string", "minLength": 1 } }
   }
 }

@@ -73,8 +73,14 @@ function rejectSelfDeclaredRouting(options: Map<string, string>): void {
 }
 
 type State = { schemaVersion: 1; id: string; state: "captured" | "triaged" | "held" | "promoted" | "closed"; phase: "capture" | "triage" | "evidence" | "options" | "disposition"; source: string; capturedAt: string; promotedTo: string | null; changeObject: string | null; history: string[] };
-const stages = ["capture", "triage", "evidence", "options", "disposition"] as const;
-const nextStage: Record<string, string> = { capture: "triage", triage: "evidence", evidence: "options", options: "disposition" };
+// 登记线只有两个真实节点：已登记（captured）与已处置（promoted / held / closed 三出口）。
+// 原先的 triage / evidence / options 三次 advance 仪式已合并——被证明有价值的是五个小节的
+// 结构，无价值的是分站状态机；小节结构原样保留，改为在处置时一次性校验。
+const terminalStates = ["promoted", "held", "closed"] as const;
+// phase 降为只读兼容字段：不再由任何命令写入，仅用于解析 19 条存量条目。
+const legacyPhases = ["capture", "triage", "evidence", "options", "disposition"] as const;
+// 处置前必须写全的五个小节，缺失时一次性全部报出。
+const requiredSections = ["原始问题", "Triage", "Evidence", "Options", "Disposition"] as const;
 type Frontmatter = { content: string; values: Map<string, string> };
 type InventoryEntry = { file: string; id: string | null; classification: "current" | "legacy" | "invalid"; missingFields: string[]; state: string | null; phase: string | null };
 const requiredFields = ["schemaVersion", "id", "state", "phase", "source", "capturedAt", "promotedTo"] as const;
@@ -102,7 +108,7 @@ function parse(path: string): { state: State; content: string } {
   const state = text(values.get("state"), "state") as State["state"];
   const phase = text(values.get("phase"), "phase") as State["phase"];
   if (!["captured", "triaged", "held", "promoted", "closed"].includes(state)) fail("Intake state 非法");
-  if (!stages.includes(phase)) fail("Intake phase 非法");
+  if (!legacyPhases.includes(phase)) fail("Intake phase 非法");
   const source = text(values.get("source"), "source");
   const capturedAt = text(values.get("capturedAt"), "capturedAt");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(capturedAt)) fail("capturedAt 必须是日期");
@@ -125,7 +131,7 @@ function missingContractFields(values: Map<string, string>): string[] {
   if (values.has("schemaVersion") && values.get("schemaVersion") !== "1" && !missing.includes("schemaVersion")) missing.push("schemaVersion");
   if (values.has("id") && !/^INT-[0-9]{8}-[0-9]{3}-[a-z0-9][a-z0-9-]*$/.test(values.get("id") ?? "") && !missing.includes("id")) missing.push("id");
   if (values.has("state") && !["captured", "triaged", "held", "promoted", "closed"].includes(values.get("state") ?? "") && !missing.includes("state")) missing.push("state");
-  if (values.has("phase") && !stages.includes(values.get("phase") as typeof stages[number]) && !missing.includes("phase")) missing.push("phase");
+  if (values.has("phase") && !legacyPhases.includes(values.get("phase") as typeof legacyPhases[number]) && !missing.includes("phase")) missing.push("phase");
   return missing;
 }
 
@@ -205,16 +211,53 @@ function inspect(options: Map<string, string>): void {
   const parsed = parse(file);
   console.log(JSON.stringify({ ...parsed.state, file: relative(root, file).split(sep).join("/") }, null, 2));
 }
-function advance(options: Map<string, string>): void { const root = rootOf(options); const file = safeFile(root, options.get("file")); const parsed = parse(file); if (parsed.state.state !== "captured" && parsed.state.state !== "triaged") fail("当前 Intake 状态不可 advance"); const target = nextStage[parsed.state.phase]; if (!target) fail("disposition 没有普通后继，请使用 promote、hold 或 close"); const required = target === "triage" ? ["Triage"] : target === "evidence" ? ["Triage", "Evidence"] : target === "options" ? ["Evidence", "Options"] : ["Options", "Disposition"]; for (const heading of required) if (!section(parsed.content, heading)) fail(`缺少 ${heading} 内容`); let content = replaceFrontmatter(parsed.content, "phase", target); content = replaceFrontmatter(content, "state", target === "triage" ? "triaged" : "triaged"); content = history(content, `advanced to ${target}`); atomic(file, content); console.log(JSON.stringify({ id: parsed.state.id, state: "triaged", phase: target }, null, 2)); }
-function terminal(options: Map<string, string>, kind: "hold" | "close"): void { const root = rootOf(options); const file = safeFile(root, options.get("file")); const parsed = parse(file); if (parsed.state.phase !== "disposition") fail("只有 disposition 阶段可以 hold 或 close"); const reason = text(options.get("reason"), "reason"); let content = replaceFrontmatter(parsed.content, "state", kind === "hold" ? "held" : "closed"); content = history(content, `${kind}: ${reason}`); atomic(file, content); console.log(JSON.stringify({ id: parsed.state.id, state: kind === "hold" ? "held" : "closed" }, null, 2)); }
-function reopen(options: Map<string, string>): void { const root = rootOf(options); const file = safeFile(root, options.get("file")); const parsed = parse(file); if (parsed.state.state !== "held" && parsed.state.state !== "closed") fail("只有 held 或 closed 可以 reopen"); const reason = text(options.get("reason"), "reason"); let content = replaceFrontmatter(parsed.content, "state", "triaged"); content = replaceFrontmatter(content, "phase", "triage"); content = history(content, `reopened: ${reason}`); atomic(file, content); console.log(JSON.stringify({ id: parsed.state.id, state: "triaged", phase: "triage" }, null, 2)); }
+/** 处置前的一次性结构校验：一次返回全部缺失小节名，而不是让调用方一轮一轮试。 */
+function requireCompleteSections(content: string): void {
+  const missing = requiredSections.filter((heading) => !section(content, heading));
+  if (missing.length) fail(`Intake 处置前必须写全五个小节，当前缺少：${missing.join("、")}`);
+}
+/**
+ * 中间站已合并，advance 不再有合法用途：登记线只剩「已登记」与「已处置」两个节点。
+ * 保留命令名只为给旧调用一个明确的说法，任何调用都非零且不写盘。
+ */
+function advance(options: Map<string, string>): void {
+  const root = rootOf(options);
+  const file = safeFile(root, options.get("file"));
+  parse(file);
+  const target = options.get("to");
+  const suffix = target ? `请求的 ${target} 站` : "该命令";
+  fail(`${suffix}已随登记并站移除：登记线只有「已登记」与「已处置」两个节点，triage / evidence / options 三次中间推进不再存在。五个小节仍需写全，但改为在处置时一次性校验；请直接使用 promote、hold 或 close。`);
+}
+function terminal(options: Map<string, string>, kind: "hold" | "close"): void {
+  const root = rootOf(options);
+  const file = safeFile(root, options.get("file"));
+  const parsed = parse(file);
+  if ((terminalStates as readonly string[]).includes(parsed.state.state)) fail(`Intake 已处置（${parsed.state.state}），如需重新处理请先 reopen`);
+  const reason = text(options.get("reason"), "reason");
+  requireCompleteSections(parsed.content);
+  let content = replaceFrontmatter(parsed.content, "state", kind === "hold" ? "held" : "closed");
+  content = history(content, `${kind}: ${reason}`);
+  atomic(file, content);
+  console.log(JSON.stringify({ id: parsed.state.id, state: kind === "hold" ? "held" : "closed" }, null, 2));
+}
+function reopen(options: Map<string, string>): void {
+  const root = rootOf(options);
+  const file = safeFile(root, options.get("file"));
+  const parsed = parse(file);
+  if (parsed.state.state !== "held" && parsed.state.state !== "closed") fail("只有 held 或 closed 可以 reopen");
+  const reason = text(options.get("reason"), "reason");
+  const content = history(replaceFrontmatter(parsed.content, "state", "captured"), `reopened: ${reason}`);
+  atomic(file, content);
+  console.log(JSON.stringify({ id: parsed.state.id, state: "captured" }, null, 2));
+}
 function promote(options: Map<string, string>): void {
   const root = rootOf(options);
   // 立项门：在写入任何状态之前完成全部判定，任一不满足即非零退出且两侧文件逐字节不变。
   rejectSelfDeclaredRouting(options);
   const file = safeFile(root, options.get("file"));
   const parsed = parse(file);
-  if (parsed.state.phase !== "disposition") fail("只有 disposition 阶段可以 promote");
+  if ((terminalStates as readonly string[]).includes(parsed.state.state)) fail(`Intake 已处置（${parsed.state.state}），如需重新处理请先 reopen`);
+  requireCompleteSections(parsed.content);
   const change = text(options.get("change"), "change");
   const changeRoot = safeChangeRoot(root, options.get("change-root"), change);
   const changeFile = join(changeRoot, "01-原始需求", "原始需求索引.md");
