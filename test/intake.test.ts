@@ -298,6 +298,50 @@ test("仓内路由表满足立项门的结构不变量", () => {
   assert.equal(ledger.promotable, false, "ledger-only 必须声明 promotable: false");
 });
 
+/**
+ * 曾经的四处路径空白（`.gitattributes`、`.github/`、`openspec/specs/`、`openspec/changes/archive/`）
+ * 一律落在「未匹配」上，于是这条流水线自己最后两站的收尾动作会被自己的越档校验拦住。
+ *
+ * 本组断言刻意只钉不变量，不钉某一时刻的取值：不断言「长期规范目录的 rank 等于 15」，
+ * 而是断言它与另外两档的相对位置。理由是取值是记账，相对位置背后才有真不变量——
+ * 「快车道碰不到长期规范」和「走完整流程的档位不会被自己的收尾动作拦住」这两条，
+ * 才是这次修表要保住的东西。行为侧的负向与正向对照在 control.test.ts 的 REV-002 用例里。
+ */
+test("路由表必须给流水线自己会碰的四处路径定档，且档位序保住两条不变量", () => {
+  const routing = JSON.parse(readFileSync(join(runtimeRoot, "openspec/profiles/change-routing-v1.json"), "utf8"));
+  type Route = { changeObject: string; rank: number; pathPrefixes: string[]; promotable?: boolean };
+  const routes: Route[] = routing.routes;
+  /** 与 delivery-control 的交叉校验同口径：命中多条前缀时取最重的一条。 */
+  const classify = (path: string): Route | null => {
+    let best: Route | null = null;
+    for (const route of routes) for (const prefix of route.pathPrefixes) {
+      if ((path === prefix || path.startsWith(prefix)) && (!best || route.rank > best.rank)) best = route;
+    }
+    return best;
+  };
+  for (const path of [".gitattributes", ".github/workflows/ci.yml", "openspec/specs/x/spec.md", "openspec/changes/archive/2026-01-01-x/y.md"]) {
+    assert.ok(classify(path), `路径仍未定档，会按未匹配取最重档并误挡：${path}`);
+  }
+  const rankOf = (changeObject: string) => routes.find((route) => route.changeObject === changeObject)?.rank ?? assert.fail(`路由表缺少 ${changeObject}`);
+  const specsRank = classify("openspec/specs/x/spec.md")!.rank;
+  const archiveRank = classify("openspec/changes/archive/2026-01-01-x/y.md")!.rank;
+  for (const [name, rank] of [["长期规范目录", specsRank], ["归档目录", archiveRank]] as const) {
+    // 不变量一：快车道的两档碰不到它们——否则一次「只改说明面」的快改就能重写长期规范或改写历史证据。
+    assert.ok(rank > rankOf("doc-expression"), `${name}的档位序必须严格高于文档表达`);
+    assert.ok(rank > rankOf("ledger-only"), `${name}的档位序必须严格高于纯台账`);
+    // 不变量二：走完整流程的两档做收尾动作时不会被自己拦住——这正是本次修表要消除的误挡。
+    assert.ok(rank <= rankOf("tool-code"), `${name}的档位序不得高于工具代码，否则工具代码档做规范同步与归档会被自己拦住`);
+  }
+  // 这一档只用于给路径定档，不是任何事项的「改动对象」，因此不可立项。
+  const pipeline = routes.find((route) => route.changeObject === "pipeline-output");
+  assert.ok(pipeline, "路由表缺少 pipeline-output");
+  assert.equal(pipeline!.promotable, false, "pipeline-output 必须声明 promotable: false");
+  // CI 配置是门禁在远端的执行体，必须落在需要完整流程的档位上，不能被快车道改。
+  assert.ok(classify(".github/workflows/ci.yml")!.rank >= rankOf("tool-code"), ".github/ 的档位序不得低于工具代码");
+  // 行尾属性决定全仓字节形态，所有按字节比对的检查都以它为前提，必须落在最重档。
+  assert.equal(classify(".gitattributes")!.changeObject, "governance-contract");
+});
+
 test("Intake init and inspect create the contract", () => {
   const rootPath = root();
   try {

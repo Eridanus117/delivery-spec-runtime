@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { createArtifactTree, runTool, runtimeRoot, removeOptions } from "./helpers.ts";
@@ -171,5 +171,39 @@ test("REV-002 声明与事实交叉校验：声明低档而实际触碰高档路
     result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "verify", "--runtime-root", runtimeRoot], { cwd: repo });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /governance-contract/);
+    rmSync(join(repo, "openspec/contracts/new.schema.json"));
+
+    // 曾经的四处路径空白，逐处取负向对照：声明「只改说明面」时，四处都必须被判成越档。
+    // 这四处过去一律落在「未匹配」上，看起来也是拒绝，但拒绝理由是「分类不出来」而不是
+    // 「归类到了更重的档」；断言逐处核对归类名，正是为了区分这两种拒绝。
+    for (const [path, expectedObject] of [
+      [".gitattributes", "governance-contract"],
+      [".github/workflows/probe.yml", "tool-code"],
+      ["openspec/specs/demo-capability/spec.md", "pipeline-output"],
+      ["openspec/changes/archive/2026-09-01-demo/08-验收/验收记录.md", "pipeline-output"],
+    ] as const) {
+      mkdirSync(dirname(join(repo, path)), { recursive: true });
+      writeFileSync(join(repo, path), "probe\n", "utf8");
+      result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "verify", "--runtime-root", runtimeRoot], { cwd: repo });
+      assert.notEqual(result.status, 0, `${path} 未被判成越档`);
+      assert.match(result.stderr, new RegExp(`归类 ${expectedObject}`), `${path} 的归类不是 ${expectedObject}：${result.stderr}`);
+      rmSync(join(repo, path));
+    }
+
+    // 正向对照：把声明改成「工具代码」后，规范同步与归档这两处收尾动作必须放行。
+    // 这一条才是本次修表要解决的真问题——过去它们落在未匹配上，任何档位做收尾都会被自己拦住。
+    writeFileSync(join(repo, "openspec/intake/INT-20260901-050-doc.md"), "---\nschemaVersion: 1\nid: INT-20260901-050-doc\nstate: promoted\nphase: capture\nsource: synthetic\ncapturedAt: 2026-09-01\npromotedTo: demo-change\nchangeObject: tool-code\n---\n\n# Intake\n", "utf8");
+    mkdirSync(join(repo, "openspec/specs/demo-capability"), { recursive: true });
+    writeFileSync(join(repo, "openspec/specs/demo-capability/spec.md"), "# spec\n", "utf8");
+    mkdirSync(join(repo, "openspec/changes/archive/2026-09-01-demo"), { recursive: true });
+    writeFileSync(join(repo, "openspec/changes/archive/2026-09-01-demo/note.md"), "evidence\n", "utf8");
+    result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "verify", "--runtime-root", runtimeRoot], { cwd: repo });
+    assert.equal(result.status, 0, `工具代码档做收尾动作被误挡：${result.stderr}`);
+
+    // 但同一个声明碰行尾属性仍然要被拒——正向对照不得连带把更重的一档也放开。
+    writeFileSync(join(repo, ".gitattributes"), "* text=auto eol=lf\n", "utf8");
+    result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "verify", "--runtime-root", runtimeRoot], { cwd: repo });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /\.gitattributes/);
   } finally { rmSync(repo, removeOptions); }
 });
