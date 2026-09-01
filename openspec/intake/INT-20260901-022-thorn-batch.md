@@ -6,7 +6,7 @@ phase: capture
 source: maintainer-direction
 capturedAt: 2026-09-01
 promotedTo: fix-thorn-batch
-changeObject: tool-code
+changeObject: governance-contract
 ---
 
 # Intake
@@ -104,3 +104,4 @@ changeObject: tool-code
 
 - 2026-09-01T05:06:44.829Z captured
 - 2026-09-01T05:14:58.140Z promoted to fix-thorn-batch（交付档位 delivery-change，改动对象 tool-code）
+- 2026-09-01 changeObject 由 tool-code 更正为 governance-contract（Claude 代笔记录）。实施期发现：裁定 #3 要求把冒烟失败原因写进升级报告，报告新增字段必须同步 `openspec/contracts/openspec-upgrade-report.schema.json`，该路径按路由表属治理合同档（序 30），高于原声明 tool-code（序 20）。路由表规定的处置就是「修正条目的 changeObject 声明」，并明文禁止「缩小改动面以迁就声明」。两档要求的分析 profile 同为 requirement-analysis，已完成的分析线对新档位同样满足，交付档位仍为 delivery-change，立项门结论不变。详见 fix-thorn-batch 的 `05-改造方案/改造方案.md` 决策日志 D-05。
