@@ -395,6 +395,7 @@ function approvalSet(root: string, options: Map<string, string>): void {
       if (existing && newAttestation === null) {
         // 路径二：机械回填后的刷新。逐份问责，声明之外的变化一律拒绝。
         if (options.has("decision") && options.get("decision") !== existing.decision) fail("刷新不得改变这一门的结论；结论要变就是一次新的人工表态，请用 --new-attestation");
+        if (options.has("approved-by")) fail("刷新不接受 --approved-by：表态人与时间记的是人真实表态，机械回填碰不得。本次刷新的执行者请用 --refreshed-by 声明。");
         const declared = parseRefreshedArtifacts(options, required);
         const current = currentDigests(root, required);
         const changed = required.filter((artifact) => current[artifact] !== existing.artifacts[artifact]);
@@ -406,7 +407,7 @@ function approvalSet(root: string, options: Map<string, string>): void {
         const artifacts = { ...existing.artifacts };
         for (const artifact of declared) artifacts[artifact] = current[artifact];
         const refreshes = [...existing.refreshes, {
-          refreshedBy: requiredOption(options, "approved-by"),
+          refreshedBy: requiredOption(options, "refreshed-by"),
           refreshedAt: now(),
           artifacts: declared,
           // 声明了却没变的也如实记下来：它不是错误，但读记录的人有权知道这次刷新实际动了什么。

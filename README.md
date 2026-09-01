@@ -9,7 +9,7 @@
 接入后，项目仓获得：
 
 - `/opsx-new` 到 `/opsx-archive` 的统一工作流；
-- 六层 `delivery-change` schema（v7：现状并进方案提案，改造方案并进实施任务）；
+- 六份必产工件的 `delivery-change` schema（第 7 版：现状并进方案提案，改造方案并进实施任务）；
 - 执行前的 gitlink、受管投影、版本和工作树完整性检查；
 - 由项目仓 commit 精确锁定的 Runtime 版本。
 
@@ -72,7 +72,7 @@ node --experimental-strip-types \
 
 需求尚未承诺实施时，先在项目自己的 Intake、Issue 或分析记录中澄清问题、来源、影响、边界和候选方向；可使用 `/opsx-explore` 调查代码与现有 spec，但不修改项目实现。决定进入正式交付后，再使用 `/opsx-new` 或 `/opsx-propose` 建立 Change。
 
-Change 是正式交付的审计对象，不是聊天记录的替代品，也不要求另造一个统一的“需求分析.md”。它应按工件记录原始需求索引、正式 Requirement、业务/技术现状、方案决策、测试方案和实施任务；实现开始后，再追加任务状态、验证、Review、Acceptance、Spec Sync 和归档证据。具体边界和工件映射见[从需求到归档](docs/workflow-guide.md)。
+Change 是正式交付的审计对象，不是聊天记录的替代品，也不要求另造一个统一的“需求分析.md”。它按六份必产工件记录：原始需求索引、长期规范增量、方案提案（现状写在这一份里）、方案决策、测试方案、实施任务（实施切片、迁移与回滚写在这一份里）。实现开始后，再追加任务状态、实现审查、验收、规范同步和归档证据。具体边界和工件映射见[从需求到归档](docs/workflow-guide.md)。
 
 ## 开始第一个 Change
 
@@ -84,7 +84,7 @@ Change 是正式交付的审计对象，不是聊天记录的替代品，也不�
 
 随后使用 `/opsx-continue` 生成下一项规划工件；方案批准后由 `/opsx-apply` 实施，完成后使用 `/opsx-verify` 进入 Review 与验收，由 `/opsx-sync` 把 delta spec 合并进长期 spec，最后由 `/opsx-archive` 过归档门禁并归档。
 
-Workflow System 支持同一仓库的多套 profile。先执行 `runtime-entry.ts workflow list-profiles` 获取机器 JSON，或执行 `workflow catalog` 查看所有 Profile 的用途、适用范围、阶段和交接；需要单个版本时使用 `workflow describe --profile-id <id> --profile-version <version>`。之后在 Change 根执行 `workflow bind --profile-id <id> --profile-version <version>`；已有 Change 时，`workflow run` 要同时指定该 Change 根（`--change-root`）和 request 文件（`--request-file`），并校验 request 中的绑定与 Change 持久绑定一致。**立项之前还没有 Change**，此时改用 `--intake-id` 指向事项记录；两个参数互斥，同时给会被拒绝，完整命令见 [从需求到归档](docs/workflow-guide.md)。未绑定、版本不存在、请求不匹配、阶段越序、缺少阶段输入、输入结构不符或缺少人工判断时，Runtime 返回机器可读的拒绝或阻塞结果，不自动回退到其他 profile。
+Workflow System 支持同一仓库的多套 profile。先执行 `runtime-entry.ts workflow list-profiles` 获取机器 JSON，或执行 `workflow catalog` 查看所有 Profile 的用途、适用范围、阶段和交接；需要单个版本时使用 `workflow describe --profile-id <id> --profile-version <version>`。之后在 Change 根执行 `workflow bind --profile-id <id> --profile-version <version>`；已有 Change 时，`workflow run` 要同时指定该 Change 根（`--change-root`）和 request 文件（`--request-file`），并校验 request 中的绑定与 Change 持久绑定一致。**立项之前还没有 Change**，此时走的是另一个入口 `workflow-control.ts run --intake-id`，用事项记录的编号定位；那个入口里 `--intake-id` 与 `--change-root` 互斥，同时给会被拒绝。两个入口分别用在什么场景、完整命令长什么样，见 [从需求到归档](docs/workflow-guide.md)。未绑定、版本不存在、请求不匹配、阶段越序、缺少阶段输入、输入结构不符或缺少人工判断时，Runtime 返回机器可读的拒绝或阻塞结果，不自动回退到其他 profile。
 
 没有完整外部需求分析输入的事项可使用 `requirement-analysis@v1.0.0`：`capture → clarify ↺ → discover ↺ → evaluate ↺ → decision`。它要求结构完整的问题框架、现有能力核验、候选方案比较、决策报告和至少一项 `analysisRounds`；每轮记录 `round`、`stage`、`known`、`unknown`、`evidence`、`confidence`、`judgment` 和 `decision`。门 B 输出 `build`、`use-existing`、`defer` 或 `reject`。`build` 不会自动创建 Change，Desk 仍负责个人分析策略和事项归属。
 

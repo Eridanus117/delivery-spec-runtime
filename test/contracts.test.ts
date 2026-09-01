@@ -26,6 +26,11 @@ test("runtime manifest、六层schema与九个Commands一致", () => {
   // v7 起只剩六层：现状并进方案提案、改造方案并进实施任务。
   for (const path of ["01-原始需求", "05-改造方案", "06-测试方案", "07-实施任务", "08-验收", "09-发布"]) assert.match(schema, new RegExp(path));
   for (const gone of ["03-现状/现状.md", "05-改造方案/改造方案.md"]) assert.doesNotMatch(schema, new RegExp(gone.replace("/", "\/")), `已取消的工件仍在 schema 里: ${gone}`);
+  assert.doesNotMatch(schema, /02-需求理解/, "schema 仍在指一个已取消的目录");
+  for (const name of readdirSync(join(runtimeRoot, "openspec/schemas/delivery-change/templates"))) {
+    const body = readFileSync(join(runtimeRoot, "openspec/schemas/delivery-change/templates", name), "utf8");
+    assert.ok(!body.includes("02-需求理解"), `模板 ${name} 仍在指一个已取消的目录`);
+  }
   assert.match(schema, /name: delivery-change/);
   assert.match(schema, /version: 7/);
   assert.ok(schema.indexOf("id: solution-proposal") < schema.indexOf("id: solution-decision"));
@@ -867,6 +872,12 @@ test("REV-002 命令正文不得停留在已废止的工件与批准口径上", 
         assert.ok(!body.includes(gone), `${name} 仍在提已取消的工件: ${gone}`);
       }
       assert.ok(!body.includes("分别批准"), `${name} 仍在讲已废止的按份批准口径`);
+      // 工件计数：本单把八份并成六份，任何写死「九项/八项规划工件」的说法都已过时。
+      for (const stale of ["九项规划", "八项规划", "九项 artifact", "八层"]) {
+        assert.ok(!body.includes(stale), `${name} 停留在旧的工件计数: ${stale}`);
+      }
+      // 已取消的目录名同理：照着它建目录会建出一个不存在的层。
+      assert.ok(!body.includes("02-需求理解"), `${name} 仍在指一个已取消的目录`);
     }
   }
 });

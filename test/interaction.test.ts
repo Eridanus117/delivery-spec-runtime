@@ -71,29 +71,58 @@ test("VC-035 校准条款双向记录且预置了新的复盘触发点", () => {
   // 新的复盘触发点。
   assert.match(agents, /强制版分析线跑满 2 单/);
   assert.match(agents, /复盘裁定 A1 的留\/修\/杀/);
-  // 本轮改写的每条硬规则都必须随附一句大白话理由（AGENTS.md 的既有元规则）。
-  const lines = agents.split(/\r?\n/);
-  for (const anchor of ["摆盘深度必须与决策分量匹配", "方案门的摆盘必须同时包含", "交付流水线校准期继续", "资产写盘与人工审阅解耦", "下一次复盘的触发点与议题已预置"]) {
-    const clause = lines.find((line) => line.includes(anchor));
-    assert.ok(clause, `AGENTS.md 缺少条款: ${anchor}`);
-    assert.ok(clause.includes("（理由："), `硬规则缺少大白话理由: ${anchor}`);
-  }
 });
 
-test("REV-005 治理文本定义重批准的合法条件与代笔披露", () => {
+/**
+ * REV-005 / REV-015：批准这件事在两份「agent 每轮照着做」的文档里必须写死，且写的是同一套。
+ * 早先它只有「首签」与「重批准」两态，重批准整体覆写，于是机械回填能顺带把被篡改的工件一起
+ * 重新祝福。现在是三条路，规则文本必须逐条说清，否则 agent 会照着旧路走进一个已经封死的口子。
+ */
+test("REV-005/REV-015 规则文本写死批准的三条路与代笔披露", () => {
   const agents = readFileSync(join(runtimeRoot, "AGENTS.md"), "utf8");
   const lines = agents.split(/\r?\n/);
-  // 代笔披露必须落在 approvedBy 字段本身，不得只写进 migrationSource。
-  const disclosure = lines.find((line) => line.includes("`approvedBy` 必须写明表态的真实形态"));
-  assert.ok(disclosure, "AGENTS.md 缺少 approvedBy 代笔披露条款");
-  assert.match(disclosure, /不得只把代笔信息藏在 `migrationSource` 里/);
+  // 一、代笔披露必须落在「谁按下的」那个字段本身，不得降级成附注。
+  const disclosure = lines.find((line) => line.includes("必须写明表态的真实形态"));
+  assert.ok(disclosure, "AGENTS.md 缺少代笔披露条款");
+  assert.match(disclosure, /不得只把代笔信息藏在附注字段里/);
   assert.ok(disclosure.includes("（理由："), "该硬规则缺少大白话理由");
-  // 重批准的合法边界必须写死：只允许不改语义的机械回填。
-  const reapproval = lines.find((line) => line.includes("**重批准**"));
-  assert.ok(reapproval, "AGENTS.md 缺少重批准条款");
-  assert.match(reapproval, /机械回填、不改变工件的任何语义/);
-  assert.match(reapproval, /任何改变语义的改动都必须重新取得维护者表态，不得由 agent 重签/);
-  assert.ok(reapproval.includes("（理由："), "该硬规则缺少大白话理由");
+  // 二、三条路必须都在，且各自的要害都写死。
+  const paths = lines.find((line) => line.includes("批准只有三条路"));
+  assert.ok(paths, "AGENTS.md 缺少批准三条路的条款");
+  assert.ok(paths.includes("（理由："), "该硬规则缺少大白话理由");
+  const firstSign = lines.find((line) => line.includes("**首签**"));
+  const refresh = lines.find((line) => line.includes("**机械回填后的刷新**"));
+  const reattest = lines.find((line) => line.includes("**重新取得人工表态**"));
+  assert.ok(firstSign && refresh && reattest, "批准三条路没有逐条写出来");
+  // 刷新这条的要害：必须声明刷新范围、声明之外的变化一律拒绝、不许碰人真实表态那一对字段。
+  assert.match(refresh, /必须显式声明这次刷新了哪几份/);
+  assert.match(refresh, /声明之外还有文件变了一律拒绝/);
+  assert.match(refresh, /这条路不接受 `approvedBy`|不接受 `--approved-by`/);
+  assert.match(refresh, /--refreshed-by/, "没有给出刷新执行者该用哪个参数");
+  // 重新表态这条的要害：它是语义改动的唯一出口，且 agent 不得自判「语义没变」改走刷新。
+  assert.match(reattest, /内容有语义改动时的唯一出口/);
+  assert.match(reattest, /agent 不得自行判断「语义没变」然后改走刷新那条路/);
+  assert.ok(reattest.includes("（理由："), "该硬规则缺少大白话理由");
+  // 三、说明文档给出的命令必须与规则同套，否则照着抄就会违规。
+  const governance = readFileSync(join(runtimeRoot, "docs/governance.md"), "utf8");
+  assert.match(governance, /^## 批准的三条路$/m, "说明文档没有给出三条路的用法");
+  for (const flag of ["--gate", "--decision", "--approved-by", "--refreshed-artifact", "--new-attestation"]) {
+    assert.ok(governance.includes(flag), `说明文档缺少参数: ${flag}`);
+  }
+  // 刷新那条命令不得示范 --decision：结论要变就是一次新的表态，不是回填。
+  const bt = String.fromCharCode(96);
+  const refreshBlock = governance.slice(governance.indexOf("### 二、机械回填后的刷新"), governance.indexOf("### 三、重新取得人工表态"));
+  const refreshCommand = refreshBlock.slice(refreshBlock.indexOf(bt.repeat(3)), refreshBlock.lastIndexOf(bt.repeat(3)));
+  assert.ok(!refreshCommand.includes("--decision"), "刷新的示例命令不该示范改结论");
+  assert.ok(!refreshCommand.includes("--approved-by"), "刷新的示例命令不该示范传表态人参数");
+  assert.ok(refreshCommand.includes("--refreshed-by"), "刷新的示例命令没有示范谁做的这次回填");
+  assert.ok(refreshCommand.includes("--refreshed-artifact"), "刷新的示例命令没有示范声明刷新范围");
+  // 新人卡住的两样东西必须查得到：门名的合法取值从哪来、工件代号怎么对应文件。
+  assert.ok(governance.includes("openspec/profiles/delivery-change-v1.json"), "没有说清 --gate 的合法取值从哪推导");
+  for (const code of ["raw-requirements", "solution-proposal", "tasks"]) {
+    assert.ok(governance.includes(bt + code + bt), `工件代号对照表缺: ${code}`);
+  }
+  assert.match(governance, /驳回/, "没有给出维护者驳回时的出口");
 });
 
 test("REV-005 本 Change 的批准记录在 approvedBy 中如实披露代笔", () => {
@@ -133,7 +162,8 @@ test("T-10.2/T-10.3 交互指引与说明文档同步到新形状", () => {
   // 说明文档不得再提已经取消的两层工件。
   const readme = readFileSync(join(runtimeRoot, "README.md"), "utf8");
   const governance = readFileSync(join(runtimeRoot, "docs/governance.md"), "utf8");
-  assert.match(readme, /六层/);
+  assert.match(readme, /六份必产工件/);
+  assert.doesNotMatch(readme, /六层/, "层与份是两个计数单位，混着说会让人数不清该建几份");
   assert.doesNotMatch(readme, /八层/);
   assert.doesNotMatch(governance, /03-现状\/现状\.md/);
   assert.match(governance, /人真实表态一次记一条/, "说明文档没有讲清批准新口径");

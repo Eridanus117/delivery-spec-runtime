@@ -73,7 +73,7 @@ node --experimental-strip-types \
 
 `/opsx-explore` 适合第一阶段：帮助澄清问题、调查现状和比较方向，默认不建立 Change。确定要做之后使用 `/opsx-new` 或 `/opsx-propose` 建立 Change；不要把聊天记录、Issue 或 Intake 当作正式 Requirement 的唯一载体。
 
-Change 内不需要另造一个统一的“需求分析.md”。按分析性质填写既有工件：`01` 保留原始需求及来源（材料索引表的 RAW 编号顺序即权威顺序），`02` 归一化 WHAT/WHY、范围、术语和可验收 Scenario，`03` 记录业务与技术现状（v6 起合并为一份），`05` 记录候选方案和维护者决策。这样既保留原意，也让后续实现、Review 和归档可以逐项追溯。
+Change 内不需要另造一个统一的“需求分析.md”。按分析性质填进既有工件：`01-原始需求/原始需求索引.md` 保留原始需求及来源（材料索引表的 RAW 编号顺序即权威顺序），`specs/<能力>/spec.md` 归一化 WHAT/WHY、范围、术语和可验收 Scenario，`05-改造方案/方案提案.md` 写现状与候选方案（第 7 版起现状并入这里，不再单独成层），`05-改造方案/方案决策.md` 记录维护者的选择。这样既保留原意，也让后续实现、Review 和归档可以逐项追溯。
 
 Runtime 不会只生成一份静态方案。它把“为什么改、决定怎么改、实际改了什么、如何证明正确”保存在同一条可审计链中。
 
@@ -103,7 +103,13 @@ node --experimental-strip-types \
   --request-file request.json
 ```
 
-如果事项还没有正式 Change，可以直接调用 standalone workflow execution：
+如果事项还没有正式 Change，有两个入口，**按「要不要留下可追溯的产物」二选一**：
+
+- **要留产物**（走本仓流程的正常做法）：用 `workflow-control.ts run --intake-id`，见下文「事项还没立项时，
+  分析线怎么跑」。它把绑定、请求与结果三份产物落在 `openspec/intake/analysis/<事项记录 id>/`，
+  立项门会去读它们；不走这个入口，立项会因为「缺分析线产物」被拒。
+- **只想试跑一次、不留产物**：用下面这个独立入口。它只读你显式给的输入文件，把单次结果写到 stdout
+  或 `--output-file`，**不写任何仓内产物**，因此它的结果不能用来过立项门。
 
 ```bash
 node --experimental-strip-types \

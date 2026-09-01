@@ -22,11 +22,11 @@ artifacts:
     instruction: |
       基于原始材料形成正式需求增量，定义 WHAT 和 WHY，不写实现步骤。
       每个 capability 使用 OpenSpec 标准路径 specs/<capability>/spec.md；
-      02-需求理解/specs 是指向该目录的单一真源入口，不复制文件。
+      specs/ 就是单一真源，不另设入口目录、不复制文件。
       新能力使用 ## Purpose 和 ## ADDED Requirements；修改能力使用 ## MODIFIED Requirements；
       删除和重命名分别使用 ## REMOVED Requirements、## RENAMED Requirements。
       Requirement 使用 SHALL/MUST；每项 Requirement 至少包含一个四级标题 Scenario，使用 WHEN/THEN。
-      02-需求理解/需求理解.md 可记录术语、范围、非范围、澄清结论、冲突和待确认事项；
+      术语、范围、非范围、澄清结论、冲突和待确认事项写进 05-改造方案/方案提案.md；
       只有 specs/**/*.md 参与长期需求同步。
     requires:
       - raw-requirements

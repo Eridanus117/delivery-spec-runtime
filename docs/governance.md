@@ -56,11 +56,90 @@ node --experimental-strip-types openspec/tools/delivery-control.ts inspect \
   --change-root openspec/changes/<change>
 ```
 
-`delivery-control.ts init` 创建 `change-info.json`（显式声明当前工件结构版本）和空的 `artifact-approvals.json`。批准用 `approval set --gate <站位id> --decision approved --approved-by <表态形态>` 一次写入，覆盖当时的全部工件；缺任何一份即拒绝并点名缺哪一份。原始需求的来源全序由 `01-原始需求索引.md` 材料索引表的 RAW 编号顺序承载（RAW-001 权威最高），不再另建 `change-sources.json`。每个 Artifact 写入前先读取对应 `openspec instructions`，写入后用摘要批准，并执行聚焦校验：
+`delivery-control.ts init` 创建 `change-info.json`（显式声明当前工件结构版本）和空的 `artifact-approvals.json`。批准分三条路，用法见下节「批准的三条路」。原始需求的来源全序由 `01-原始需求/原始需求索引.md` 材料索引表的 RAW 编号顺序承载（RAW-001 权威最高），不再另建 `change-sources.json`。每个 Artifact 写入前先读取对应 `openspec instructions`，写入后用摘要批准，并执行聚焦校验：
 
 ```bash
 openspec validate <change> --strict
 ```
+
+## 批准的三条路
+
+批准按人真实表态的次数记：一次表态一条记录，覆盖当时的全部工件、逐份记内容哈希。写入只有三条路，
+靠参数区分——三者共用一条命令且不可区分时，机械回填就能顺带把被篡改的工件一起重新祝福。
+
+### 先查两样东西
+
+**`--gate` 填什么。** 合法取值不是写死的清单，而是从站位定义 `openspec/profiles/delivery-change-v1.json`
+推导：`humanJudgment` 为真、且 `approvalRecord` 为 `artifact-approvals` 的那些站的 `id`。
+今天只有一个——`decision`（方案门）。**验收门（`acceptance`）不走这条命令**：它的表态记在
+`acceptance-state.json` 里，由 `delivery-lifecycle.ts acceptance write` 写入。填错门名时命令会拒绝，
+并把当前合法的门名列出来。
+
+**工件代号怎么对应文件。** `--refreshed-artifact` 收的是代号，不是中文文件名：
+
+| 代号 | 文件 |
+|---|---|
+| `raw-requirements` | `01-原始需求/原始需求索引.md` |
+| `specs` | `specs/**/*.md`（整个目录一起算一个哈希） |
+| `solution-proposal` | `05-改造方案/方案提案.md` |
+| `solution-decision` | `05-改造方案/方案决策.md` |
+| `test-plan` | `06-测试方案/000-测试方案索引.md` |
+| `tasks` | `07-实施任务/实施任务.md` |
+
+多个代号用逗号分隔。代号写错、或声明之外还有文件变了，命令都会拒绝并点名。
+
+### 一、首签（这一门还没有任何记录）
+
+```bash
+node --experimental-strip-types openspec/tools/delivery-control.ts approval set \
+  --change-root openspec/changes/<change> \
+  --gate decision --decision approved \
+  --approved-by "维护者（门口表态由 Claude 转录，非亲签）" \
+  --runtime-root .
+```
+
+覆盖当时的全部工件；缺任何一份即拒绝并点名缺哪一份。四个参数都是必填，一个都不能省。
+
+### 二、机械回填后的刷新（典型是 `task render` 回填任务状态之后）
+
+```bash
+node --experimental-strip-types openspec/tools/delivery-control.ts approval set \
+  --change-root openspec/changes/<change> \
+  --gate decision --refreshed-artifact tasks \
+  --refreshed-by "Claude（证据回填后的机械刷新）" \
+  --runtime-root .
+```
+
+机器把实际发生变化的工件集合与声明集合对照，**声明之外还有文件变了一律拒绝并点名搭车的那一份**。
+刷新只改被声明的那几份哈希，首次表态的人与时间原样保留，本次刷新以追加方式记进 `refreshes`。
+
+**这条路不接受 `--approved-by`**：表态人与时间记的是人真实表态，机械回填碰不得。传了会被当场拒绝，
+并提示改用 `--refreshed-by`。也不接受 `--decision`——结论要变就是一次新的表态，不是回填。
+
+### 三、重新取得人工表态（内容有语义改动时的唯一出口）
+
+```bash
+node --experimental-strip-types openspec/tools/delivery-control.ts approval set \
+  --change-root openspec/changes/<change> \
+  --gate decision --decision approved \
+  --approved-by "维护者（门口表态由 Claude 转录，非亲签）" \
+  --new-attestation "为什么需要重新过人" \
+  --runtime-root .
+```
+
+它覆写表态人与时间、重算全部哈希、清空刷新记录。**agent 不得自行判断「语义没变」然后改走刷新**——
+内容哈希机制的全部意义就是「内容变了就要重新过人」。
+
+### 维护者驳回时怎么办
+
+驳回**不是第四条路**。它有两种落法，取决于维护者驳的是什么：
+
+- **驳回这一版材料、要求返工**（绝大多数情形）：不写批准记录。agent 按意见改，改完再走第一条或
+  第三条路重新取得表态。这一轮的意见与处置写进门口摆盘与事项记录，不进批准记录——批准记录只记
+  「过了」，没过就不该在那里留痕。
+- **驳回这件事本身、不做了**：把结论如实记下来，`--decision rejected` 是合法取值，其余参数与首签
+  相同。此后这一门不再放行，Change 就停在这里。
+
 
 ## Proposal 与 Decision
 
