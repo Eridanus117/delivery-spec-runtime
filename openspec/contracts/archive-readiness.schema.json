@@ -38,8 +38,8 @@
     "prStarted": { "type": "boolean" },
     "migrationSource": { "anyOf": [{ "const": "pre-v5-merged-change" }, { "type": "null" }] },
     "historicalPr": { "anyOf": [{ "type": "string", "format": "uri" }, { "type": "null" }] },
-    "attestedBy": { "type": "string", "minLength": 1 },
-    "attestedAt": { "type": "string", "format": "date-time" },
+    "attestedBy": { "type": "string", "minLength": 1, "description": "派生字段：等于 acceptance-state.json 的 acceptedBy。归档不是人工门，验收的「同意」即为归档授权，readiness write 不接受该键作为输入。" },
+    "attestedAt": { "type": "string", "format": "date-time", "description": "派生字段：readiness write 的写入时刻，必须晚于 acceptance-state.json 的 acceptedAt。readiness write 不接受该键作为输入。" },
     "result": { "enum": ["READY", "BLOCKED"] }
   },
   "$defs": {

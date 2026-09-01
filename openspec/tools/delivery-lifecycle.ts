@@ -6,7 +6,7 @@ import {
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { spawnSync } from "node:child_process";
 import {
-  atomicWriteJson, exactKeys, fail, integer, object, parseArgs, readJson, requiredOption,
+  atomicWriteJson, exactKeys, fail, integer, now, object, parseArgs, readJson, requiredOption,
   sha256File, text, withFileLock,
 } from "./runtime-lib.ts";
 
@@ -281,7 +281,7 @@ function acceptanceWrite(changeRoot: string, inputPath: string): void {
 }
 function readinessWrite(changeRoot: string, inputPath: string): void {
   const input = object(readJson(inputPath), "readiness-input");
-  exactKeys(input, ["schemaVersion", "specSync", "strictValidation", "cleanupEvidence", "prStarted", "migrationSource", "historicalPr", "attestedBy", "attestedAt"], ["schemaVersion", "specSync", "strictValidation", "cleanupEvidence", "prStarted", "migrationSource", "historicalPr", "attestedBy", "attestedAt"], "readiness-input");
+  exactKeys(input, ["schemaVersion", "specSync", "strictValidation", "cleanupEvidence", "prStarted", "migrationSource", "historicalPr"], ["schemaVersion", "specSync", "strictValidation", "cleanupEvidence", "prStarted", "migrationSource", "historicalPr"], "readiness-input");
   if (input.schemaVersion !== 1 || !Array.isArray(input.specSync) || input.strictValidation !== "PASS" || typeof input.prStarted !== "boolean") fail("readiness-input合同非法");
   const acceptance = requireAcceptance(changeRoot); const repo = repoRoot(changeRoot); const changeRel = relative(repo, realpathSync(changeRoot)).split(sep).join("/");
   const sync: SyncEntry[] = input.specSync.map((value, index) => {
@@ -297,8 +297,11 @@ function readinessWrite(changeRoot: string, inputPath: string): void {
   const migrationSource = input.migrationSource === null ? null : text(input.migrationSource, "migrationSource"); const historicalPr = input.historicalPr === null ? null : text(input.historicalPr, "historicalPr");
   const migration = migrationSource === "pre-v5-merged-change" && historicalPr !== null;
   if (input.prStarted && !migration) fail("正常Change必须声明prStarted=false");
-  const attestedAt = timestamp(input.attestedAt, "attestedAt"); requireLaterTimestamp(attestedAt, acceptance.acceptedAt, "attestedAt", "acceptedAt");
-  const state: Readiness = { schemaVersion: 1, implementationCommit: acceptance.implementationCommit, acceptanceDigest: sha256File(acceptancePath(changeRoot)), releasePlanDigest: sha256File(releasePlan), specSync: sync, strictValidation: "PASS", cleanupEvidence: { path: cleanupPath, sha256: sha256File(join(repo, cleanupPath)) }, prStarted: input.prStarted, migrationSource, historicalPr, attestedBy: text(input.attestedBy, "attestedBy"), attestedAt, result: "READY" };
+  // 归档不是人工门：attestedBy 由 acceptance-state 的 acceptedBy 派生，attestedAt 取写入时刻，
+  // 不再向维护者索取第二次表态（验收的「同意」即为归档授权）。校验项一项不减。
+  const attestedBy = acceptance.acceptedBy;
+  const attestedAt = timestamp(now(), "attestedAt"); requireLaterTimestamp(attestedAt, acceptance.acceptedAt, "attestedAt", "acceptedAt");
+  const state: Readiness = { schemaVersion: 1, implementationCommit: acceptance.implementationCommit, acceptanceDigest: sha256File(acceptancePath(changeRoot)), releasePlanDigest: sha256File(releasePlan), specSync: sync, strictValidation: "PASS", cleanupEvidence: { path: cleanupPath, sha256: sha256File(join(repo, cleanupPath)) }, prStarted: input.prStarted, migrationSource, historicalPr, attestedBy, attestedAt, result: "READY" };
   withFileLock(lockPath(changeRoot), () => atomicWriteJson(readinessPath(changeRoot), state)); console.log(JSON.stringify(state, null, 2));
 }
 function renderReopenedTasks(changeRoot: string): void {

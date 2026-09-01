@@ -22,6 +22,12 @@ export type WorkflowStage = {
  outputInputs?: string[];
 };
 
+export type WorkflowDefinitionAuthority = {
+ kind: "runtime-code";
+ paths: string[];
+ note: string;
+};
+
 export type WorkflowProfile = {
  schemaVersion: 1;
  profileId: string;
@@ -31,6 +37,7 @@ export type WorkflowProfile = {
  recommendedFor: string[];
  notRecommendedFor: string[];
  handoff: string;
+ definitionAuthority?: WorkflowDefinitionAuthority;
  inputContracts?: Record<string, WorkflowInputContract>;
  stages: WorkflowStage[];
 };
@@ -184,9 +191,23 @@ function parseStage(value: unknown, index: number): WorkflowStage {
  return parsed;
 }
 
+function parseDefinitionAuthority(value: unknown): WorkflowDefinitionAuthority | undefined {
+  if (value === undefined) return undefined;
+  const authority = object(value, "workflow profile.definitionAuthority");
+  exactKeys(authority, ["kind", "paths", "note"], ["kind", "paths", "note"], "workflow profile.definitionAuthority");
+  if (authority.kind !== "runtime-code") fail("workflow profile.definitionAuthority.kind 仅支持 runtime-code");
+  const paths = stringArray(authority.paths, "workflow profile.definitionAuthority.paths");
+  if (paths.length === 0) fail("workflow profile.definitionAuthority.paths 不得为空");
+  for (const path of paths) {
+    if (!path || path.startsWith("/") || /^[A-Za-z]:/.test(path) || path.split("/").includes("..")) fail(`workflow profile.definitionAuthority.paths 必须是仓库内相对路径: ${path}`);
+  }
+  if (new Set(paths).size !== paths.length) fail("workflow profile.definitionAuthority.paths 不得重复");
+  return { kind: "runtime-code", paths, note: text(authority.note, "workflow profile.definitionAuthority.note") };
+}
+
 export function parseWorkflowProfile(value: unknown): WorkflowProfile {
   const profile = object(value, "workflow profile");
-  exactKeys(profile, ["schemaVersion", "profileId", "profileVersion", "displayName", "purpose", "recommendedFor", "notRecommendedFor", "handoff", "inputContracts", "stages"], ["schemaVersion", "profileId", "profileVersion", "displayName", "stages"], "workflow profile");
+  exactKeys(profile, ["schemaVersion", "profileId", "profileVersion", "displayName", "purpose", "recommendedFor", "notRecommendedFor", "handoff", "definitionAuthority", "inputContracts", "stages"], ["schemaVersion", "profileId", "profileVersion", "displayName", "stages"], "workflow profile");
   if (profile.schemaVersion !== 1) fail("workflow profile.schemaVersion 必须为 1");
   const displayName = text(profile.displayName, "workflow profile.displayName");
   const recommendedFor = profile.recommendedFor === undefined ? ["未声明"] : stringArray(profile.recommendedFor, "workflow profile.recommendedFor");
@@ -205,6 +226,7 @@ export function parseWorkflowProfile(value: unknown): WorkflowProfile {
     recommendedFor,
     notRecommendedFor,
     handoff: profile.handoff === undefined ? "交给调用方继续处理。" : text(profile.handoff, "workflow profile.handoff"),
+    definitionAuthority: parseDefinitionAuthority(profile.definitionAuthority),
     inputContracts: Object.keys(inputContracts).length > 0 ? inputContracts : undefined,
     stages,
   };

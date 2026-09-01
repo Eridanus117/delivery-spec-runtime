@@ -7,6 +7,11 @@
   "recommendedFor": ["已决定交付且需要完整审计链的需求", "需要长期 spec 同步和归档证据的变更"],
   "notRecommendedFor": ["尚未决定是否实施的模糊问题", "只需快速登记和验证的小改动"],
   "handoff": "archive 完成后将长期 spec、验收结果和归档证据交给项目维护者。",
+  "definitionAuthority": {
+    "kind": "runtime-code",
+    "paths": ["openspec/tools/delivery-control.ts", "openspec/tools/delivery-lifecycle.ts"],
+    "note": "交付 7 站的权威定义是这两个工具里的 guard 与生命周期校验代码，本文件只是人读元数据：它描述每站的用途、退出条件与是否需要维护者表态，但不产生任何约束力。两侧若分叉，以代码为准；test/station-authority.test.ts 逐站从真门禁行为侧取值比对 humanJudgment，任一侧单边修改即非零拒绝。"
+  },
   "stages": [
     { "id": "proposal", "displayName": "方案提案", "description": "记录问题、候选方案和实施边界。", "exitCondition": "候选方案及其影响已可审阅。", "requiredInputs": ["proposal"], "humanJudgment": false },
     { "id": "decision", "displayName": "方案决策", "description": "由维护者选择方案并确认取舍。", "exitCondition": "维护者已明确批准一个方案。", "requiredInputs": ["decision"], "humanJudgment": true },
@@ -14,6 +19,6 @@
     { "id": "review", "displayName": "实现审查", "description": "审查实现是否覆盖批准的 Change。", "exitCondition": "新鲜 Review 无未解决 critical finding。", "requiredInputs": ["review"], "humanJudgment": false },
     { "id": "acceptance", "displayName": "验收", "description": "依据测试和场景确认交付结果。", "exitCondition": "维护者接受验收结果。", "requiredInputs": ["acceptance"], "humanJudgment": true },
     { "id": "sync", "displayName": "规格同步", "description": "将批准的 delta 合并到长期 spec。", "exitCondition": "长期 spec 已更新且严格校验通过。", "requiredInputs": ["specSync"], "humanJudgment": false },
-    { "id": "archive", "displayName": "归档", "description": "保存完整证据并关闭 Change。", "exitCondition": "归档门禁通过且 Change 已移动到 archive。", "requiredInputs": ["archive"], "humanJudgment": true }
+    { "id": "archive", "displayName": "归档", "description": "保存完整证据并关闭 Change；验收的「同意」即为归档授权，本站不再索取第二次人工表态。", "exitCondition": "归档门禁通过且 Change 已移动到 archive。", "requiredInputs": ["archive"], "humanJudgment": false }
   ]
 }

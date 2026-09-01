@@ -72,14 +72,32 @@ test("Acceptance与Archive Readiness取代Markdown关键词并支持受控reopen
     write(join(change, "09-发布/发布计划.md"), "# 发布计划\nrelease-not-required\n");
     result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "archive"], { cwd: repo }); assert.notEqual(result.status, 0); assert.match(result.stderr, /archive-readiness/);
     const delta = "openspec/changes/demo-change/specs/example/spec.md"; const main = "openspec/specs/example/spec.md"; write(join(repo, main), readFileSync(join(repo, delta), "utf8"));
-    const readinessInput = join(change, "readiness-input.json"); write(readinessInput, JSON.stringify({ schemaVersion: 1, specSync: [{ deltaPath: delta, mainPath: main }], strictValidation: "PASS", cleanupEvidence: "openspec/changes/demo-change/08-验收/cleanup/cleanup.md", prStarted: false, migrationSource: null, historicalPr: null, attestedBy: "maintainer", attestedAt: "2026-08-30T12:02:00Z" }));
+    const readinessInput = join(change, "readiness-input.json"); write(readinessInput, JSON.stringify({ schemaVersion: 1, specSync: [{ deltaPath: delta, mainPath: main }], strictValidation: "PASS", cleanupEvidence: "openspec/changes/demo-change/08-验收/cleanup/cleanup.md", prStarted: false, migrationSource: null, historicalPr: null }));
     write(join(change, "08-验收/cleanup/cleanup.md"), "- 结论：FAIL\n");
     result = runTool("delivery-lifecycle.ts", ["readiness", "write", "--change-root", change, "--file", readinessInput], { cwd: repo }); assert.notEqual(result.status, 0); assert.match(result.stderr, /cleanupEvidence.*PASS/);
     write(join(change, "08-验收/cleanup/cleanup.md"), "- 结论：PASS\n");
-    const earlyReadinessInput = join(change, "readiness-early.json");
-    write(earlyReadinessInput, JSON.stringify({ ...JSON.parse(readFileSync(readinessInput, "utf8")), attestedAt: "2026-08-30T12:00:30Z" }));
-    result = runTool("delivery-lifecycle.ts", ["readiness", "write", "--change-root", change, "--file", earlyReadinessInput], { cwd: repo }); assert.notEqual(result.status, 0); assert.match(result.stderr, /attestedAt.*acceptedAt/);
+    // VC-004：归档不再索取第二次人工表态——readiness-input 不接受 attestedBy / attestedAt 两键。
+    for (const key of ["attestedBy", "attestedAt"]) {
+      const attestedInput = join(change, `readiness-${key}.json`);
+      write(attestedInput, JSON.stringify({ ...JSON.parse(readFileSync(readinessInput, "utf8")), [key]: key === "attestedBy" ? "maintainer" : "2026-08-30T12:02:00Z" }));
+      result = runTool("delivery-lifecycle.ts", ["readiness", "write", "--change-root", change, "--file", attestedInput], { cwd: repo });
+      assert.notEqual(result.status, 0); assert.match(result.stderr, new RegExp(`readiness-input 存在未知字段 ${key}`));
+    }
     result = runTool("delivery-lifecycle.ts", ["readiness", "write", "--change-root", change, "--file", readinessInput], { cwd: repo }); assert.equal(result.status, 0, result.stderr);
+    // VC-004：attestedBy 派生自 acceptance-state.acceptedBy，attestedAt 取写入时刻且晚于 acceptedAt。
+    const readinessState = JSON.parse(readFileSync(join(change, "archive-readiness.json"), "utf8"));
+    const acceptanceState = JSON.parse(readFileSync(join(change, "acceptance-state.json"), "utf8"));
+    assert.equal(readinessState.attestedBy, acceptanceState.acceptedBy);
+    assert.ok(Date.parse(readinessState.attestedAt) > Date.parse(acceptanceState.acceptedAt));
+    result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "archive"], { cwd: repo }); assert.equal(result.status, 0, result.stderr);
+    // VC-005：门禁条目一项不减——五种破坏情形 archive guard 全部非零。
+    const releasePlanPath = join(change, "09-发布/发布计划.md"); const releasePlanOriginal = readFileSync(releasePlanPath, "utf8");
+    write(releasePlanPath, `${releasePlanOriginal}事后追加\n`);
+    result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "archive"], { cwd: repo }); assert.notEqual(result.status, 0); assert.match(result.stderr, /release plan stale/);
+    write(releasePlanPath, releasePlanOriginal);
+    const prStartedInput = join(change, "readiness-pr-started.json");
+    write(prStartedInput, JSON.stringify({ ...JSON.parse(readFileSync(readinessInput, "utf8")), prStarted: true }));
+    result = runTool("delivery-lifecycle.ts", ["readiness", "write", "--change-root", change, "--file", prStartedInput], { cwd: repo }); assert.notEqual(result.status, 0); assert.match(result.stderr, /prStarted=false/);
     result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "archive"], { cwd: repo }); assert.equal(result.status, 0, result.stderr);
     write(join(repo, main), "drift\n"); result = runTool("delivery-lifecycle.ts", ["readiness", "inspect", "--change-root", change], { cwd: repo }); assert.notEqual(result.status, 0); assert.match(result.stderr, /spec sync stale/); write(join(repo, main), readFileSync(join(repo, delta), "utf8"));
     git(repo, ["add", "."]); git(repo, ["commit", "-qm", "lifecycle evidence"]);

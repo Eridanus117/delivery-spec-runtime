@@ -14,6 +14,16 @@
     "recommendedFor": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "uniqueItems": true },
     "notRecommendedFor": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "uniqueItems": true },
     "handoff": { "type": "string", "minLength": 1 },
+    "definitionAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "paths", "note"],
+      "properties": {
+        "kind": { "const": "runtime-code" },
+        "paths": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "uniqueItems": true },
+        "note": { "type": "string", "minLength": 1 }
+      }
+    },
     "inputContracts": {
       "type": "object",
       "additionalProperties": {
