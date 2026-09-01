@@ -55,7 +55,7 @@ test("bootstrap stage必须外部批准，activation可恢复且保持受保护�
     put(join(f.work, "openspec/changes", slug, "bootstrap/stage-approval.json"), `${JSON.stringify({ schemaVersion: 1, stageId, approved: true, approvedBy: "bootstrap-test", approvedAt: new Date().toISOString(), planSha256: sha256File(plan) }, null, 2)}\n`);
     result = bootstrap(f, "activate"); assert.equal(result.status, 0, result.stderr);
     const active = join(f.work, "openspec/changes", slug);
-    assert.equal(existsSync(join(active, "change-info.json")), true); assert.equal(existsSync(join(active, ".delivery")), false); assert.equal(existsSync(join(active, "06-测试方案/测试方案.md")), true);
+    assert.equal(existsSync(join(active, "change-info.json")), true); assert.equal(existsSync(join(active, ".delivery")), false); assert.equal(existsSync(join(active, "06-测试方案/000-测试方案索引.md")), true);
     assert.deepEqual(JSON.parse(readFileSync(join(active, "artifact-approvals.json"), "utf8")), { schemaVersion: 1, artifacts: {} });
     // VC-038：bootstrap 候选产出 v6 结构——不再有 change-sources.json，目录为 03-现状，其余语义不变。
     assert.equal(existsSync(join(active, "change-sources.json")), false);

@@ -163,7 +163,7 @@ function buildCandidate(workRoot: string, candidate: string): void {
     ["02-需求理解/index.md", "02-需求理解/需求理解.md"],
     ["03-现状/business-current.md", "03-现状/现状.md"],
     ["05-改造方案/change-plan.md", "05-改造方案/改造方案.md"],
-    ["06-测试方案/test-plan.md", "06-测试方案/测试方案.md"],
+    ["06-测试方案/test-plan.md", "06-测试方案/000-测试方案索引.md"],
     ["07-实施任务/tasks.md", "07-实施任务/实施任务.md"],
   ];
   for (const [from, to] of primaryFiles) renameSync(join(candidate, from), join(candidate, to));
@@ -172,7 +172,9 @@ function buildCandidate(workRoot: string, candidate: string): void {
   if (pathExists(oldSpecsLink)) rmSync(oldSpecsLink, { recursive: true, force: true });
   symlinkSync("../specs", oldSpecsLink);
   // 控制 JSON 全部位于 Change 根目录；不得重新引入历史 `.delivery` 容器。
-  atomicWriteJson(join(candidate, "change-info.json"), { schemaVersion: 1, displayName: "优化物流 Change 审阅工作流" });
+  // 与 delivery-control init 保持一致：显式标记交付 schema 版本，
+  // 不让版本判别退回目录形状推断。
+  atomicWriteJson(join(candidate, "change-info.json"), { schemaVersion: 1, displayName: "优化物流 Change 审阅工作流", deliverySchemaVersion: 6 });
   // 旧流程没有持久化摘要批准；不得从文件存在或会话记忆伪造 migrationSource。
   atomicWriteJson(join(candidate, "artifact-approvals.json"), { schemaVersion: 1, artifacts: {} });
   atomicWriteJson(join(candidate, "task-state.json"), { schemaVersion: 1, tasks: parseLegacyTasks(join(source, "07-implementation-tasks/tasks.md")) });

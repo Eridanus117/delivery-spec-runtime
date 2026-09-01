@@ -198,7 +198,7 @@ test("VC-028 现状合并后门禁条目逐项可对应且一项不减", () => {
       "01-原始需求/原始需求索引.md": "raw\n", "03-现状/现状.md": "current\n",
       "05-改造方案/方案提案.md": "# 方案提案\n## 候选 A：简单\n## 候选 B：严格\n## Trade-off 矩阵\n## 推荐\n## 未决问题\n",
       "05-改造方案/方案决策.md": "# 方案决策\n- 状态：APPROVED\n- 选择：B\n- 决策人：tester\n- 决策时间：2026-08-30\n## 接受的后果\n## 拒绝方案\n",
-      "05-改造方案/改造方案.md": "plan\n", "06-测试方案/测试方案.md": "tests\n",
+      "05-改造方案/改造方案.md": "plan\n", "06-测试方案/000-测试方案索引.md": "tests\n",
       "07-实施任务/实施任务.md": "# 实施任务\n", "specs/example/spec.md": "## ADDED Requirements\n",
     };
     for (const [path, body] of Object.entries(files)) writeFileSync(join(change, path), body);

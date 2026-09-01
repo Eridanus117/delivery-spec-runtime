@@ -25,8 +25,10 @@ function prepareChange(repo: string): { change: string; baseline: string; review
   write(join(repo, "base.txt"), "base\n"); git(repo, ["add", "."]); git(repo, ["commit", "-qm", "base"]); const baseline = git(repo, ["rev-parse", "HEAD"]);
   const change = join(repo, "openspec/changes/demo-change"); createArtifactTree(change);
   const files: Record<string, string> = {
+    // 双方意图都保留：本分支的 v6 结构（两份现状合并为 03-现状/现状.md）
+    // 与 main 的 test-plan 工件改名（06-测试方案/000-测试方案索引.md）。
     "01-原始需求/原始需求索引.md": "raw\n", "03-现状/现状.md": "current\n",
-    "05-改造方案/方案提案.md": proposal, "05-改造方案/方案决策.md": decision, "05-改造方案/改造方案.md": "plan\n", "06-测试方案/测试方案.md": "tests\n",
+    "05-改造方案/方案提案.md": proposal, "05-改造方案/方案决策.md": decision, "05-改造方案/改造方案.md": "plan\n", "06-测试方案/000-测试方案索引.md": "tests\n",
     "07-实施任务/实施任务.md": "# 实施任务\n- [x] 1.1 [verified] 完成演示\n", "specs/example/spec.md": "## ADDED Requirements\n### Requirement: Demo\n#### Scenario: Demo\n- **WHEN** x\n- **THEN** y\n",
   };
   for (const [path, content] of Object.entries(files)) write(join(change, path), content);

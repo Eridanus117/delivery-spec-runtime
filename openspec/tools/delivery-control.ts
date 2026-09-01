@@ -32,7 +32,7 @@ const v6ArtifactPaths: Record<string, string[]> = {
   "solution-proposal": ["05-改造方案/方案提案.md"],
   "solution-decision": ["05-改造方案/方案决策.md"],
   "change-plan": ["05-改造方案/改造方案.md"],
-  "test-plan": ["06-测试方案/测试方案.md"],
+  "test-plan": ["06-测试方案/000-测试方案索引.md"],
   tasks: ["07-实施任务/实施任务.md"],
 };
 const v5ArtifactPaths: Record<string, string[]> = {
@@ -43,6 +43,9 @@ const v5ArtifactPaths: Record<string, string[]> = {
   "solution-proposal": ["05-改造方案/方案提案.md"],
   "solution-decision": ["05-改造方案/方案决策.md"],
   "change-plan": ["05-改造方案/改造方案.md"],
+  // 归档 Change 磁盘上的实际文件名仍是 06-测试方案/测试方案.md：main 的工件改名
+  // （改为 000-测试方案索引.md）只适用于当前 schema 产出的新 Change。若把新名也写进
+  // v5 表，12 个归档目录的 test-plan 批准会因文件不存在而集体转 stale。
   "test-plan": ["06-测试方案/测试方案.md"],
   tasks: ["07-实施任务/实施任务.md"],
 };

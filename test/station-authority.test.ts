@@ -55,7 +55,7 @@ function prepare(repo: string): Fixture {
     "05-改造方案/方案提案.md": proposal,
     "05-改造方案/方案决策.md": approvedDecision,
     "05-改造方案/改造方案.md": "plan\n",
-    "06-测试方案/测试方案.md": "tests\n",
+    "06-测试方案/000-测试方案索引.md": "tests\n",
     "07-实施任务/实施任务.md": "# 实施任务\n- [x] 1.1 [verified] 完成演示\n",
     "specs/example/spec.md": "## ADDED Requirements\n### Requirement: Demo\n#### Scenario: Demo\n- **WHEN** x\n- **THEN** y\n",
     "08-验收/验收记录.md": "# 验收\n- 结论：PASS\n",

@@ -90,17 +90,17 @@ function sensitive(value: unknown): boolean {
 function privateStateRoot(raw: string): string {
   if (!isAbsolute(raw)) fail("--state-root 必须是绝对路径");
   const candidate = resolve(raw);
-  const cwd = resolve(process.cwd());
-  const rel = relative(cwd, candidate);
-  if (rel === "" || (!rel.startsWith(`..${sep}`) && rel !== ".." && !isAbsolute(rel))) fail("state-root 不得位于当前仓库内");
   if (candidate.split(/[\\/]/).some((part) => part === "openspec" || part === ".delivery-spec-runtime")) fail("state-root 位于受保护目录");
-  if (existsSync(candidate)) {
-    const stat = lstatSync(candidate);
-    if (stat.isSymbolicLink()) fail("state-root 不得是符号链接");
-    if (!stat.isDirectory()) fail("state-root 必须是目录");
-    if (realpathSync(candidate) !== candidate) fail("state-root 实际路径不安全");
-  } else mkdirSync(candidate, { recursive: true, mode: 0o700 });
-  return candidate;
+  if (!existsSync(candidate)) mkdirSync(candidate, { recursive: true, mode: 0o700 });
+  const stat = lstatSync(candidate);
+  if (stat.isSymbolicLink()) fail("state-root 不得是符号链接");
+  if (!stat.isDirectory()) fail("state-root 必须是目录");
+  const actual = realpathSync(candidate);
+  const cwd = realpathSync(process.cwd());
+  const rel = relative(cwd, actual);
+  if (rel === "" || (!rel.startsWith(`..${sep}`) && rel !== ".." && !isAbsolute(rel))) fail("state-root 不得位于当前仓库内");
+  if (actual.split(/[\\/]/).some((part) => part === "openspec" || part === ".delivery-spec-runtime")) fail("state-root 位于受保护目录");
+  return actual;
 }
 
 function eventFiles(root: string): string[] {
