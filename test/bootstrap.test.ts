@@ -3,7 +3,7 @@ import { removeOptions } from "./helpers.ts";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { tmpdir } from "node:os";
 import { sha256File } from "../openspec/tools/runtime-lib.ts";

@@ -30,11 +30,30 @@ function git(root: string, args: string[]): string {
   try { return execFileSync("git", withGitCapability(args), { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim(); }
   catch (error) { fail(`Git检查失败: ${error instanceof Error ? error.message : String(error)}`); }
 }
-/** 非零退出是合法答案的 git 调用（check-ignore 用 1 表示「没有命中」），故不能走上面那个抛错的封装。 */
-function gitResult(root: string, args: string[], input?: string): { status: number; stdout: string } {
+/**
+ * 非零退出是合法答案的 git 调用（check-ignore 用 1 表示「没有命中」），故不能走上面那个抛错的封装。
+ * status 原样透出 `number | null`，**不得把 null 归一成 1**：进程被信号终止时 spawnSync 给的是 null，
+ * 而 1 恰好是 check-ignore 的「没有任何路径被忽略」这一正常答案——归一等于把「校验没跑完」
+ * 伪装成「校验通过」，是整个入口里唯一一处 fail-open。判据留给调用方，本函数只如实转述。
+ */
+function gitResult(root: string, args: string[], input?: string): { status: number | null; signal: string | null; stdout: string } {
   const result = spawnSync("git", withGitCapability(args), { cwd: root, encoding: "utf8", ...(input === undefined ? {} : { input }) });
   if (result.error) fail(`Git执行失败: ${result.error.message}`);
-  return { status: result.status ?? 1, stdout: result.stdout ?? "" };
+  return { status: result.status, signal: result.signal ?? null, stdout: result.stdout ?? "" };
+}
+/** 把异常退出描述成人能读懂的一句话：被信号杀掉与非零退出码是两件事，报告里必须分得开。 */
+function abnormalExit(result: { status: number | null; signal: string | null }): string {
+  return result.status === null ? `进程被信号终止(${result.signal ?? "未知信号"})` : `退出状态 ${result.status}`;
+}
+/**
+ * check-ignore 的判据。只有 0（有命中）与 1（无命中）是正常答案，其余一律表示「校验没跑完」。
+ * 单独抽出来是为了能被断言直接喂入 status 为 null 的形状——那正是最危险的一种：若把 null
+ * 归一成 1，一个被信号杀掉的 git 就会被读成「没有任何路径被忽略」，整条校验静默放行。
+ * 返回 null 表示可以继续，返回字符串即拒绝理由。
+ */
+export function checkIgnoreIncomplete(result: { status: number | null; signal: string | null }): string | null {
+  if (result.status === 0 || result.status === 1) return null;
+  return `无法对受管投影执行 git check-ignore（${abnormalExit(result)}），校验未完成，拒绝执行`;
 }
 /**
  * 脚本自身位置向上两级即 Runtime 源仓根——但只有当本脚本确实躺在源仓里时才成立。
@@ -168,7 +187,7 @@ function verifyProjectionIndex(assetRoot: string, links: LinkContract[]): void {
   const files = links.flatMap((contract) => projectionFiles(assetRoot, contract.link));
   if (files.length === 0) return;
   const listed = gitResult(assetRoot, ["ls-files", "-s", "-z", "--", ...files]);
-  if (listed.status !== 0) fail("无法读取受管投影在 git index 中的条目，拒绝执行");
+  if (listed.status !== 0) fail(`无法读取受管投影在 git index 中的条目（${abnormalExit(listed)}），拒绝执行`);
   const modes = new Map<string, string>();
   for (const entry of listed.stdout.split("\0").filter(Boolean)) {
     const match = /^([0-7]{6}) [0-9a-f]+ [0-9]+\t([\s\S]+)$/.exec(entry);
@@ -183,8 +202,8 @@ function verifyProjectionIndex(assetRoot: string, links: LinkContract[]): void {
   // check-ignore 的 -z 只在配 --stdin 时合法，故路径走标准输入而非命令行参数；
   // 这同时避免了投影文件数量增长后命令行长度受限的问题。
   const ignored = gitResult(assetRoot, ["check-ignore", "--stdin", "-z"], `${untracked.join("\0")}\0`);
-  // check-ignore 用 0 表示「有命中」、1 表示「无命中」，两者都是正常答案；其余（典型是 128）才是故障。
-  if (ignored.status !== 0 && ignored.status !== 1) fail("无法对受管投影执行 git check-ignore，拒绝执行");
+  const incomplete = checkIgnoreIncomplete(ignored);
+  if (incomplete) fail(incomplete);
   const swallowed = ignored.stdout.split("\0").filter(Boolean).sort();
   if (swallowed.length) {
     fail(`受管投影被父仓 .gitignore 或本机排除规则忽略，将无法进入提交: ${swallowed.join("、")}；请移除命中它们的忽略规则`);
@@ -263,4 +282,8 @@ function main(): void {
   process.exitCode = result.status ?? 1;
 }
 
-try { main(); } catch (error) { console.error((error as Error).message); process.exitCode = 1; }
+// 与仓内其余工具同一形态：只有被直接执行时才跑 main，被 import 时只暴露可断言的判据函数。
+// 入口的调用方一律是 `node --experimental-strip-types <本文件> ...`，故该守卫不改变任何既有行为。
+if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename)) {
+  try { main(); } catch (error) { console.error((error as Error).message); process.exitCode = 1; }
+}

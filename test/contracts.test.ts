@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { checkIgnoreIncomplete } from "../openspec/tools/runtime-entry.ts";
+import { validateReport } from "../openspec/tools/openspec-upgrade.ts";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
@@ -343,7 +345,7 @@ test("REV-003 artifact-approvals 合同覆盖 v5/v6 两种工件集且校验真�
  * 预算取当前实测最大值（裁定 #3：冻结而非缩名存量），作用是挡住继续恶化：
  * 新增的验收与归档证据一旦超限，这里当场点名，而不是等某次冒烟以「偶发 dirty」的面目失败。
  */
-export const repositoryPathBudget = 155;
+const repositoryPathBudget = 155;
 function overBudget(paths: string[], budget: number): Array<{ path: string; length: number }> {
   return paths.filter((path) => path.length > budget).map((path) => ({ path, length: path.length })).sort((left, right) => right.length - left.length);
 }
@@ -357,12 +359,63 @@ test("VC-041 仓内路径长度不得超出预算，超限项被点名", () => {
   assert.ok(paths.length > 0, "未能列出任何仓内路径");
   const violations = overBudget(paths, repositoryPathBudget);
   assert.deepEqual(violations, [], `以下路径超出预算 ${repositoryPathBudget}：\n${violations.map((item) => `${item.length} ${item.path}`).join("\n")}`);
-  // 预算必须是紧的：如果实际最长值远低于预算，说明预算没有跟上现实，形同虚设。
+  // 预算必须**等于**实测最长值，不是「不小于」。只断言「没有超限」的话，把预算从 155 调到 500
+  // 同样能过——那正是这条预算最可能的退化方式：为了让某个长路径通过而顺手放宽，然后再没人调回来。
+  // 取等号意味着预算与现实绑死：想加长路径，就必须显式地把这个数字改大，改动会出现在 diff 里被看见。
   const longest = Math.max(...paths.map((path) => path.length));
-  assert.ok(longest <= repositoryPathBudget, `实际最长路径 ${longest} 超出预算`);
+  assert.equal(repositoryPathBudget, longest, `预算已漂离现实：常量为 ${repositoryPathBudget}，仓内实测最长路径为 ${longest}。预算只能与实测最长值同步升降，不得单方面放宽。`);
   // 超限项必须被点名而不是只给一个布尔：证据文件名要能被直接改。
   const synthetic = overBudget([`${"a".repeat(repositoryPathBudget)}/evidence.json`], repositoryPathBudget);
   assert.equal(synthetic.length, 1);
   assert.ok(synthetic[0].path.endsWith("evidence.json"));
   assert.ok(synthetic[0].length > repositoryPathBudget);
+});
+
+/**
+ * REV-004 负向断言：check-ignore 的判据不得把「校验没跑完」读成「校验通过」。
+ * 0 与 1 都是正常答案（有命中 / 无命中），其余一律拒绝。最危险的是 status 为 null 的
+ * 信号终止：1 恰好是「没有任何路径被忽略」，若把 null 归一成 1，一个被杀掉的 git
+ * 就会让整条受管投影校验静默放行——这是入口里唯一可能出现的 fail-open。
+ * 判据函数直接从实现导入，不在测试里另抄一份。
+ */
+test("REV-004 check-ignore 的异常终止一律 fail-closed，null 不得被读成「无命中」", () => {
+  assert.equal(checkIgnoreIncomplete({ status: 0, signal: null }), null, "0 是正常答案（有命中）");
+  assert.equal(checkIgnoreIncomplete({ status: 1, signal: null }), null, "1 是正常答案（无命中）");
+  const killed = checkIgnoreIncomplete({ status: null, signal: "SIGKILL" });
+  assert.ok(killed, "进程被信号终止必须拒绝，不得等同于「无命中」");
+  assert.match(killed as string, /进程被信号终止\(SIGKILL\)/);
+  assert.match(killed as string, /拒绝执行/);
+  const noSignalName = checkIgnoreIncomplete({ status: null, signal: null });
+  assert.ok(noSignalName, "status 为 null 一律拒绝，即使信号名缺失");
+  assert.match(noSignalName as string, /未知信号/);
+  const failed = checkIgnoreIncomplete({ status: 128, signal: null });
+  assert.ok(failed, "128 这类故障码必须拒绝");
+  assert.match(failed as string, /退出状态 128/);
+  // 保险起见把 null 与 1 的取值明确区分开：两者若产生相同判据，本条断言即失效。
+  assert.notEqual(checkIgnoreIncomplete({ status: null, signal: "SIGTERM" }), checkIgnoreIncomplete({ status: 1, signal: null }));
+});
+
+/**
+ * REV-002 负向/正向断言：升级报告合同必须同时容纳新旧两种消费仓条目形状。
+ * 存量归档证据没有 failureReason 键且明文不回溯改写；把它设为必填，等于让本仓公开分发的
+ * 机器合同拒绝本仓自己的归档证据。断言直接喂入真实归档文件，并调用唯一的校验实现。
+ */
+test("REV-002 升级报告合同接受真实归档证据，同时钉住新形状的取值约束", () => {
+  const archived = join(runtimeRoot, "openspec/changes/archive/2026-08-30-establish-controlled-openspec-upgrades/08-验收/runs/20260830T1151Z-upgrade-final/upgrade-evaluation/upgrade-report.json");
+  assert.equal(existsSync(archived), true, "归档的升级报告必须存在，否则本断言失去被验对象");
+  const report = JSON.parse(readFileSync(archived, "utf8"));
+  assert.equal(report.schemaVersion, 1);
+  assert.equal(report.consumers.every((consumer: Record<string, unknown>) => !("failureReason" in consumer)), true, "该归档证据正是无 failureReason 的旧形状");
+  validateReport(report); // 不抛即通过
+  // 新形状的取值约束仍是硬的：键一旦出现，FAIL 必须带非空原因、PASS 必须为 null。
+  const withKey = (result: string, failureReason: string | null) => {
+    const clone = JSON.parse(readFileSync(archived, "utf8"));
+    clone.consumers = [{ ...clone.consumers[0], result, failureReason }];
+    clone.result = "FAIL";
+    return clone;
+  };
+  assert.throws(() => validateReport(withKey("FAIL", null)), /没有失败原因/);
+  assert.throws(() => validateReport(withKey("FAIL", "")), /没有失败原因/);
+  assert.throws(() => validateReport(withKey("PASS", "不该有的原因")), /不得携带失败原因/);
+  validateReport(withKey("FAIL", "runtime-check 失败(status=1)：某条投影被忽略"));
 });

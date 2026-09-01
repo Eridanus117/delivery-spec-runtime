@@ -333,7 +333,8 @@ function reportGeneration(value: Generation): { requestedVersion: string; actual
   return { requestedVersion: value.requestedVersion, actualVersion: value.actualVersion, commands: value.commands };
 }
 
-function validateReport(report: Record<string, unknown>): void {
+/** 导出供合同测试直接喂入真实归档报告：断言必须取自唯一的校验实现，不得在测试里另抄一份。 */
+export function validateReport(report: Record<string, unknown>): void {
   exactKeys(report, ["schemaVersion", "currentVersion", "candidateVersion", "runtimeBaselineCommit", "startedAt", "endedAt", "generations", "deltas", "probes", "blankFixture", "consumers", "realRepositoriesUnchanged", "temporaryRootsCleaned", "result"], ["schemaVersion", "currentVersion", "candidateVersion", "runtimeBaselineCommit", "startedAt", "endedAt", "generations", "deltas", "probes", "blankFixture", "consumers", "realRepositoriesUnchanged", "temporaryRootsCleaned", "result"], "upgrade report");
   if (report.schemaVersion !== 1 || !semverPattern.test(text(report.currentVersion, "report.currentVersion")) || !semverPattern.test(text(report.candidateVersion, "report.candidateVersion"))) fail("upgrade report版本合同非法");
   if (!/^[0-9a-f]{40}$/.test(text(report.runtimeBaselineCommit, "report.runtimeBaselineCommit"))) fail("upgrade report baseline commit非法");
@@ -362,11 +363,16 @@ function validateReport(report: Record<string, unknown>): void {
   if (!Array.isArray(report.consumers) || report.consumers.length === 0) fail("report.consumers合同非法");
   for (const [index, value] of report.consumers.entries()) {
     const consumer = object(value, `report.consumers[${index}]`);
-    exactKeys(consumer, ["name", "head", "beforeDigest", "afterDigest", "runtimeStatus", "probeStatus", "failureReason", "result"], ["name", "head", "beforeDigest", "afterDigest", "runtimeStatus", "probeStatus", "failureReason", "result"], `report.consumers[${index}]`);
+    // 两种形状都合法：2026-09-01 之前产出的报告没有 failureReason 键（本仓归档证据即属此列，
+    // 且改造方案明写不回溯改写），此后产出的一律携带。把它设为必填等于让合同拒绝自己的归档证据，
+    // 故不进 required——与 artifact-approvals 合同同时容纳 v5/v6 两种工件集是同一范式。
+    // 但只要该键出现，取值约束就是硬的；新报告必带该键由产出侧保证并有断言守住。
+    exactKeys(consumer, ["name", "head", "beforeDigest", "afterDigest", "runtimeStatus", "probeStatus", "failureReason", "result"], ["name", "head", "beforeDigest", "afterDigest", "runtimeStatus", "probeStatus", "result"], `report.consumers[${index}]`);
     text(consumer.name, "consumer.name"); integer(consumer.runtimeStatus, "consumer.runtimeStatus"); integer(consumer.probeStatus, "consumer.probeStatus");
-    // FAIL 必须带原因，PASS 必须不带：否则「有字段」就能过合同，而字段可以永远是 null。
-    if (consumer.result === "FAIL" && !(typeof consumer.failureReason === "string" && consumer.failureReason.length > 0)) fail(`report.consumers[${index}] 结论为 FAIL 却没有失败原因`);
-    if (consumer.result === "PASS" && consumer.failureReason !== null) fail(`report.consumers[${index}] 结论为 PASS 不得携带失败原因`);
+    if ("failureReason" in consumer) {
+      if (consumer.result === "FAIL" && !(typeof consumer.failureReason === "string" && consumer.failureReason.length > 0)) fail(`report.consumers[${index}] 结论为 FAIL 却没有失败原因`);
+      if (consumer.result === "PASS" && consumer.failureReason !== null) fail(`report.consumers[${index}] 结论为 PASS 不得携带失败原因`);
+    }
   }
   if (typeof report.realRepositoriesUnchanged !== "boolean" || typeof report.temporaryRootsCleaned !== "boolean" || (report.result !== "PASS" && report.result !== "FAIL")) fail("upgrade report结论合同非法");
 }

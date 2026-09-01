@@ -124,7 +124,8 @@
     "consumer": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "head", "beforeDigest", "afterDigest", "runtimeStatus", "probeStatus", "failureReason", "result"],
+      "description": "消费仓冒烟条目随时间演进，两种形状都合法：2026-09-01 之前产出的报告没有 failureReason 键，本仓已归档的证据即属此列且明文不回溯改写；此后产出的报告一律携带该键。故 failureReason 不进 required——把它设为必填，等于让本仓公开分发的机器合同拒绝本仓自己的归档证据。但只要该键出现，取值约束就是硬的：FAIL 必须带非空原因，PASS 必须为 null，否则「有字段」就能过合同而字段可以永远是 null。新报告必须携带该键这件事由产出侧保证并有断言守住，不靠合同的 required 兜底（与 artifact-approvals 合同同时容纳 v5/v6 两种工件集是同一范式）。",
+      "required": ["name", "head", "beforeDigest", "afterDigest", "runtimeStatus", "probeStatus", "result"],
       "properties": {
         "name": { "type": "string" },
         "head": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
@@ -135,10 +136,20 @@
         "failureReason": {
           "type": ["string", "null"],
           "minLength": 1,
-          "description": "冒烟失败的原因文本，按行截断。FAIL 时必须为非空字符串，PASS 时必须为 null（理由：只记退出码的报告分不清「合同被正确拒绝」与「环境问题误判」）。"
+          "description": "冒烟失败的原因文本，按行截断。存量归档条目无此键。"
         },
         "result": { "enum": ["PASS", "FAIL"] }
-      }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["failureReason"], "properties": { "result": { "const": "FAIL" } } },
+          "then": { "properties": { "failureReason": { "type": "string", "minLength": 1 } } }
+        },
+        {
+          "if": { "required": ["failureReason"], "properties": { "result": { "const": "PASS" } } },
+          "then": { "properties": { "failureReason": { "type": "null" } } }
+        }
+      ]
     }
   }
 }
