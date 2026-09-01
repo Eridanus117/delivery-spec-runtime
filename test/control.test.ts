@@ -67,8 +67,8 @@ test("严格来源、批准失效、任务状态和投影合同", () => {
     result = runTool("delivery-control.ts", ["task", "set", "--change-root", change, "--id", "1.1", "--state", "verified", "--evidence", "08-验收/control.tap"]); assert.equal(result.status, 0, result.stderr);
     result = runTool("delivery-control.ts", ["task", "render", "--change-root", change]); assert.equal(result.status, 0, result.stderr);
     result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "acceptance"]); assert.notEqual(result.status, 0); assert.match(result.stderr, /tasks 批准状态为 stale/);
-    // 一条门批准覆盖当时的全部工件：任务表被改动后重新表态，写的仍然是同一条记录。
-    result = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--gate", "decision", "--decision", "approved", "--approved-by", "tester", "--runtime-root", runtimeRoot]); assert.equal(result.status, 0, result.stderr);
+    // 任务表是机械回填，走「刷新」这条路：必须声明刷新了哪几份，首次表态的人与时间原样保留。
+    result = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--gate", "decision", "--refreshed-artifact", "tasks", "--approved-by", "tester（证据回填后的机械刷新，Claude 代笔）", "--runtime-root", runtimeRoot]); assert.equal(result.status, 0, result.stderr);
     result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "acceptance"]); assert.notEqual(result.status, 0); assert.match(result.stderr, /implementation-review/);
     // VC-024：update snapshot / diagnose 两个命令随 .delivery-update-snapshot.json 概念一并移除。
     const updatePaths = join(root, "update-paths.json"); writeFileSync(updatePaths, JSON.stringify(["05-改造方案/方案提案.md"]));
@@ -276,5 +276,91 @@ test("T-05 证据规则按 replayable 分派，存量任务状态仍可读", () 
     const legacy = runTool("delivery-control.ts", ["task", "inspect", "--change-root", change]);
     assert.equal(legacy.status, 0, legacy.stderr);
     assert.equal(JSON.parse(legacy.stdout).tasks[0].replayable, false, "带证据的存量任务应被推断为不可重跑");
+  } finally { rmSync(root, removeOptions); }
+});
+
+/**
+ * REV-004 敌对测试：门级批准的重签必须逐份问责。
+ *
+ * 评审实测出的那条链路是这样的：门级批准原先是整体覆写，于是「回填任务状态」这种每次
+ * `task render` 都会发生的机械改动，可以顺带把一处被篡改的方案决策一起重新祝福——
+ * 八份工件全回到 approved，实施门禁放行，篡改毫无提示。它与 AGENTS.md「任何改变语义的
+ * 改动都必须重新取得维护者表态，不得由 agent 重签」直接冲突，而那条规则正是本仓上一次
+ * 被判不通过的原因。本用例逐步复现那条链路，并要求它在第三步被拦住。
+ */
+test("REV-004 机械回填的刷新不得顺带重新祝福被篡改的工件", () => {
+  const root = mkdtempSync(join(tmpdir(), "delivery-refresh-"));
+  try {
+    const change = join(root, "openspec/changes/demo-change");
+    createArtifactTree(change);
+    for (const [path, body] of Object.entries(artifactFiles)) writeFileSync(join(change, path), body);
+    assert.equal(runTool("delivery-control.ts", ["init", "--change-root", change, "--slug", "demo-change", "--display-name", "演示", "--mode", "delivery"]).status, 0);
+    const gate = (extra: string[]) => runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--gate", "decision", "--approved-by", "maintainer", "--runtime-root", runtimeRoot, ...extra]);
+    const approvalsFile = join(change, "artifact-approvals.json");
+    const readApprovals = () => JSON.parse(readFileSync(approvalsFile, "utf8"));
+
+    // 第一步：首签。一条记录覆盖全部工件，逐份记内容哈希。
+    assert.equal(gate(["--decision", "approved"]).status, 0);
+    const first = readApprovals();
+    const firstAt = first.gates.decision.approvedAt;
+    const decisionDigest = first.gates.decision.artifacts["solution-decision"];
+    assert.deepEqual(first.gates.decision.refreshes, []);
+    assert.equal(runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]).status, 0);
+
+    // 第二步：一处机械回填（任务表）＋一处语义篡改（方案决策）。两份都转 stale。
+    const tasksPath = join(change, "07-实施任务/实施任务.md");
+    const decisionPath = join(change, "05-改造方案/方案决策.md");
+    const decisionBody = readFileSync(decisionPath, "utf8");
+    writeFileSync(tasksPath, `${readFileSync(tasksPath, "utf8")}- [x] 1.1 [verified] 回填\n`);
+    writeFileSync(decisionPath, decisionBody.replace("- 选择：B", "- 选择：A（被篡改）"));
+    let guard = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
+    assert.notEqual(guard.status, 0);
+
+    // 第三步：以「证据回填后重批准」的名义刷新任务表。**必须被拦住，并点名搭车的那一份。**
+    const before = readFileSync(approvalsFile, "utf8");
+    const sneaky = gate(["--refreshed-artifact", "tasks"]);
+    assert.notEqual(sneaky.status, 0, "被篡改的方案决策搭上了机械回填的车");
+    assert.match(sneaky.stderr, /solution-decision/);
+    assert.match(sneaky.stderr, /重新取得维护者表态/);
+    assert.equal(readFileSync(approvalsFile, "utf8"), before, "刷新被拒时批准记录不得被改动");
+    assert.notEqual(runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]).status, 0);
+
+    // 把篡改撤掉之后，同一条刷新命令必须成功——这道拦截拦的是搭车，不是刷新本身。
+    writeFileSync(decisionPath, decisionBody);
+    const refreshed = gate(["--refreshed-artifact", "tasks"]);
+    assert.equal(refreshed.status, 0, refreshed.stderr);
+    const after = readApprovals();
+    // 首次表态的人与时间原样保留，刷新追加而不是覆写。
+    assert.equal(after.gates.decision.approvedAt, firstAt, "刷新覆写了首次表态的时间");
+    assert.equal(after.gates.decision.approvedBy, first.gates.decision.approvedBy);
+    assert.equal(after.gates.decision.artifacts["solution-decision"], decisionDigest, "刷新动了没被声明的工件的哈希");
+    assert.equal(after.gates.decision.refreshes.length, 1);
+    assert.deepEqual(after.gates.decision.refreshes[0].artifacts, ["tasks"]);
+    assert.equal(runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]).status, 0);
+
+    // 不声明刷新了哪几份，一律拒绝——不问责就没有刷新这条路。
+    writeFileSync(tasksPath, `${readFileSync(tasksPath, "utf8")}- [x] 1.2 [verified] 再回填\n`);
+    const silent = gate(["--decision", "approved"]);
+    assert.notEqual(silent.status, 0);
+    assert.match(silent.stderr, /缺少 --refreshed-artifact/);
+
+    // 语义确实变了时的正确出口：重新取得人工表态。它会覆写表态时间并清空刷新记录，
+    // 读批准链的人一眼能看出这是一次新的表态，不是回填。
+    writeFileSync(decisionPath, decisionBody.replace("- 选择：B", "- 选择：A"));
+    const reattested = gate(["--decision", "approved", "--new-attestation", "维护者复看后改选 A"]);
+    assert.equal(reattested.status, 0, reattested.stderr);
+    const final = readApprovals();
+    assert.notEqual(final.gates.decision.approvedAt, firstAt, "重新表态却没有留下新的表态时间");
+    assert.deepEqual(final.gates.decision.refreshes, []);
+    assert.match(final.gates.decision.migrationSource, /重新取得表态：/, "重新表态没有留下理由");
+
+    // 首签时不许声明「重新表态」——那会让「第一次过人」和「重新过人」在记录上无法区分。
+    const fresh = join(root, "openspec/changes/fresh-change");
+    createArtifactTree(fresh);
+    for (const [path, body] of Object.entries(artifactFiles)) writeFileSync(join(fresh, path), body);
+    assert.equal(runTool("delivery-control.ts", ["init", "--change-root", fresh, "--slug", "fresh-change", "--display-name", "演示", "--mode", "delivery"]).status, 0);
+    const wrongFirst = runTool("delivery-control.ts", ["approval", "set", "--change-root", fresh, "--gate", "decision", "--decision", "approved", "--approved-by", "maintainer", "--new-attestation", "无中生有", "--runtime-root", runtimeRoot]);
+    assert.notEqual(wrongFirst.status, 0);
+    assert.match(wrongFirst.stderr, /首签不必声明它/);
   } finally { rmSync(root, removeOptions); }
 });

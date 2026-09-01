@@ -17,7 +17,8 @@ const mode = "delivery" as const;
 type TaskStateName = "planned" | "implemented_unverified" | "blocked_external" | "verified";
 type ChangeInfo = { schemaVersion: 1; displayName: string; deliverySchemaVersion: number | null };
 type Approval = { digest: string; decision: "approved" | "rejected"; approvedBy: string; approvedAt: string; migrationSource: string | null };
-type GateApproval = { decision: "approved" | "rejected"; approvedBy: string; approvedAt: string; migrationSource: string | null; artifacts: Record<string, string> };
+type GateRefresh = { refreshedBy: string; refreshedAt: string; artifacts: string[]; unchanged: string[] };
+type GateApproval = { decision: "approved" | "rejected"; approvedBy: string; approvedAt: string; migrationSource: string | null; artifacts: Record<string, string>; refreshes: GateRefresh[] };
 type ApprovalState = { schemaVersion: 1; artifacts: Record<string, Approval>; gates?: undefined } | { schemaVersion: 2; gates: Record<string, GateApproval>; artifacts?: undefined };
 type Task = { id: string; state: TaskStateName; deliverables: string[]; verification: string[]; evidence: string[]; blocker: string | null; replayable: boolean };
 type TaskState = { schemaVersion: 1; tasks: Task[] };
@@ -136,7 +137,7 @@ function parseApproval(value: unknown, label: string): Approval {
  */
 function parseGateApproval(value: unknown, label: string, root: string): GateApproval {
   const item = object(value, label);
-  exactKeys(item, ["decision", "approvedBy", "approvedAt", "migrationSource", "artifacts"], ["decision", "approvedBy", "approvedAt", "migrationSource", "artifacts"], label);
+  exactKeys(item, ["decision", "approvedBy", "approvedAt", "migrationSource", "artifacts", "refreshes"], ["decision", "approvedBy", "approvedAt", "migrationSource", "artifacts"], label);
   const decision = text(item.decision, `${label}.decision`);
   if (decision !== "approved" && decision !== "rejected") fail(`${label}.decision 非法`);
   const known = artifactPathsFor(root);
@@ -146,7 +147,17 @@ function parseGateApproval(value: unknown, label: string, root: string): GateApp
     if (!(artifact in known)) fail(`${label}.artifacts 含未知工件: ${artifact}`);
     artifacts[artifact] = digestPattern(text(digest, `${label}.artifacts.${artifact}`), `${label}.artifacts.${artifact}`);
   }
-  return { decision, approvedBy: text(item.approvedBy, `${label}.approvedBy`), approvedAt: text(item.approvedAt, `${label}.approvedAt`), migrationSource: item.migrationSource === null ? null : text(item.migrationSource, `${label}.migrationSource`), artifacts };
+  // refreshes 缺省为空数组：机械回填还没发生过的门就是这个形态，不必回写文件。
+  // 每条刷新记录都要说清「谁、什么时候、刷新了哪几份」——门级批准的问责粒度就落在这里。
+  const refreshes = item.refreshes === undefined ? [] : (Array.isArray(item.refreshes) ? item.refreshes : fail(`${label}.refreshes 必须是数组`)).map((entry, index) => {
+    const record = object(entry, `${label}.refreshes[${index}]`);
+    exactKeys(record, ["refreshedBy", "refreshedAt", "artifacts", "unchanged"], ["refreshedBy", "refreshedAt", "artifacts"], `${label}.refreshes[${index}]`);
+    const names = stringArray(record.artifacts, `${label}.refreshes[${index}].artifacts`);
+    if (!names.length) fail(`${label}.refreshes[${index}].artifacts 不得为空——没说清刷新了哪几份，就等于没有问责`);
+    for (const name of names) if (!(name in known)) fail(`${label}.refreshes[${index}] 含未知工件: ${name}`);
+    return { refreshedBy: text(record.refreshedBy, `${label}.refreshes[${index}].refreshedBy`), refreshedAt: text(record.refreshedAt, `${label}.refreshes[${index}].refreshedAt`), artifacts: names, unchanged: record.unchanged === undefined ? [] : stringArray(record.unchanged, `${label}.refreshes[${index}].unchanged`) };
+  });
+  return { decision, approvedBy: text(item.approvedBy, `${label}.approvedBy`), approvedAt: text(item.approvedAt, `${label}.approvedAt`), migrationSource: item.migrationSource === null ? null : text(item.migrationSource, `${label}.migrationSource`), artifacts, refreshes };
 }
 function parseApprovals(path: string, root: string): ApprovalState {
   const value = object(readJson(path), "artifact-approvals");
@@ -333,15 +344,43 @@ function approvalGatesFor(options: Map<string, string>): string[] {
   return gates;
 }
 /**
- * 批准写入。
+ * 批准写入。三条路径，靠参数区分，谁也不能悄悄变成谁。
  *
- * 第 2 版按门写：`--gate <站位id>` 一次覆盖该门当时应当覆盖的全部工件，逐份记下内容哈希。
- * 缺任何一份即拒绝并点名缺哪一份——一次表态盖不住全部工件，就说明这次表态发生在材料齐备之前。
- * 第 1 版按工件写，仅用于存量文件，不再用于新建 Change。
+ * 一、**首签**（这一门还没有任何记录）：`--gate <站位id> --decision approved --approved-by <表态形态>`。
+ *     一次覆盖当时的全部工件，逐份记内容哈希。
+ *
+ * 二、**机械回填后的刷新**（这一门已有批准）：必须显式声明**这次刷新了哪几份文件**
+ *     （`--refreshed-artifact a,b`）。机器把「实际发生变化的那批工件」与「声明的那批」对照，
+ *     **声明之外还有文件变了就拒绝**。理由是独立评审实测出来的一条链路：门级批准原先是整体覆写，
+ *     于是「回填任务状态」这种每次 `task render` 都会发生的机械改动，可以顺带把一处被篡改的方案决策
+ *     一起重新祝福——八份工件全回到 approved，门禁放行，篡改毫无提示。逐份问责堵的就是这条通道：
+ *     搭车的那一份会被点名。刷新只改被声明的那几份的哈希，**首次表态的人与时间原样保留**，
+ *     刷新记录追加到 refreshes 里，不覆写历史。
+ *
+ * 三、**重新取得人工表态**（内容有语义改动，必须重新过人）：`--new-attestation`。它会覆写表态人与
+ *     时间、重算全部哈希、清空刷新记录——因为这是一次全新的表态，不是回填。它的值是「为什么需要
+ *     重新过人」的一句说明，会记进批准记录：读批准链的人不仅看得出表态时间变了，还看得出为什么变。
  */
+function parseRefreshedArtifacts(options: Map<string, string>, known: string[]): string[] {
+  const raw = requiredOption(options, "refreshed-artifact");
+  const declared = raw.split(",").map((item) => item.trim()).filter(Boolean);
+  if (!declared.length) fail("--refreshed-artifact 不得为空");
+  const unknown = declared.filter((item) => !known.includes(item));
+  if (unknown.length) fail(`--refreshed-artifact 含未知工件: ${unknown.join("、")}`);
+  const duplicated = declared.filter((item, index) => declared.indexOf(item) !== index);
+  if (duplicated.length) fail(`--refreshed-artifact 有重复项: ${[...new Set(duplicated)].join("、")}`);
+  return declared;
+}
+function currentDigests(root: string, required: string[]): Record<string, string> {
+  const artifacts: Record<string, string> = {};
+  const missing: string[] = [];
+  for (const artifact of required) {
+    try { artifacts[artifact] = artifactDigest(root, artifact); } catch { missing.push(artifact); }
+  }
+  if (missing.length) fail(`这一门的批准必须覆盖当时的全部工件，下列工件还不存在或读不出内容：\n  ${missing.join("\n  ")}`);
+  return artifacts;
+}
 function approvalSet(root: string, options: Map<string, string>): void {
-  const decision = requiredOption(options, "decision");
-  if (decision !== "approved" && decision !== "rejected") fail("批准参数非法");
   withFileLock(lockPath(root), () => {
     const state = parseApprovals(approvalsPath(root), root);
     if (state.schemaVersion === 2) {
@@ -350,17 +389,45 @@ function approvalSet(root: string, options: Map<string, string>): void {
       if (!gates.includes(gate)) fail(`未知的人工批准门 ${gate}；站位定义里落在批准记录上的门只有: ${gates.join("、")}`);
       if (options.has("artifact")) fail("--artifact 不再被接受：批准按人真实表态的次数记，一次表态一条记录，覆盖当时的全部工件");
       const required = Object.keys(artifactPathsFor(root));
-      const artifacts: Record<string, string> = {};
-      const missing: string[] = [];
-      for (const artifact of required) {
-        try { artifacts[artifact] = artifactDigest(root, artifact); } catch { missing.push(artifact); }
+      const existing = state.gates[gate];
+      // 这个标志带值，值是「为什么要重新过人」的说明——一次新的人工表态总该说得出理由。
+      const newAttestation = options.get("new-attestation") ?? null;
+      if (existing && newAttestation === null) {
+        // 路径二：机械回填后的刷新。逐份问责，声明之外的变化一律拒绝。
+        if (options.has("decision") && options.get("decision") !== existing.decision) fail("刷新不得改变这一门的结论；结论要变就是一次新的人工表态，请用 --new-attestation");
+        const declared = parseRefreshedArtifacts(options, required);
+        const current = currentDigests(root, required);
+        const changed = required.filter((artifact) => current[artifact] !== existing.artifacts[artifact]);
+        const undeclared = changed.filter((artifact) => !declared.includes(artifact));
+        if (undeclared.length) {
+          fail(`刷新被拒绝：声明只刷新了 ${declared.join("、")}，但下列工件的内容也变了——\n  ${undeclared.join("\n  ")}\n机械回填不得顺带重新祝福别的工件。若这些改动确有语义，必须重新取得维护者表态（--new-attestation）；若只是漏声明，把它们加进 --refreshed-artifact 再来一次。`);
+        }
+        const unchanged = declared.filter((artifact) => !changed.includes(artifact));
+        const artifacts = { ...existing.artifacts };
+        for (const artifact of declared) artifacts[artifact] = current[artifact];
+        const refreshes = [...existing.refreshes, {
+          refreshedBy: requiredOption(options, "approved-by"),
+          refreshedAt: now(),
+          artifacts: declared,
+          // 声明了却没变的也如实记下来：它不是错误，但读记录的人有权知道这次刷新实际动了什么。
+          unchanged,
+        }];
+        state.gates[gate] = { ...existing, artifacts, refreshes };
+        atomicWriteJson(approvalsPath(root), state);
+        console.log(JSON.stringify({ gate, refreshed: declared, unchanged, attestationPreserved: { approvedBy: existing.approvedBy, approvedAt: existing.approvedAt } }, null, 2));
+        return;
       }
-      if (missing.length) fail(`这一门的批准必须覆盖当时的全部工件，下列工件还不存在或读不出内容：\n  ${missing.join("\n  ")}`);
-      state.gates[gate] = { decision, approvedBy: requiredOption(options, "approved-by"), approvedAt: now(), migrationSource: options.get("migration-source") ?? null, artifacts };
+      const decision = requiredOption(options, "decision");
+      if (decision !== "approved" && decision !== "rejected") fail("批准参数非法");
+      if (!existing && newAttestation !== null) fail("--new-attestation 只用于这一门已有批准、且内容有语义改动需要重新过人的情形；首签不必声明它");
+      const attestationNote = newAttestation === null ? (options.get("migration-source") ?? null) : `重新取得表态：${newAttestation}`;
+      state.gates[gate] = { decision, approvedBy: requiredOption(options, "approved-by"), approvedAt: now(), migrationSource: attestationNote, artifacts: currentDigests(root, required), refreshes: [] };
       atomicWriteJson(approvalsPath(root), state);
       console.log(JSON.stringify(state, null, 2));
       return;
     }
+    const decision = requiredOption(options, "decision");
+    if (decision !== "approved" && decision !== "rejected") fail("批准参数非法");
     const artifact = requiredOption(options, "artifact");
     if (!(artifact in artifactPathsFor(root))) fail("批准参数非法");
     state.artifacts[artifact] = { digest: artifactDigest(root, artifact), decision, approvedBy: requiredOption(options, "approved-by"), approvedAt: now(), migrationSource: options.get("migration-source") ?? null };

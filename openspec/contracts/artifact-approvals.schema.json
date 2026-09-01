@@ -97,7 +97,7 @@
               "approvedBy": {
                 "type": "string",
                 "minLength": 1,
-                "description": "必须写明表态的真实形态：亲签、门口表态由 agent 转录、还是证据回填后的机械重批准。代笔信息写在这个字段本身，不得降级成附注。"
+                "description": "必须写明表态的真实形态：亲签、门口表态由 agent 转录、还是重新取得表态。代笔信息写在这个字段本身，不得降级成附注。**这一对字段记的是这一门最近一次真正的人工表态**，机械回填不得覆写它们——回填走 refreshes。"
               },
               "approvedAt": {
                 "type": "string",
@@ -116,6 +116,48 @@
                 "additionalProperties": {
                   "type": "string",
                   "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              },
+              "refreshes": {
+                "type": "array",
+                "description": "机械回填之后的刷新记录，追加不覆写。门级批准是一条覆盖多份工件的记录，若允许整体重签，「回填任务状态」这种每次渲染都会发生的机械改动就能顺带把一处被篡改的工件一起重新祝福——实测走通过一次。所以刷新必须逐份问责：显式声明这次刷新哪几份，机器把实际发生变化的集合与声明的集合对照，声明之外还有文件变了一律拒绝。内容确有语义改动时的正确出口是重新取得人工表态，那会覆写 approvedBy/approvedAt 并清空本数组，读批准链的人一眼能看出这是新的一次表态。",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "refreshedBy",
+                    "refreshedAt",
+                    "artifacts"
+                  ],
+                  "properties": {
+                    "refreshedBy": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "谁做的这次刷新，同样要写明代笔形态。"
+                    },
+                    "refreshedAt": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "artifacts": {
+                      "type": "array",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "description": "本次声明刷新的工件。为空即无问责，故不允许。"
+                    },
+                    "unchanged": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "description": "声明了刷新、实际内容却没变的那几份。不是错误，但读记录的人有权知道这次刷新实际动了什么。"
+                    }
+                  }
                 }
               }
             }

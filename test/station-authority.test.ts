@@ -33,9 +33,13 @@ function git(root: string, args: string[]): string {
   assert.equal(result.status, 0, result.stderr);
   return result.stdout.trim();
 }
-/** 按门批准一次：批准记录第 2 版按「人真实表态一次记一条」记，一条覆盖当时的全部工件。 */
-function approve(fixture: Fixture): void {
-  const result = runTool("delivery-control.ts", ["approval", "set", "--change-root", fixture.change, "--gate", "decision", "--decision", "approved", "--approved-by", "maintainer", "--runtime-root", runtimeRoot], { cwd: fixture.repo });
+/**
+ * 按门批准一次：批准记录第 2 版按「人真实表态一次记一条」记，一条覆盖当时的全部工件。
+ * `extra` 用于已有批准之后的复签：改动了方案决策这种带语义的内容，正确出口是重新取得人工表态，
+ * 而不是搭机械回填的车（REV-004）。
+ */
+function approve(fixture: Fixture, extra: string[] = []): void {
+  const result = runTool("delivery-control.ts", ["approval", "set", "--change-root", fixture.change, "--gate", "decision", "--decision", "approved", "--approved-by", "maintainer", "--runtime-root", runtimeRoot, ...extra], { cwd: fixture.repo });
   assert.equal(result.status, 0, result.stderr);
 }
 
@@ -137,7 +141,8 @@ function eraseFromDecisionDoc(fixture: Fixture, erased: Attestation[]): void {
   let body = readFileSync(path, "utf8");
   for (const item of targets) body = body.replace(attestationMarkers[item].text, "");
   write(path, body);
-  approve(fixture);
+  // 抹表态是对方案决策的语义改动，所以走「重新取得表态」而不是「机械刷新」。
+  approve(fixture, ["--new-attestation", "探针：抹掉该站的维护者表态后重新签发，使失败只可能来自缺表态"]);
 }
 const guardStatus = (fixture: Fixture, operation: string) => runTool("delivery-control.ts", ["guard", "--change-root", fixture.change, "--operation", operation], { cwd: fixture.repo }).status ?? 1;
 
@@ -280,10 +285,10 @@ test("T-08.1 需要人工批准的门由站位定义推导，不存在第二份�
   try {
     const fixture = prepare(repo);
     for (const gate of expectedGates) {
-      const ok = runTool("delivery-control.ts", ["approval", "set", "--change-root", fixture.change, "--gate", gate, "--decision", "approved", "--approved-by", "maintainer", "--runtime-root", runtimeRoot], { cwd: repo });
+      const ok = runTool("delivery-control.ts", ["approval", "set", "--change-root", fixture.change, "--gate", gate, "--decision", "approved", "--approved-by", "maintainer", "--new-attestation", "用例：确认这个门名被门禁接受", "--runtime-root", runtimeRoot], { cwd: repo });
       assert.equal(ok.status, 0, `站位定义算出的门 ${gate} 竟然不被门禁接受: ${ok.stderr}`);
     }
-    const bogus = runTool("delivery-control.ts", ["approval", "set", "--change-root", fixture.change, "--gate", "implementation", "--decision", "approved", "--approved-by", "maintainer", "--runtime-root", runtimeRoot], { cwd: repo });
+    const bogus = runTool("delivery-control.ts", ["approval", "set", "--change-root", fixture.change, "--gate", "implementation", "--decision", "approved", "--approved-by", "maintainer", "--new-attestation", "用例：机器站不该能当人工批准门", "--runtime-root", runtimeRoot], { cwd: repo });
     assert.notEqual(bogus.status, 0, "机器站竟然可以作为人工批准门");
     assert.match(bogus.stderr, /未知的人工批准门/);
     for (const gate of expectedGates) assert.match(bogus.stderr, new RegExp(gate));

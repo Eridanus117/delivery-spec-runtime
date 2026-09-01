@@ -764,3 +764,16 @@ test("T-09.2 新建或归档 Change 后，在途目录断言无需改动仍然�
     assert.deepEqual(violations(), ["gamma"]);
   } finally { rmSync(root, removeOptions); }
 });
+
+/** REV-004：合同侧也要钉住「刷新必须逐份问责」，否则实现改回整体覆写时没人拦。 */
+test("REV-004 批准合同要求刷新记录逐份问责且不覆写原表态", () => {
+  const schema = JSON.parse(readFileSync(join(runtimeRoot, "openspec/contracts/artifact-approvals.schema.json"), "utf8"));
+  const record = schema.oneOf[1].properties.gates.additionalProperties;
+  const refreshes = record.properties.refreshes;
+  assert.ok(refreshes, "合同里没有刷新记录，等于默许整体重签");
+  assert.equal(refreshes.items.properties.artifacts.minItems, 1, "刷新记录可以不写刷新了哪几份，等于没有问责");
+  assert.deepEqual([...refreshes.items.required].sort(), ["artifacts", "refreshedAt", "refreshedBy"]);
+  // 原表态那一对字段的说明必须写明「机械回填不得覆写」，这是这条设计的要害。
+  assert.match(record.properties.approvedBy.description, /不得覆写|不得降级/);
+  assert.match(refreshes.description, /逐份问责/);
+});
