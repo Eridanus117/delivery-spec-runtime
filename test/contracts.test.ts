@@ -254,7 +254,10 @@ test("VC-039 早期目录归档后 active Change 只剩两个", () => {
     .map((entry) => entry.name)
     .sort();
   // 本 Change 归档后，active 只余按裁定 C3 暂不处置的 metrics 目录。
-  assert.deepEqual(active, ["establish-runtime-metrics-baseline"]);
+  // 注意：这是一份**点时快照**断言，不是不变量——每新建一个 Change 都必须在此登记，
+  // 否则测试立刻转红。fix-thorn-batch 是第一个撞上它的新 Change（2026-09-01），
+  // 该断言形态是否改为「两个早期目录不在 active」已作为未决问题提交维护者。
+  assert.deepEqual(active, ["establish-runtime-metrics-baseline", "fix-thorn-batch"]);
   // 两个早期目录确实落到了 archive 且带处置记录。
   for (const name of ["2026-09-01-establish-intake-inventory", "2026-09-01-establish-workflow-v01-contract"]) {
     const archived = join(runtimeRoot, "openspec/changes/archive", name);
