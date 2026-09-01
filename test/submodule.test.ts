@@ -416,3 +416,45 @@ test("Runtime 入口的输出不含 Node 运行时弃用告警", () => {
   // stdout 必须是可直接解析的 JSON：告警一旦混进来，下游按输出取值就要先做清洗。
   JSON.parse(result.stdout);
 });
+
+/**
+ * REV-008 回归：入口经 junction / 软链路径调用时，受管投影坏账仍必须被拒。
+ *
+ * 曾经引入过一条「仅直接执行时才跑 main」的守卫，判据是
+ * `resolve(process.argv[1]) === resolve(import.meta.filename)`。Node 的 ESM 加载器对主模块会解析
+ * 软链与 junction，`import.meta.filename` 给的是 realpath，而 `process.argv[1]` 保留调用时的写法，
+ * 于是路径上任意一段是软链/junction 时两者必然不等，main() 根本不执行——进程以退出码 0、零输出结束，
+ * 本应被拒的坏账被静默放行。触发条件是「仓库路径上有软链」这种寻常情形
+ * （macOS 的 /tmp 与 /var 恒定命中，而全部夹具都跑在系统临时目录下）。
+ * 这条断言把复审的实测场景原样固化，防止此病回潮。
+ */
+test("REV-008 入口经 junction/软链路径调用时，受管投影坏账仍被拒", () => {
+  const fixture = prepareFixture();
+  try {
+    const { asset, root } = fixture;
+    assert.equal(check(asset).status, 0, "基线必须先通过");
+
+    // 弄坏一条受管投影。
+    appendFileSync(join(asset, ".omp/commands/opsx-apply.md"), "drift\n");
+    const direct = check(asset);
+    assert.notEqual(direct.status, 0, "真实路径调用必须 fail-closed");
+    assert.match(direct.stderr, /受管投影漂移/);
+
+    // 经指向同一资产仓的 junction（类 Unix 上是目录软链）调用同一个入口文件。
+    const linked = join(root, "asset-link");
+    symlinkSync(asset, linked, "junction");
+    const entry = join(linked, ".delivery-spec-runtime/openspec/tools/runtime-entry.ts");
+    const viaLink = entryCommand(asset, entry, ["runtime-check", "--change-root", linked]);
+    assert.notEqual(viaLink.status, 0, `经 junction 调用时坏账被静默放行：status=${viaLink.status} stdout=${JSON.stringify(viaLink.stdout)} stderr=${JSON.stringify(viaLink.stderr)}`);
+    assert.match(viaLink.stderr, /受管投影漂移/);
+    // 「零输出且退出 0」正是守卫存在时的特征形状，单独钉住它。
+    assert.notEqual(`${viaLink.stdout}${viaLink.stderr}`.trim(), "", "入口不得以零输出退出——那说明 main() 根本没跑");
+
+    // 投影副本经同一条 junction 调用，同样必须被拒（裁定 #1 让它成为可执行入口）。
+    const viaLinkProjection = entryCommand(asset, join(linked, "openspec/tools/runtime-entry.ts"), ["runtime-check", "--change-root", linked]);
+    assert.notEqual(viaLinkProjection.status, 0);
+    assert.match(viaLinkProjection.stderr, /受管投影漂移/);
+  } finally {
+    rmSync(fixture.root, removeOptions);
+  }
+});

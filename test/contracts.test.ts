@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { checkIgnoreIncomplete } from "../openspec/tools/runtime-entry.ts";
+import { checkIgnoreIncomplete } from "../openspec/tools/runtime-lib.ts";
 import { validateReport } from "../openspec/tools/openspec-upgrade.ts";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -418,4 +418,50 @@ test("REV-002 升级报告合同接受真实归档证据，同时钉住新形状
   assert.throws(() => validateReport(withKey("FAIL", "")), /没有失败原因/);
   assert.throws(() => validateReport(withKey("PASS", "不该有的原因")), /不得携带失败原因/);
   validateReport(withKey("FAIL", "runtime-check 失败(status=1)：某条投影被忽略"));
+});
+
+/**
+ * VC-042 受管投影里的入口必须自给自足，且它内嵌的判据副本不得与权威定义分叉。
+ *
+ * 背景：消费仓的 `openspec/tools/` 下**只有** `runtime-entry.ts` 一个文件（四条受管投影之一），
+ * 所以它不能 import 任何同级模块——一 import，投影副本就加载不起来，
+ * 裁定 #1「投影副本算可执行入口」当场作废。于是它只能内嵌一份纯判据的副本。
+ * 本仓对副本的一贯立场是「允许复制，禁止无校验的复制」，这条断言就是那个校验：
+ * 逐字比对两份函数源码，任一侧单边修改即非零拒绝。
+ *
+ * 同时钉死 REV-008 的教训：入口文件不得再出现「仅直接执行时才跑 main」这类路径比较守卫。
+ */
+function functionSource(source: string, name: string): string {
+  const signature = source.indexOf(`function ${name}(`);
+  assert.notEqual(signature, -1, `未找到函数 ${name}`);
+  const open = source.indexOf("{", signature);
+  assert.notEqual(open, -1, `函数 ${name} 缺少函数体`);
+  let depth = 0;
+  for (let index = open; index < source.length; index += 1) {
+    if (source[index] === "{") depth += 1;
+    else if (source[index] === "}") {
+      depth -= 1;
+      if (depth === 0) return source.slice(signature, index + 1);
+    }
+  }
+  throw new Error(`函数 ${name} 的花括号不闭合`);
+}
+test("VC-042 入口的判据副本与 runtime-lib 权威定义逐字一致，且入口不得自带执行守卫", () => {
+  const entry = readFileSync(join(runtimeRoot, "openspec/tools/runtime-entry.ts"), "utf8");
+  const lib = readFileSync(join(runtimeRoot, "openspec/tools/runtime-lib.ts"), "utf8");
+  for (const name of ["abnormalExit", "checkIgnoreIncomplete"]) {
+    // 权威侧带 export 关键字，副本侧不带；除此之外必须一个字符都不差。
+    assert.equal(functionSource(entry, name), functionSource(lib, name), `${name} 的入口副本与 runtime-lib 权威定义已分叉，请两边一起改`);
+  }
+  // 入口必须自给自足：不得 import 任何同级模块，否则消费仓里的投影副本加载即失败。
+  const siblingImports = entry.split(/\r?\n/).filter((line) => /^import .*from "\.\//.test(line.trim()));
+  assert.deepEqual(siblingImports, [], "受管投影入口不得 import 同级模块——消费仓的 openspec/tools/ 下只有它自己");
+  // REV-008：入口是全体消费仓唯一的 fail-closed 闸门，main() 必须无条件执行。
+  // 路径比较守卫在软链/junction 下必然为假（ESM 主模块走 realpath，argv[1] 保留调用写法），
+  // 会让整个闸门以退出码 0、零输出静默跳过。
+  assert.doesNotMatch(entry.replace(/^\s*\/\/.*$/gm, ""), /import\.meta\.filename/, "入口不得出现 import.meta.filename 守卫");
+  assert.doesNotMatch(entry.replace(/^\s*\/\/.*$/gm, ""), /process\.argv\[1\]/, "入口不得按 argv[1] 决定是否执行 main");
+  assert.match(entry, /^try \{ main\(\); \}/m, "main\(\) 必须无条件执行");
+  // 判据不得从入口导出：一旦导出就会有人去 import 它，而 import 会连带执行 main()。
+  assert.doesNotMatch(entry, /^export /m, "入口不得导出任何符号");
 });

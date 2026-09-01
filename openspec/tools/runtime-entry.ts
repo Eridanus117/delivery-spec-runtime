@@ -41,20 +41,26 @@ function gitResult(root: string, args: string[], input?: string): { status: numb
   if (result.error) fail(`Git执行失败: ${result.error.message}`);
   return { status: result.status, signal: result.signal ?? null, stdout: result.stdout ?? "" };
 }
+// ---- 受管投影校验的纯判据（openspec/tools/runtime-lib.ts 的逐字副本）--------
+// 本文件是四条受管投影之一，在消费仓里是 openspec/tools/ 下**唯一**存在的文件，
+// 因此不得 import 任何同级模块——一 import，投影副本就会因找不到模块而无法加载。
+// 权威定义在 runtime-lib.ts；两份必须逐字相同，由 test/contracts.test.ts 的 VC-042 比对源码兜底。
+// 修改时两边一起改，不要只改一边。
 /** 把异常退出描述成人能读懂的一句话：被信号杀掉与非零退出码是两件事，报告里必须分得开。 */
 function abnormalExit(result: { status: number | null; signal: string | null }): string {
   return result.status === null ? `进程被信号终止(${result.signal ?? "未知信号"})` : `退出状态 ${result.status}`;
 }
 /**
  * check-ignore 的判据。只有 0（有命中）与 1（无命中）是正常答案，其余一律表示「校验没跑完」。
- * 单独抽出来是为了能被断言直接喂入 status 为 null 的形状——那正是最危险的一种：若把 null
- * 归一成 1，一个被信号杀掉的 git 就会被读成「没有任何路径被忽略」，整条校验静默放行。
+ * 最危险的是 status 为 null（进程被信号终止）：1 恰好是「没有任何路径被忽略」这一正常答案，
+ * 若把 null 归一成 1，一个被杀掉的 git 就会被读成「校验通过」，整条受管投影校验静默放行。
  * 返回 null 表示可以继续，返回字符串即拒绝理由。
  */
-export function checkIgnoreIncomplete(result: { status: number | null; signal: string | null }): string | null {
+function checkIgnoreIncomplete(result: { status: number | null; signal: string | null }): string | null {
   if (result.status === 0 || result.status === 1) return null;
   return `无法对受管投影执行 git check-ignore（${abnormalExit(result)}），校验未完成，拒绝执行`;
 }
+// -----------------------------------------------------------------------------
 /**
  * 脚本自身位置向上两级即 Runtime 源仓根——但只有当本脚本确实躺在源仓里时才成立。
  * 本文件同时是四条受管投影之一，在消费仓里存在一份真实副本；对那份副本而言向上两级是消费仓根，
@@ -282,8 +288,11 @@ function main(): void {
   process.exitCode = result.status ?? 1;
 }
 
-// 与仓内其余工具同一形态：只有被直接执行时才跑 main，被 import 时只暴露可断言的判据函数。
-// 入口的调用方一律是 `node --experimental-strip-types <本文件> ...`，故该守卫不改变任何既有行为。
-if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename)) {
-  try { main(); } catch (error) { console.error((error as Error).message); process.exitCode = 1; }
-}
+// main() **无条件执行**，绝不加「仅直接执行时才跑」这类守卫（REV-008，CRITICAL）。
+// 曾经加过一次，判据是 resolve(process.argv[1]) === resolve(import.meta.filename)：
+// Node 的 ESM 加载器对主模块会解析软链/junction，import.meta.filename 给的是 realpath，
+// 而 process.argv[1] 保留调用时的写法，路径上任意一段是软链或 junction 时两者必然不等——
+// 于是 main() 根本不执行，进程以退出码 0、零输出结束，本应被拒的坏账被静默放行。
+// 这是全体消费仓唯一的 fail-closed 闸门，「永远会跑」不得依赖任何路径比较。
+// 判据函数因此也不导出：需要被断言的纯判据放在 runtime-lib.ts，本文件只保留逐字副本。
+try { main(); } catch (error) { console.error((error as Error).message); process.exitCode = 1; }

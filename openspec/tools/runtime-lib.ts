@@ -140,6 +140,29 @@ export function withFileLock<T>(path: string, action: () => T): T {
 // 2026-09-01 删除 findUp、gitCommit、ensureInside 三个导出：`openspec/tools/` 与 `test/` 两处
 // 全文检索均无第二处引用，属零调用的公开面。裁定 #5：删除，git 历史即存档，不在代码里留预留 API。
 
+// ---- 受管投影校验的纯判据（权威定义）----------------------------------------
+// 这两个函数在 openspec/tools/runtime-entry.ts 里另有一份逐字相同的副本，且**必须**如此：
+// runtime-entry.ts 是四条受管投影之一，在消费仓里只有它一个文件被投影过去
+// （消费仓的 openspec/tools/ 下只有 runtime-entry.ts，没有本文件），故它不得 import 任何同级模块，
+// 否则投影副本一加载就会因找不到模块而失败，裁定 #1「投影副本算可执行入口」当场作废。
+// 副本不是随手抄的：test/contracts.test.ts 的 VC-042 逐字比对两份函数源码，任一侧单边修改即非零拒绝。
+// 权威在本文件——本仓对「副本」的一贯立场就是允许复制但禁止无校验的复制。
+/** 把异常退出描述成人能读懂的一句话：被信号杀掉与非零退出码是两件事，报告里必须分得开。 */
+export function abnormalExit(result: { status: number | null; signal: string | null }): string {
+  return result.status === null ? `进程被信号终止(${result.signal ?? "未知信号"})` : `退出状态 ${result.status}`;
+}
+/**
+ * check-ignore 的判据。只有 0（有命中）与 1（无命中）是正常答案，其余一律表示「校验没跑完」。
+ * 最危险的是 status 为 null（进程被信号终止）：1 恰好是「没有任何路径被忽略」这一正常答案，
+ * 若把 null 归一成 1，一个被杀掉的 git 就会被读成「校验通过」，整条受管投影校验静默放行。
+ * 返回 null 表示可以继续，返回字符串即拒绝理由。
+ */
+export function checkIgnoreIncomplete(result: { status: number | null; signal: string | null }): string | null {
+  if (result.status === 0 || result.status === 1) return null;
+  return `无法对受管投影执行 git check-ignore（${abnormalExit(result)}），校验未完成，拒绝执行`;
+}
+// -----------------------------------------------------------------------------
+
 export function now(): string {
   return new Date().toISOString();
 }
