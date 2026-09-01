@@ -275,24 +275,32 @@ function declaredRoute(root: string, table: RoutingTable): RoutingRoute | null {
   return heaviest;
 }
 /** 本 Change 实际触碰的实现路径（排除 Change 目录自身与长期 spec 之外的一切都算）。 */
+/**
+ * 路径一律走 `-z` + NUL 分隔解析，与 delivery-lifecycle.ts 的 implementationPaths 同范式。
+ * 不能用 `--name-only` 的按行输出：git 出厂默认 `core.quotepath=true`，非 ASCII 路径会被
+ * 返回成带引号的 C 转义串（`"...\345\256\236..."`），本仓的工件目录全是中文名，
+ * 于是「排除 Change 目录自身」的前缀过滤会对它们整类失效。
+ */
+function gitPaths(repo: string, args: string[]): string[] | null {
+  const output = git(repo, args);
+  if (output === null) return null;
+  return output.split("\0").filter(Boolean).map((path) => path.split("\\").join("/"));
+}
 function touchedPaths(repo: string, root: string): string[] | null {
   const changeRel = relative(repo, realpathSync(root)).split(sep).join("/");
   const firstTouch = git(repo, ["log", "--format=%H", "--reverse", "--", changeRel]);
   const collected = new Set<string>();
-  const add = (output: string | null) => {
-    if (!output) return;
-    for (const path of output.split(/\r?\n/).map((item) => item.trim()).filter(Boolean)) collected.add(path.split("\\").join("/"));
-  };
+  const add = (paths: string[] | null) => { for (const path of paths ?? []) collected.add(path); };
   const firstCommit = firstTouch?.split(/\r?\n/).map((item) => item.trim()).filter(Boolean)[0];
   if (firstCommit) {
     const parent = git(repo, ["rev-parse", "--verify", `${firstCommit}^`]);
     const from = parent ? parent.trim() : firstCommit;
-    add(git(repo, ["diff", "--name-only", from, "HEAD"]));
+    add(gitPaths(repo, ["diff", "--name-only", "-z", from, "HEAD"]));
   } else if (!firstTouch) {
     return null; // git 不可用或不是仓库：没有事实可核对
   }
-  add(git(repo, ["diff", "--name-only", "HEAD"]));
-  add(git(repo, ["ls-files", "--others", "--exclude-standard"]));
+  add(gitPaths(repo, ["diff", "--name-only", "-z", "HEAD"]));
+  add(gitPaths(repo, ["ls-files", "--others", "--exclude-standard", "-z"]));
   // Change 目录自身是治理产物，不是被声明档位约束的实现改动。
   return [...collected].filter((path) => path !== changeRel && !path.startsWith(`${changeRel}/`)).sort();
 }

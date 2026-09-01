@@ -123,6 +123,14 @@ test("REV-002 声明与事实交叉校验：声明低档而实际触碰高档路
   const sh = (args: string[]) => { const r = spawnSync("git", args, { cwd: repo, encoding: "utf8" }); assert.equal(r.status, 0, r.stderr); return r.stdout.trim(); };
   try {
     sh(["init", "-q", "-b", "master"]); sh(["config", "user.email", "t@example.com"]); sh(["config", "user.name", "t"]);
+    // 显式打开 core.quotepath（git 的出厂默认）：开发机常把它设成 false，会掩盖
+    // 「非 ASCII 路径被返回为 C 转义串」这类缺陷。本仓的工件目录全是中文名，
+    // 必须按出厂默认取证，否则这条用例对该整类缺陷免疫。
+    sh(["config", "core.quotepath", "true"]);
+    // 先落一个基线提交：Change 目录必须出现在「已有提交历史之上」的后续提交里，
+    // 否则首次触碰该目录的提交就是根提交，diff 区间为空，同样对该类缺陷免疫。
+    writeFileSync(join(repo, "base.txt"), "base\n", "utf8");
+    sh(["add", "."]); sh(["commit", "-qm", "base"]);
     // 一条登记时自称「只改说明面」的 intake 条目。
     mkdirSync(join(repo, "openspec/intake"), { recursive: true });
     writeFileSync(join(repo, "openspec/intake/INT-20260901-050-doc.md"), "---\nschemaVersion: 1\nid: INT-20260901-050-doc\nstate: promoted\nphase: capture\nsource: synthetic\ncapturedAt: 2026-09-01\npromotedTo: demo-change\nchangeObject: doc-expression\n---\n\n# Intake\n", "utf8");
@@ -130,7 +138,8 @@ test("REV-002 声明与事实交叉校验：声明低档而实际触碰高档路
     for (const [path, body] of Object.entries(artifactFiles)) writeFileSync(join(change, path), body);
     writeFileSync(join(change, "01-原始需求/原始需求索引.md"), "# 原始需求索引\n- Intake 来源：openspec/intake/INT-20260901-050-doc.md\n", "utf8");
     assert.equal(runTool("delivery-control.ts", ["init", "--change-root", change, "--slug", "demo-change", "--display-name", "演示", "--mode", "delivery"]).status, 0);
-    const taskImport = join(repo, "tasks.json");
+    // 导入文件放仓外：它是测试脚手架，不该被当成本 Change 触碰的实现路径。
+    const taskImport = join(mkdtempSync(join(tmpdir(), "delivery-scope-in-")), "tasks.json");
     writeFileSync(taskImport, JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "planned", deliverables: ["d"], verification: ["v"], evidence: [], blocker: null }] }));
     assert.equal(runTool("delivery-control.ts", ["task", "write", "--change-root", change, "--file", taskImport]).status, 0);
     assert.equal(runTool("delivery-control.ts", ["task", "render", "--change-root", change]).status, 0);

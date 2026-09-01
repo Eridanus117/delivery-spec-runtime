@@ -1,8 +1,6 @@
 #!/usr/bin/env -S node --experimental-strip-types
 import { createHash } from "node:crypto";
-import {
-  copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync,
-} from "node:fs";
+import { existsSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { spawnSync } from "node:child_process";
 import {
@@ -68,17 +66,6 @@ function reviewPath(root: string): string { return join(root, implementationRevi
 function acceptancePath(root: string): string { return join(root, acceptanceStateName); }
 function readinessPath(root: string): string { return join(root, readinessName); }
 function lockPath(root: string): string { return join(root, ".delivery-lifecycle.lock"); }
-function copyTree(source: string, target: string): void {
-  const stat = lstatSync(source);
-  if (stat.isSymbolicLink()) {
-    symlinkSync(readlinkSync(source), target);
-  } else if (stat.isDirectory()) {
-    mkdirSync(target, { recursive: true });
-    for (const name of readdirSync(source)) copyTree(join(source, name), join(target, name));
-  } else {
-    copyFileSync(source, target);
-  }
-}
 function hashBytes(value: Buffer | string): string { return `sha256:${createHash("sha256").update(value).digest("hex")}`; }
 function digest(value: unknown): string { return hashBytes(`${JSON.stringify(value)}\n`); }
 function commit(value: unknown, label: string): string {

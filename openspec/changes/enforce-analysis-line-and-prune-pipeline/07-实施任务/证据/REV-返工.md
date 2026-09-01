@@ -160,3 +160,55 @@ Change 目录内一条指向仓外的软链，路径串本身完全合法，词�
 `证据/8.2.md` 与 `verify-自查.md` 的结论表由「74 passed / 0 failed」改为
 「稳定通过 73/74，余 1 项为已知环境 flake `INT-20260831-010`，按复跑判定」，
 并把噪音标注直接放进结论表而非只写在文末。两处均加订正说明，写明原则：**结论表不得强于可复现事实**。
+
+---
+
+# 第二轮复审新增 finding 的处置
+
+## REV-014（MAJOR，阻塞）交叉校验对非 ASCII 路径失效
+
+**缺陷**：`touchedPaths` 用 `git diff --name-only` / `ls-files --others` 的按行输出取路径。git 出厂默认
+`core.quotepath=true`，非 ASCII 路径会被返回成带引号的 C 转义串
+（`"openspec/changes/demo-change/01-\345\216\237..."`）。本仓工件目录全是中文名，于是
+「排除 Change 目录自身」的前缀过滤对它们**整类失效**——一个声明 `doc-expression` 的合法轻档 Change，
+会被自己的工件目录判成越档而拒绝。这是把交叉校验从「防绕过」变成「误伤合法路径」的方向性错误。
+
+**为什么本机没暴露**：开发机的全局 git 配置里 `core.quotepath=false`，恰好掩盖了该缺陷。
+`git -c core.quotepath=true` 可立即复现转义串。
+
+**修法**：改用 `-z` + NUL 分隔解析，与仓内 `delivery-lifecycle.ts` 的 `implementationPaths`
+同范式（新增 `gitPaths` helper 复用 `nulPaths` 的解析形状）。`-z` 下 git 不做引用与转义，
+不依赖任何配置项，比 `-c core.quotepath=false` 更稳——后者仍是「靠传对一个开关」。
+
+**fixture 修正（先红后绿）**：原用例把一切放进首个提交，`firstCommit` 即根提交、diff 区间为空，
+对这一整类缺陷免疫。已改为：
+
+1. 先落一个基线提交（`base.txt`），Change 目录出现在**其后**的提交里，使 diff 区间非空；
+2. 在测试仓内显式 `git config core.quotepath true`，按 git 出厂默认取证，
+   不受开发机全局配置影响；
+3. 测试脚手架文件（`tasks.json`）移出仓外，避免它自身被算作本 Change 触碰的实现路径。
+
+**先红后绿实证**：修正 fixture 后、修 `touchedPaths` 前，用例失败并报出
+`"openspec/changes/demo-change/01-/345/216/237/..."（归类 未匹配，档位序 99）`——
+即合法轻档 Change 被自己的中文工件目录误判越档；应用 `-z` 修复后转绿。
+
+## REV-015（MINOR）证据陈述与噪音口径
+
+**a) 自相矛盾已消除**：`8.2.md` 的「已知环境噪音」段末原残留「本轮最终全量运行中该用例通过（74/74）」，
+与顶部结论表的 78/79 直接冲突，已删改一致。
+
+**b) 改按实测频次陈述**：结论表与噪音段不再写「按复跑判定」——该措辞隐含「复跑两次能全绿」这一前提，
+而实测频次已将其证伪：独立复审连跑九次 **4 过 5 败**，返工后连跑两轮 1 过 1 败，
+期间另有连续三跑全败。失败是**多数情形**而非偶发。
+
+`openspec/intake/INT-20260831-010-upgrade-smoke-flaky-status.md` 的原始问题段追加补记
+（capture 内容追加，`state` / `phase` 未改，仍为 `captured` / `capture`）：记录上述频次、
+指出「复跑两次全绿」判据在当前环境已不可满足、建议提高优先级实际修复而非继续按噪音登记，
+并写明已定位的触发面（被判 M 的恒为归档目录下一条超长证据路径，与 `INT-20260831-011` 同源，可一并处置）。
+
+## 附带清理：delivery-lifecycle.ts 的死代码
+
+`copyTree` 在 S4 移除 `lifecycle-history` 快照、且 REV-007 撤销长期 spec 直接写入后已无任何调用方
+（仅剩自身递归）。删除该函数，并同步收窄 `node:fs` 导入——`copyFileSync` / `lstatSync` / `mkdirSync` /
+`readdirSync` / `readlinkSync` / `symlinkSync` 六个符号随之全部失去引用。
+`bootstrap.ts` 有自己独立的 `copyTree`，仍在使用，未受影响。
