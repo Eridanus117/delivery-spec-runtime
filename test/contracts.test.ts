@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
-import { runTool, runtimeRoot } from "./helpers.ts";
+import { resolveChangeDir, runTool, runtimeRoot } from "./helpers.ts";
 
 
 test("runtime manifest、八层schema与九个Commands一致", () => {
@@ -253,7 +253,8 @@ test("VC-039 早期目录归档后 active Change 只剩两个", () => {
     .filter((entry) => entry.isDirectory() && entry.name !== "archive")
     .map((entry) => entry.name)
     .sort();
-  assert.deepEqual(active, ["enforce-analysis-line-and-prune-pipeline", "establish-runtime-metrics-baseline"]);
+  // 本 Change 归档后，active 只余按裁定 C3 暂不处置的 metrics 目录。
+  assert.deepEqual(active, ["establish-runtime-metrics-baseline"]);
   // 两个早期目录确实落到了 archive 且带处置记录。
   for (const name of ["2026-09-01-establish-intake-inventory", "2026-09-01-establish-workflow-v01-contract"]) {
     const archived = join(runtimeRoot, "openspec/changes/archive", name);
@@ -269,7 +270,7 @@ test("VC-039 早期目录归档后 active Change 只剩两个", () => {
   // 实施提交不得直接改写长期 spec——那会让未经任何批准或验收的需求进入权威规范。
   const longTerm = readFileSync(join(runtimeRoot, "openspec/specs/intake-workflow/spec.md"), "utf8");
   assert.doesNotMatch(longTerm, /Inventory SHALL scan only controlled Intake assets/);
-  const delta = readFileSync(join(runtimeRoot, "openspec/changes/enforce-analysis-line-and-prune-pipeline/specs/intake-workflow/spec.md"), "utf8");
+  const delta = readFileSync(join(resolveChangeDir("enforce-analysis-line-and-prune-pipeline"), "specs/intake-workflow/spec.md"), "utf8");
   // REV-008：合并稿是语义并集的单一来源，不留孪生条款。
   const deltaNames = (delta.match(/^### Requirement: (.+)$/gm) ?? []);
   assert.equal(new Set(deltaNames).size, deltaNames.length, "delta 内出现重名 Requirement");

@@ -1,0 +1,7 @@
+{
+  "allowed": true,
+  "runtime": "delivery-spec-runtime",
+  "schema": "delivery-change"
+}
+(node:35040) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)

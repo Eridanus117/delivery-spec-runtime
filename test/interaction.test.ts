@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { runtimeRoot } from "./helpers.ts";
+import { resolveChangeDir, runtimeRoot } from "./helpers.ts";
 
 const skillPath = join(runtimeRoot, ".claude/skills/delivery-pilot/SKILL.md");
 
@@ -97,7 +97,7 @@ test("REV-005 治理文本定义重批准的合法条件与代笔披露", () => 
 });
 
 test("REV-005 本 Change 的批准记录在 approvedBy 中如实披露代笔", () => {
-  const approvals = JSON.parse(readFileSync(join(runtimeRoot, "openspec/changes/enforce-analysis-line-and-prune-pipeline/artifact-approvals.json"), "utf8"));
+  const approvals = JSON.parse(readFileSync(join(resolveChangeDir("enforce-analysis-line-and-prune-pipeline"), "artifact-approvals.json"), "utf8"));
   const entries = Object.entries(approvals.artifacts) as Array<[string, { approvedBy: string }]>;
   assert.ok(entries.length >= 9);
   for (const [artifact, approval] of entries) {
