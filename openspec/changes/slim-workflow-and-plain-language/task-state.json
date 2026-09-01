@@ -132,7 +132,7 @@
     },
     {
       "id": "8.1",
-      "state": "planned",
+      "state": "implemented_unverified",
       "deliverables": [
         "需要人工批准的门由站位定义推导，删除第二份清单",
         "station-authority 七站全部补真负向对照与探针活性对照"
