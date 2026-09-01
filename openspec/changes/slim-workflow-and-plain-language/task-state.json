@@ -113,7 +113,7 @@
     },
     {
       "id": "7.1",
-      "state": "planned",
+      "state": "implemented_unverified",
       "deliverables": [
         "artifact-approvals 契约第 2 版（按门记一条，内部逐份记哈希）",
         "delivery-control.ts 批准子命令与状态判定改按门",

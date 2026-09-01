@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { mkdtempSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { createArtifactTree, runTool, removeOptions } from "./helpers.ts";
+import { createArtifactTree, runTool, runtimeRoot, removeOptions } from "./helpers.ts";
 
 function git(root: string, args: string[]): string {
   const result = spawnSync("git", args, { cwd: root, encoding: "utf8" });
@@ -43,7 +43,7 @@ function prepareChange(repo: string): { change: string; baseline: string; review
     ],
   }, null, 2)}\n`);
   let result = runTool("delivery-control.ts", ["init", "--change-root", change, "--slug", "demo-change", "--display-name", "演示", "--mode", "delivery"], { cwd: repo }); assert.equal(result.status, 0, result.stderr);
-  for (const artifact of artifacts) { result = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", artifact, "--decision", "approved", "--approved-by", "tester"], { cwd: repo }); assert.equal(result.status, 0, result.stderr); }
+  result = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--gate", "decision", "--decision", "approved", "--approved-by", "tester", "--runtime-root", runtimeRoot], { cwd: repo }); assert.equal(result.status, 0, result.stderr);
   write(join(repo, "src/app.ts"), "export const value = 1;\n");
   write(join(repo, "openspec/changes/another-change/notes.md"), "cross-change evidence\n");
   git(repo, ["add", "."]); git(repo, ["commit", "-qm", "implementation"]); const reviewed = git(repo, ["rev-parse", "HEAD"]);

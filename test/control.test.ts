@@ -32,7 +32,7 @@ test("严格来源、批准失效、任务状态和投影合同", () => {
     result = runTool("delivery-control.ts", ["task", "write", "--change-root", change, "--file", taskImport]); assert.equal(result.status, 0, result.stderr);
     result = runTool("delivery-control.ts", ["task", "render", "--change-root", change]); assert.equal(result.status, 0, result.stderr);
     assert.doesNotMatch(readFileSync(join(change, "07-实施任务/实施任务.md"), "utf8"), /9\.9|已删除任务|obsolete/);
-    for (const artifact of artifacts) { result = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", artifact, "--decision", "approved", "--approved-by", "tester"]); assert.equal(result.status, 0, result.stderr); }
+    result = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--gate", "decision", "--decision", "approved", "--approved-by", "tester", "--runtime-root", runtimeRoot]); assert.equal(result.status, 0, result.stderr);
     result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]); assert.equal(result.status, 0, result.stderr);
     result = runTool("delivery-control.ts", ["task", "set", "--change-root", change, "--id", "1.1", "--state", "verified"]); assert.notEqual(result.status, 0); assert.match(result.stderr, /不可重跑，verified 时必须保存证据/);
     // VC-026：evidence 四类负向全部 fail closed，且 task-state.json 逐字节不变。
@@ -67,7 +67,8 @@ test("严格来源、批准失效、任务状态和投影合同", () => {
     result = runTool("delivery-control.ts", ["task", "set", "--change-root", change, "--id", "1.1", "--state", "verified", "--evidence", "08-验收/control.tap"]); assert.equal(result.status, 0, result.stderr);
     result = runTool("delivery-control.ts", ["task", "render", "--change-root", change]); assert.equal(result.status, 0, result.stderr);
     result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "acceptance"]); assert.notEqual(result.status, 0); assert.match(result.stderr, /tasks 批准状态为 stale/);
-    result = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", "tasks", "--decision", "approved", "--approved-by", "tester"]); assert.equal(result.status, 0, result.stderr);
+    // 一条门批准覆盖当时的全部工件：任务表被改动后重新表态，写的仍然是同一条记录。
+    result = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--gate", "decision", "--decision", "approved", "--approved-by", "tester", "--runtime-root", runtimeRoot]); assert.equal(result.status, 0, result.stderr);
     result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "acceptance"]); assert.notEqual(result.status, 0); assert.match(result.stderr, /implementation-review/);
     // VC-024：update snapshot / diagnose 两个命令随 .delivery-update-snapshot.json 概念一并移除。
     const updatePaths = join(root, "update-paths.json"); writeFileSync(updatePaths, JSON.stringify(["05-改造方案/方案提案.md"]));
@@ -107,7 +108,7 @@ test("VC-024 change-mode 概念移除后 guard 行为与不存在时一致", () 
     writeFileSync(taskImport, JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "planned", deliverables: ["src/demo.ts"], verification: ["node --test"], evidence: [], blocker: null, replayable: true }] }));
     assert.equal(runTool("delivery-control.ts", ["task", "write", "--change-root", change, "--file", taskImport]).status, 0);
     assert.equal(runTool("delivery-control.ts", ["task", "render", "--change-root", change]).status, 0);
-    for (const artifact of artifacts) assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", artifact, "--decision", "approved", "--approved-by", "tester"]).status, 0);
+    assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--gate", "decision", "--decision", "approved", "--approved-by", "tester", "--runtime-root", runtimeRoot]).status, 0);
 
     // 基线：无 change-mode.json 时 apply 放行、mode 报 delivery。
     const before = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
@@ -152,7 +153,7 @@ test("REV-002 声明与事实交叉校验：声明低档而实际触碰高档路
     writeFileSync(taskImport, JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "planned", deliverables: ["d"], verification: ["v"], evidence: [], blocker: null, replayable: true }] }));
     assert.equal(runTool("delivery-control.ts", ["task", "write", "--change-root", change, "--file", taskImport]).status, 0);
     assert.equal(runTool("delivery-control.ts", ["task", "render", "--change-root", change]).status, 0);
-    for (const artifact of artifacts) assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", artifact, "--decision", "approved", "--approved-by", "tester"]).status, 0);
+    assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--gate", "decision", "--decision", "approved", "--approved-by", "tester", "--runtime-root", runtimeRoot]).status, 0);
 
     // 只碰 docs/：与声明相符，verify 放行。
     mkdirSync(join(repo, "docs"), { recursive: true });

@@ -1,44 +1,165 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "delivery-change/artifact-approvals.schema.json",
-  "type": "object",
-  "additionalProperties": false,
-  "required": ["schemaVersion", "artifacts"],
-  "properties": {
-    "schemaVersion": { "const": 1 },
-    "artifacts": {
+  "title": "Artifact approvals",
+  "description": "批准记录有两种口径，都要能读。第 1 版「一份工件一条」：一次表态被展开成多条各自签发的记录，读批准链的人分不清「表了八次态」和「表了一次态被复制成八条」。第 2 版「人真实表态一次记一条」：一条记录覆盖那一刻的全部工件，但每份工件的内容哈希仍逐一记录，所以「改了哪一份就失效、并且能点名是哪一份」的定位能力一份不丢。存量按文件自己声明的版本解析，不迁移。",
+  "oneOf": [
+    {
+      "title": "第 1 版：一份工件一条（只读兼容，不再用于新建 Change）",
       "type": "object",
-      "description": "工件集随 delivery-change schema 版本而变，两种形态都合法：v5 用 business-current + technical-current 两份现状；v6 起合并为 current-state。存量归档 Change 按 v5 解析、不迁移，故两组键名必须同时被本合同接受；delivery-control 按 Change 目录形状选表，不会把两种形态混写进同一个文件。",
       "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "artifacts"
+      ],
       "properties": {
-        "raw-requirements": { "$ref": "#/$defs/approval" },
-        "specs": { "$ref": "#/$defs/approval" },
-        "current-state": { "$ref": "#/$defs/approval" },
-        "business-current": { "$ref": "#/$defs/approval" },
-        "technical-current": { "$ref": "#/$defs/approval" },
-        "solution-proposal": { "$ref": "#/$defs/approval" },
-        "solution-decision": { "$ref": "#/$defs/approval" },
-        "change-plan": { "$ref": "#/$defs/approval" },
-        "test-plan": { "$ref": "#/$defs/approval" },
-        "tasks": { "$ref": "#/$defs/approval" }
-      },
-      "not": {
-        "description": "同一个文件里不得同时出现 v5 的两份现状与 v6 的合并现状——那说明工件集被混写了。",
-        "required": ["current-state", "business-current"]
+        "schemaVersion": {
+          "const": 1
+        },
+        "artifacts": {
+          "type": "object",
+          "description": "工件集随 delivery-change schema 版本而变，两种形态都合法：v5 用 business-current + technical-current 两份现状；v6 起合并为 current-state。存量归档 Change 按 v5 解析、不迁移，故两组键名必须同时被本合同接受；delivery-control 按 Change 目录形状选表，不会把两种形态混写进同一个文件。",
+          "additionalProperties": false,
+          "properties": {
+            "raw-requirements": {
+              "$ref": "#/$defs/approval"
+            },
+            "specs": {
+              "$ref": "#/$defs/approval"
+            },
+            "current-state": {
+              "$ref": "#/$defs/approval"
+            },
+            "business-current": {
+              "$ref": "#/$defs/approval"
+            },
+            "technical-current": {
+              "$ref": "#/$defs/approval"
+            },
+            "solution-proposal": {
+              "$ref": "#/$defs/approval"
+            },
+            "solution-decision": {
+              "$ref": "#/$defs/approval"
+            },
+            "change-plan": {
+              "$ref": "#/$defs/approval"
+            },
+            "test-plan": {
+              "$ref": "#/$defs/approval"
+            },
+            "tasks": {
+              "$ref": "#/$defs/approval"
+            }
+          },
+          "not": {
+            "description": "同一个文件里不得同时出现 v5 的两份现状与 v6 的合并现状——那说明工件集被混写了。",
+            "required": [
+              "current-state",
+              "business-current"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "第 2 版：人真实表态一次记一条",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "gates"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "gates": {
+          "type": "object",
+          "description": "键是站位定义里 humanJudgment 为真、且 approvalRecord 声明落在本文件的那些站的 id。门的清单从站位定义推导，本文件不另立第二份清单。",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "decision",
+              "approvedBy",
+              "approvedAt",
+              "migrationSource",
+              "artifacts"
+            ],
+            "properties": {
+              "decision": {
+                "enum": [
+                  "approved",
+                  "rejected"
+                ]
+              },
+              "approvedBy": {
+                "type": "string",
+                "minLength": 1,
+                "description": "必须写明表态的真实形态：亲签、门口表态由 agent 转录、还是证据回填后的机械重批准。代笔信息写在这个字段本身，不得降级成附注。"
+              },
+              "approvedAt": {
+                "type": "string",
+                "minLength": 1
+              },
+              "migrationSource": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "artifacts": {
+                "type": "object",
+                "minProperties": 1,
+                "description": "这一门覆盖的每份工件在表态那一刻的内容哈希。必须覆盖当时的全部工件——盖不住全部，就说明这次表态发生在材料齐备之前。",
+                "additionalProperties": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
+            }
+          }
+        }
       }
     }
-  },
+  ],
   "$defs": {
     "approval": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["digest", "decision", "approvedBy", "approvedAt", "migrationSource"],
+      "required": [
+        "digest",
+        "decision",
+        "approvedBy",
+        "approvedAt",
+        "migrationSource"
+      ],
       "properties": {
-        "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
-        "decision": { "enum": ["approved", "rejected"] },
-        "approvedBy": { "type": "string", "minLength": 1 },
-        "approvedAt": { "type": "string", "minLength": 1 },
-        "migrationSource": { "type": ["string", "null"] }
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "decision": {
+          "enum": [
+            "approved",
+            "rejected"
+          ]
+        },
+        "approvedBy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approvedAt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "migrationSource": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     }
   }

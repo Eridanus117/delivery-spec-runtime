@@ -33,8 +33,9 @@ function git(root: string, args: string[]): string {
   assert.equal(result.status, 0, result.stderr);
   return result.stdout.trim();
 }
-function approve(fixture: Fixture, artifact: string): void {
-  const result = runTool("delivery-control.ts", ["approval", "set", "--change-root", fixture.change, "--artifact", artifact, "--decision", "approved", "--approved-by", "maintainer"], { cwd: fixture.repo });
+/** 按门批准一次：批准记录第 2 版按「人真实表态一次记一条」记，一条覆盖当时的全部工件。 */
+function approve(fixture: Fixture): void {
+  const result = runTool("delivery-control.ts", ["approval", "set", "--change-root", fixture.change, "--gate", "decision", "--decision", "approved", "--approved-by", "maintainer", "--runtime-root", runtimeRoot], { cwd: fixture.repo });
   assert.equal(result.status, 0, result.stderr);
 }
 
@@ -68,7 +69,7 @@ function prepare(repo: string): Fixture {
   const init = runTool("delivery-control.ts", ["init", "--change-root", change, "--slug", "demo-change", "--display-name", "演示", "--mode", "delivery"], { cwd: repo });
   assert.equal(init.status, 0, init.stderr);
   const fixture: Fixture = { repo, change, baseline, reviewed: "" };
-  for (const artifact of artifacts) approve(fixture, artifact);
+  approve(fixture);
   write(join(repo, "src/app.ts"), "export const value = 1;\n");
   git(repo, ["add", "."]);
   git(repo, ["commit", "-qm", "implementation"]);
@@ -116,7 +117,7 @@ const probes: Array<{ station: string; probe: (fixture: Fixture) => number }> = 
       // 使失败原因只可能来自「缺表态」，而不是「批准过期」。
       const path = join(fixture.change, "05-改造方案/方案决策.md");
       write(path, readFileSync(path, "utf8").replace("- 状态：APPROVED\n", "").replace("- 决策人：maintainer\n", ""));
-      approve(fixture, "solution-decision");
+      approve(fixture);
       return runTool("delivery-control.ts", ["guard", "--change-root", fixture.change, "--operation", "apply"], { cwd: fixture.repo }).status ?? 1;
     },
   },
@@ -218,4 +219,51 @@ test("VC-003 一致性测试不得靠两侧互抄实现", () => {
   const probeEntries = observationRegion.slice(observationRegion.indexOf("const probes:")).split(/station: "/).slice(1);
   assert.equal(probeEntries.length, stations.length);
   for (const entry of probeEntries) assert.match(entry, /runTool\(|write(Review|Acceptance|Readiness)\(/);
+});
+
+/**
+ * T-08.1（INT-20260901-020 收口）
+ *
+ * 此前批准模型与站位模型各说各话：批准模型要八份工件都持人工批准才放行实施，站位模型却写着
+ * 实施站是机器站；测试方案在交付站位里根本没有对应的站，却同样被索取人工表态。两份清单各说
+ * 各话时，agent 按哪一份都能给自己找到依据。
+ *
+ * 现在唯一真源是站位定义：humanJudgment 为真的站，各自用 approvalRecord 声明表态记在哪里。
+ * 本断言从两侧夹：一侧读站位定义算出应有的门，另一侧看真门禁实际认哪些门。
+ */
+test("T-08.1 需要人工批准的门由站位定义推导，不存在第二份清单", () => {
+  const profile = JSON.parse(readFileSync(profilePath, "utf8")) as { stages: Array<{ id: string; humanJudgment: boolean; approvalRecord?: string }> };
+  const humanStations = profile.stages.filter((stage) => stage.humanJudgment).map((stage) => stage.id);
+  // 每个人工判断站都必须说清自己的表态记在哪；不说就等于又留了一处「按哪份清单都行」。
+  for (const stage of profile.stages) {
+    if (stage.humanJudgment) assert.ok(stage.approvalRecord, `人工判断站 ${stage.id} 没有声明表态记在哪`);
+    else assert.equal(stage.approvalRecord, undefined, `机器站 ${stage.id} 不该声明表态落点`);
+  }
+  const expectedGates = profile.stages.filter((stage) => stage.approvalRecord === "artifact-approvals").map((stage) => stage.id);
+  assert.ok(expectedGates.length > 0);
+  // 落在别处的门也必须真的落在别处——验收门的表态在 acceptance-state.json 里，不在批准记录里。
+  assert.ok(profile.stages.some((stage) => stage.approvalRecord === "acceptance-state"), "没有任何门把表态记进验收状态");
+  assert.equal(humanStations.length, expectedGates.length + profile.stages.filter((stage) => stage.approvalRecord === "acceptance-state").length);
+
+  // 真门禁那一侧：用站位定义算出来的门名去批准，必须被接受；表外的门名必须被拒绝并报出可用的门。
+  const repo = mkdtempSync(join(tmpdir(), "station-gate-"));
+  try {
+    const fixture = prepare(repo);
+    for (const gate of expectedGates) {
+      const ok = runTool("delivery-control.ts", ["approval", "set", "--change-root", fixture.change, "--gate", gate, "--decision", "approved", "--approved-by", "maintainer", "--runtime-root", runtimeRoot], { cwd: repo });
+      assert.equal(ok.status, 0, `站位定义算出的门 ${gate} 竟然不被门禁接受: ${ok.stderr}`);
+    }
+    const bogus = runTool("delivery-control.ts", ["approval", "set", "--change-root", fixture.change, "--gate", "implementation", "--decision", "approved", "--approved-by", "maintainer", "--runtime-root", runtimeRoot], { cwd: repo });
+    assert.notEqual(bogus.status, 0, "机器站竟然可以作为人工批准门");
+    assert.match(bogus.stderr, /未知的人工批准门/);
+    for (const gate of expectedGates) assert.match(bogus.stderr, new RegExp(gate));
+  } finally { rmSync(repo, removeOptions); }
+
+  // 不得存在第二份清单：门的来源必须是站位定义文件本身，而不是代码里的一个字面量数组。
+  const source = readFileSync(join(runtimeRoot, "openspec/tools/delivery-control.ts"), "utf8");
+  assert.ok(source.includes("openspec/profiles/delivery-change-v1.json"), "门禁没有从站位定义推导门，说明真源不止一处");
+  for (const gate of expectedGates) {
+    // 门名只能来自站位定义：代码里不得出现针对某个门名的硬编码比较。
+    assert.ok(!source.includes(`gate === "${gate}"`), `门禁代码里对门名做了硬编码比较: ${gate}`);
+  }
 });

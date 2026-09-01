@@ -240,15 +240,20 @@ test("VC-028/T-06 工件合并只减工件数不减校验，存量结构按各�
       assert.equal(v7Keys.includes(kept), true, `未合并的工件丢了: ${kept}`);
     }
 
-    // 承接校验：把除方案提案以外的全部批准，apply 必须恰好卡在方案提案上——证明它确实在门禁清单里。
-    for (const artifact of v7Keys.filter((key) => key !== "solution-proposal")) {
-      assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", artifact, "--decision", "approved", "--approved-by", "tester"]).status, 0);
-    }
+    // 承接校验。批准第 2 版按「人真实表态一次记一条」记，所以不存在「只批一半」这种状态——
+    // 一条门批准要么覆盖当时的全部工件，要么写不进去。于是这里换个测法：
+    // 先看没有任何门批准时 apply 被拦，再看批准一次之后放行，最后看改任一份工件仍然点名失效。
     let guard = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
     assert.notEqual(guard.status, 0);
-    assert.match(guard.stderr, /solution-proposal 批准状态为 pending/);
-    assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", "solution-proposal", "--decision", "approved", "--approved-by", "tester"]).status, 0);
+    assert.match(guard.stderr, /批准状态为 pending/);
+    assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--gate", "decision", "--decision", "approved", "--approved-by", "tester", "--runtime-root", runtimeRoot]).status, 0);
     assert.equal(runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]).status, 0);
+
+    // T-07.2：一条批准覆盖六份工件，但每份的内容哈希仍逐一记录——改了哪一份就失效，并且点得出名字。
+    const record = JSON.parse(readFileSync(join(change, "artifact-approvals.json"), "utf8"));
+    assert.equal(record.schemaVersion, 2);
+    assert.deepEqual(Object.keys(record.gates), ["decision"]);
+    assert.deepEqual(Object.keys(record.gates.decision.artifacts).sort(), [...v7Keys].sort());
 
     // 改动并进来的那一节（现状）同样让批准失效——说明内容哈希确实盖住了被合并的内容。
     writeFileSync(join(change, "05-改造方案/方案提案.md"), proposalBody.replace("改造前长这样。", "改造前其实长那样。"));
@@ -257,15 +262,31 @@ test("VC-028/T-06 工件合并只减工件数不减校验，存量结构按各�
     assert.match(guard.stderr, /solution-proposal 批准状态为 stale/);
     writeFileSync(join(change, "05-改造方案/方案提案.md"), proposalBody);
 
-    // 改动并进实施任务的那一节同样失效。
+    // 改动并进实施任务的那一节同样失效，且报错点名的是另一份工件——定位能力没有因为合并而变粗。
     writeFileSync(join(change, "07-实施任务/实施任务.md"), files["07-实施任务/实施任务.md"].replace("一片。", "两片。"));
     guard = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
     assert.notEqual(guard.status, 0);
     assert.match(guard.stderr, /tasks 批准状态为 stale/);
+    writeFileSync(join(change, "07-实施任务/实施任务.md"), files["07-实施任务/实施任务.md"]);
 
+    // T-07.3：一条门批准必须覆盖当时的全部工件。这里从「读」的一侧测——门禁用的正是这一侧：
+    // 手写一条只盖住五份的批准，第六份必须被判 pending，且 apply 点名拦住它。
+    const full = JSON.parse(readFileSync(join(change, "artifact-approvals.json"), "utf8"));
+    const partialRecord = JSON.parse(JSON.stringify(full));
+    delete partialRecord.gates.decision.artifacts["test-plan"];
+    writeFileSync(join(change, "artifact-approvals.json"), JSON.stringify(partialRecord, null, 2));
+    const partial = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
+    assert.notEqual(partial.status, 0);
+    assert.match(partial.stderr, /test-plan 批准状态为 pending/);
+    writeFileSync(join(change, "artifact-approvals.json"), JSON.stringify(full, null, 2));
+    assert.equal(runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]).status, 0);
+    // T-07.5：两种口径不得混写——按工件写入的老参数在第 2 版文件上一律拒绝。
+    const mixed = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", "tasks", "--decision", "approved", "--approved-by", "tester", "--runtime-root", runtimeRoot]);
+    assert.notEqual(mixed.status, 0);
+    assert.match(mixed.stderr, /--artifact 不再被接受/);
     // T-06.2：旧工件名在新结构下一律不被接受，避免两套命名并存。
     for (const legacy of ["current-state", "change-plan", "business-current"]) {
-      const stale = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", legacy, "--decision", "approved", "--approved-by", "tester"]);
+      const stale = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", legacy, "--decision", "approved", "--approved-by", "tester", "--runtime-root", runtimeRoot]);
       assert.notEqual(stale.status, 0, `旧工件名仍被接受: ${legacy}`);
     }
 
@@ -346,22 +367,42 @@ test("VC-039 早期目录归档后 active Change 只剩两个", () => {
   assert.match(delta, /只读的条目清单/);
 });
 
-test("REV-003 artifact-approvals 合同覆盖 v5/v6 两种工件集且校验真实批准文件", () => {
+test("REV-003/T-07.4 批准合同同时容纳两种口径，并校验仓内全部真实批准文件", () => {
   const schema = JSON.parse(readFileSync(join(runtimeRoot, "openspec/contracts/artifact-approvals.schema.json"), "utf8"));
-  const allowed = Object.keys(schema.properties.artifacts.properties);
-  // 两种形态的工件名都必须被合同接受，否则 v6 Change 写出的批准文件违反本仓自己分发的合同。
+  const [legacy, gated] = schema.oneOf as Array<Record<string, any>>;
+  const allowed = Object.keys(legacy.properties.artifacts.properties);
+  // 两种工件集的名字都必须被合同接受，否则历史 Change 写出的批准文件违反本仓自己分发的合同。
   for (const key of ["raw-requirements", "specs", "current-state", "business-current", "technical-current", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"]) {
     assert.ok(allowed.includes(key), `artifact-approvals 合同缺少工件名: ${key}`);
   }
-  assert.equal(schema.properties.artifacts.additionalProperties, false);
-  // 但不允许两种形态混写进同一个文件。
-  assert.deepEqual(schema.properties.artifacts.not.required, ["current-state", "business-current"]);
+  assert.equal(legacy.properties.artifacts.additionalProperties, false);
+  // 但不允许两种工件集混写进同一个文件。
+  assert.deepEqual(legacy.properties.artifacts.not.required, ["current-state", "business-current"]);
+  // 第 2 版：一条门批准里逐份记哈希，这是「合并批准不丢定位能力」的合同侧保证。
+  assert.equal(gated.properties.schemaVersion.const, 2);
+  assert.equal(gated.properties.gates.additionalProperties.properties.artifacts.minProperties, 1);
+  assert.match(gated.properties.gates.additionalProperties.properties.artifacts.additionalProperties.pattern, /sha256/);
 
   const approvalRequired: string[] = schema.$defs.approval.required;
   const approvalAllowed = Object.keys(schema.$defs.approval.properties);
   /** 针对本合同形状的定向校验：仓内没有 JSON Schema 引擎，也不为一条断言引入依赖。 */
   const validate = (path: string, label: string) => {
     const value = JSON.parse(readFileSync(path, "utf8"));
+    if (value.schemaVersion === 2) {
+      assert.deepEqual(Object.keys(value).sort(), ["gates", "schemaVersion"], `${label} 顶层键`);
+      for (const [gate, record] of Object.entries(value.gates) as Array<[string, Record<string, unknown>]>) {
+        assert.deepEqual(Object.keys(record).sort(), ["approvedAt", "approvedBy", "artifacts", "decision", "migrationSource"], `${label}.${gate} 字段集`);
+        assert.ok(["approved", "rejected"].includes(record.decision as string), `${label}.${gate}.decision`);
+        assert.ok(typeof record.approvedBy === "string" && (record.approvedBy as string).length > 0, `${label}.${gate}.approvedBy`);
+        const digests = Object.entries(record.artifacts as Record<string, string>);
+        assert.ok(digests.length > 0, `${label}.${gate} 没有覆盖任何工件`);
+        for (const [name, digest] of digests) {
+          assert.ok(allowed.includes(name), `${label}.${gate} 出现合同外工件: ${name}`);
+          assert.match(digest, /^sha256:[0-9a-f]{64}$/, `${label}.${gate}.${name}`);
+        }
+      }
+      return;
+    }
     assert.equal(value.schemaVersion, 1, `${label} schemaVersion`);
     assert.deepEqual(Object.keys(value).sort(), ["artifacts", "schemaVersion"], `${label} 顶层键`);
     const names = Object.keys(value.artifacts);
@@ -375,7 +416,7 @@ test("REV-003 artifact-approvals 合同覆盖 v5/v6 两种工件集且校验真�
       assert.ok(typeof approval.approvedBy === "string" && approval.approvedBy.length > 0, `${label}.${name}.approvedBy`);
     }
   };
-  // 用合同校验仓内全部真实批准文件：active 的 v6/v5 Change 与 12 个归档目录。
+  // 用合同校验仓内全部真实批准文件：在途 Change 与 12 个归档目录，两种口径都要过。
   let checked = 0;
   const walk = (dir: string) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
