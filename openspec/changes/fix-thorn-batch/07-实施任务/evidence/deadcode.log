@@ -1,10 +1,18 @@
-=== 未用导入回扫（去掉导入语句自身后计数为零者） ===
-(以上为空 = 无未用导入)
-=== 全仓零调用函数回扫 ===
+=== 回扫口径（返工后订正，REV-005(3)）===
+扫描范围：openspec/tools/*.ts 与 test/*.ts 两处全部文件。
+判据：把某条 import 语句自身从源文本中剔除后，其每个标识符在剩余全文中的出现次数为 0，即判未用。
+首轮证据只扫了 openspec/tools/，却写成「未用导入回扫为空」，结论强于覆盖面——本次订正扫描范围并如实重跑。
+
+=== 未用导入回扫（openspec/tools/ + test/）===
+回扫结果：openspec/tools/ 与 test/ 两处均无未用导入。
+
+=== 全仓零调用函数回扫（openspec/tools/）===
 (以上为空 = 无零调用函数)
-=== 修复前的基线（HEAD 41a1a14） ===
-bootstrap.ts: statSync, basename, sha256Buffer
-intake-control.ts: requiredOption
-public-candidate.ts: readdirSync
-runtime-lib.ts: findUp(exported), gitCommit(exported), ensureInside(exported)
-openspec-upgrade.ts: 局部变量 afterLinkStatus 声明后从未使用（本次已赋予用途：并入冒烟失败原因）
+
+=== 基线（HEAD 41a1a14）实际存在的未用项 ===
+openspec/tools/bootstrap.ts: statSync, basename, sha256Buffer
+openspec/tools/intake-control.ts: requiredOption
+openspec/tools/public-candidate.ts: readdirSync
+openspec/tools/runtime-lib.ts: findUp(exported), gitCommit(exported), ensureInside(exported)
+openspec/tools/openspec-upgrade.ts: 局部变量 afterLinkStatus 声明后从未使用（本单已赋予用途：并入冒烟失败原因）
+test/bootstrap.test.ts: statSync —— 基线即存在，首轮漏扫，返工时一并删除

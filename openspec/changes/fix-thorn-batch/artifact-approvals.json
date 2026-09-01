@@ -37,25 +37,25 @@
       "migrationSource": null
     },
     "change-plan": {
-      "digest": "sha256:8dc9bd14bb54f204a19eb73db6285ee12e2dd4efe8a70cbc335dff8d68dd85bb",
+      "digest": "sha256:e36643cef2e0f9a770a53d52034afede79824a44e16dfa14cf6a51877509b0de",
       "decision": "approved",
-      "approvedBy": "维护者（方案门「同意」授权下由 agent 起草，批准按同惯例转录，Claude 代笔）",
-      "approvedAt": "2026-09-01T07:25:32.788Z",
-      "migrationSource": null
+      "approvedBy": "维护者（独立评审 FAIL 后的逐条返工裁定，门口表态由 Claude 代笔转录）",
+      "approvedAt": "2026-09-01T08:21:43.989Z",
+      "migrationSource": "按 REV-002 / REV-004 的裁定补入决策日志 D-06、D-07 并订正影响面与断言计数；目标、非目标与实施切片未变"
     },
     "test-plan": {
-      "digest": "sha256:889190a8fcd74a1abc6c2e62cf56045236f2c9c02c0e63b27d4cfb4769ac500e",
+      "digest": "sha256:779806b0824291e45997932a61fbdf1202e89600c2c2efeb400a77e18482bd4c",
       "decision": "approved",
-      "approvedBy": "维护者（测试文件落点更正后的机械重批准，Claude 代笔）",
-      "approvedAt": "2026-09-01T07:43:14.477Z",
-      "migrationSource": "T-QUIET-1 的承载文件由 control.test.ts 更正为 submodule.test.ts，覆盖面与通过标准未变"
+      "approvedBy": "维护者（独立评审 FAIL 后的逐条返工裁定，门口表态由 Claude 代笔转录）",
+      "approvedAt": "2026-09-01T08:21:44.542Z",
+      "migrationSource": "按 REV-002 / REV-004 的裁定补入场景 T-COMPAT-1、T-IGN-3 与自动化资产落点，并按 REV-005 订正断言计数；通过标准与失败停止条件未变"
     },
     "tasks": {
-      "digest": "sha256:f748a186a8f7af37590d12541abc90a232e823363e58bb0dbfdd92f43a6b97d1",
+      "digest": "sha256:414cb36d7693e96f5f46231c9a9dbc56e42bc00e0277613dd93be55fd0853a77",
       "decision": "approved",
-      "approvedBy": "维护者（证据回填后的机械重批准，Claude 代笔）",
-      "approvedAt": "2026-09-01T07:43:13.958Z",
-      "migrationSource": "task-state.json 的 verified 状态与 evidence 路径回填，语义未变"
+      "approvedBy": "维护者（陈述订正与证据回填后的机械重批准，Claude 代笔）",
+      "approvedAt": "2026-09-01T08:21:45.103Z",
+      "migrationSource": "按 REV-005 把任务 3.5 的测试落点由 control.test.ts 订正为 submodule.test.ts、把任务 2.6 的回扫口径补全到 test/ 并追加 rework.log 证据；任务边界与验证方式未变"
     }
   }
 }

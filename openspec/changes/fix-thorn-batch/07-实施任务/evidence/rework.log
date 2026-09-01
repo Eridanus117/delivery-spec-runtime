@@ -1,0 +1,59 @@
+独立评审 FAIL 的返工记录（2026-09-01，评审工件 ea8d197）
+2 MEDIUM + 3 LOW 判 OPEN，2 LOW 判 ACCEPTED。逐条处置与实测如下。
+
+【REV-001 MEDIUM｜INT-014 信号9 与裁定矛盾】
+问题：信号9 写「处置按其自述走（补前缀行）」，与裁定 #4「不修路由表、记录在案」相反；
+      且写「三处空白」，实为四处（漏 openspec/specs/），与 INT-023 正文打架。
+处置：改写为「缺口三条，维护者已裁定本批不修，全部留作 INT-023 重设计输入」；
+      路径前缀空白订正为四处并逐一列名；补一句「该表在 cd6d2f0..HEAD 一字未改，
+      读者不要据本条认为已补上」；说明本单的实际处置是另一条路（升 changeObject，见 D-05）；
+      段末附订正说明。INT-023 的对应条目同步注明两份台账口径已对齐。
+核对：git diff cd6d2f0..HEAD -- openspec/profiles/change-routing-v1.json 为空（该表确未改动）。
+
+【REV-002 MEDIUM｜合同拒绝本仓自己的归档证据】
+问题：failureReason 进了 required，但归档的 upgrade-report.json 同为 schemaVersion 1
+      且三个 consumer 条目均无该键，而改造方案明写归档报告不回溯改写。
+处置：沿用上一单同形态问题的收口范式（artifact-approvals 合同同时容纳 v5/v6 工件集）——
+      合同与 TS 校验同批把 failureReason 移出 required，键出现时取值约束仍为硬；
+      JSON 合同用 allOf + if/then 表达该约束；新报告必带该键由产出侧保证并有断言守住。
+      不升 schemaVersion（升版本要让所有既有消费者一起改，改动面远大于收益）。
+      validateReport 导出，供断言直接调用唯一的校验实现，不在测试里另抄一份（VC-003 口径）。
+新增断言 T-COMPAT-1：把真实归档报告原文喂入 validateReport 不抛错；
+      同时 FAIL 缺原因、FAIL 空原因、PASS 带原因三种新形状违规仍被拒。实测通过。
+
+【REV-003 LOW｜「预算是紧的」是空承诺】
+问题：assert.ok(longest <= budget) 与上一条 deepEqual(violations, []) 逻辑等价，恒真；
+      注释承诺的判据不存在。附带 repositoryPathBudget 以 export 暴露却无跨文件消费者。
+处置：改为 assert.equal(repositoryPathBudget, longest)——预算与实测最长值绑死，
+      单方面调高（例如为放行某条长路径而从 155 改到 500）当场转红；删除该 export。
+实测：当前仓内实测最长路径 155，与常量相等，断言通过。
+
+【REV-004 LOW｜check-ignore 的唯一 fail-open】
+问题：gitResult 把 spawnSync 的 status 为 null（进程被信号终止）归一成 1，
+      而 1 正是 check-ignore 的「没有任何路径被忽略」这一正常答案 —— git 被杀掉时静默放行。
+处置：gitResult 如实透出 status: number|null 并附带 signal；判据抽成导出的纯函数
+      checkIgnoreIncomplete，0/1 放行、其余（含 null）一律拒绝并报明原因；
+      ls-files 的错误信息同步改为区分「退出状态 N」与「进程被信号终止(SIG)」。
+      为让断言能直接 import 判据，runtime-entry.ts 补上与仓内其余工具相同的
+      「仅直接执行时才跑 main」守卫（入口调用形态一律是 node <本文件> …，行为不变）。
+新增断言 T-IGN-3：{status:0}/{status:1} 返回 null；{status:null,signal:"SIGKILL"}、
+      {status:null,signal:null}、{status:128} 一律返回拒绝理由；并断言 null 与 1 的判据不相同。实测通过。
+
+【REV-005 LOW｜三处陈述强于事实】
+(1) task-state 3.5 仍写 T-QUIET-1 落在 test/control.test.ts —— 已改为 test/submodule.test.ts 并重渲染。
+(2) 改造方案与测试方案写「新增五组断言」—— 实为首轮六组，返工后八组（基线 79 → 87）；
+    两处均改为「八组（六组首轮 + 两组 REV-002/REV-004 返工补充）」，并写明基线与终值。
+(3) evidence/deadcode.log 声称「未用导入回扫为空」，但首轮只扫了 openspec/tools/。
+    已删除 test/bootstrap.test.ts 基线遗留的未用 statSync 导入，把扫描范围扩到
+    openspec/tools/ + test/ 并如实重跑；证据里写明口径与首轮的覆盖面缺陷。
+    重跑结果：两处均无未用导入 —— 「回扫为空」现在是真话。
+
+【REV-006 / REV-007 ACCEPTED｜不改代码，移交重设计】
+两条残余风险（受管投影副本的自校验残余面；failureReason 是首个逐字文本字段、脱敏靠巧合）
+已连同评审给出的实测结论与建议，写进 INT-20260901-023-repo-suited-workflow 的输入材料段，
+供工作流重设计时消费。本单不改代码。
+
+【返工后终态】
+全量测试连跑三次：87/87、87/87、87/87（首轮为 85/85 ×3，新增两组返工断言）。
+validate --all --strict 10/10；render-commands check changed: []；runtime-check allowed；
+guard verify allowed（重批准后复跑）。

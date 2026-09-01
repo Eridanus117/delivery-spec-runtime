@@ -9,6 +9,12 @@
   "files": 9,
   "changed": []
 }
+=== guard verify（档位交叉校验） ===
+{
+  "allowed": true,
+  "operation": "verify",
+  "mode": "delivery"
+}
 === openspec validate --all --strict ===
 - Validating...
 ✓ spec/controlled-openspec-upgrades
@@ -23,13 +29,5 @@
 ✓ spec/workflow-profiles
 Totals: 10 passed, 0 failed (10 items)
 
-=== 档位交叉校验（D-05 的实证） ===
-声明为 governance-contract 时：
-{ "allowed": true, "operation": "verify", "mode": "delivery" }
-
-把声明临时改回 tool-code 后（对照）：
-声明与事实不符：条目登记时声明的改动对象为 tool-code（档位序 20），但实际触碰了更重档位的路径：
-  openspec/contracts/openspec-upgrade-report.schema.json（归类 governance-contract，档位序 30）
-处置方式是修正条目的 changeObject 声明并补走该档位要求的分析线，不是缩小改动面以迁就声明。
-
-结论：D-05 的升档不是保守起见，而是交叉校验的确定性要求；对照已恢复，条目声明仍为 governance-contract。
+=== 档位交叉校验的正反对照（D-05 实证，返工后复跑见 rework.log）===
+声明为 governance-contract 时放行；改回 tool-code 时当场点名 openspec/contracts/openspec-upgrade-report.schema.json 并拒绝。

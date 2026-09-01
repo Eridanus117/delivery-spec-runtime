@@ -13,3 +13,19 @@
 ℹ pass 85
 ℹ fail 0
 ℹ duration_ms 55847.093
+
+=== 全量测试 第 1 次（返工后）===
+ℹ tests 87
+ℹ pass 87
+ℹ fail 0
+ℹ duration_ms 54515.3723
+=== 全量测试 第 2 次（返工后）===
+ℹ tests 87
+ℹ pass 87
+ℹ fail 0
+ℹ duration_ms 54248.8788
+=== 全量测试 第 3 次（返工后）===
+ℹ tests 87
+ℹ pass 87
+ℹ fail 0
+ℹ duration_ms 54587.0638
