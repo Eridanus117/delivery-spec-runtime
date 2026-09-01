@@ -548,3 +548,78 @@ test("REV-006 路由表的 analysisProfileId 真正生效", () => {
     assert.match(readFileSync(file(rootPath), "utf8"), /promoted to target（交付档位 delivery-change，改动对象 tool-code）/);
   } finally { rmSync(rootPath, removeOptions); rmSync(runtimePath, removeOptions); }
 });
+
+/**
+ * T-03（本 Change 立项时真实撞到的两处）
+ *
+ * 其一，敏感内容检查把网址整类当成本机盘符路径拦掉了：说明文件要求「存在 Issue 时记录
+ * 其网址」，而机器根本不让写。其二，立项门自称「写入任何状态之前完成全部判定，任一
+ * 不满足即两侧文件逐字节不变」，实际却是先给目标 Change 追加来源行、再校验条目内容。
+ */
+function makeChangeTarget(rootPath: string, slug: string, body = "# 原始需求索引\n"): string {
+  const changeRoot = join(rootPath, "openspec/changes", slug);
+  mkdirSync(join(changeRoot, "01-原始需求"), { recursive: true });
+  writeFileSync(join(changeRoot, "01-原始需求/原始需求索引.md"), body, "utf8");
+  return changeRoot;
+}
+function writeIntake(rootPath: string, changeObject: string, extra: string): void {
+  complete(rootPath);
+  const current = readFileSync(file(rootPath), "utf8");
+  writeFileSync(file(rootPath), current.replace("promotedTo: null\n", `promotedTo: null\nchangeObject: ${changeObject}\n`).replace("## History\n", `${extra}\n## History\n`), "utf8");
+}
+
+test("T-03.2/T-03.3/T-03.4 敏感内容检查放行网址，仍然拦住本机盘符路径", () => {
+  const rootPath = root();
+  try {
+    // T-03.2：网址能存进事项记录了。协议名至少两个字母，盘符只有一个，判据是「冒号左边那个
+    // 字母的左边还是不是字母」——这是结构判据，不需要维护一张协议名白名单。
+    const withUrl = invoke(rootPath, ["init", "--id", "INT-20260830-010-url", "--source", "synthetic", "--issue", "详见 https://example.com/issues/1 与 http://example.org/x"]);
+    assert.equal(withUrl.status, 0, withUrl.stderr);
+    assert.match(readFileSync(join(rootPath, "openspec/intake/INT-20260830-010-url.md"), "utf8"), /https:\/\/example\.com/);
+
+    // T-03.3：本机盘符绝对路径仍然被拦，且错误文案点名命中的是哪条规则。
+    for (const bad of ["见 C:/Workspace/x", "见 D:\\临时\\y"]) {
+      const blocked = invoke(rootPath, ["init", "--id", "INT-20260830-011-drive", "--source", "synthetic", "--issue", bad]);
+      assert.notEqual(blocked.status, 0, `未拦住: ${bad}`);
+      assert.match(blocked.stderr, /本机盘符绝对路径/);
+    }
+
+    // T-03.4：网址与盘符同时出现时仍然拒绝——放行网址不得连带把盘符也放开。
+    const mixed = invoke(rootPath, ["init", "--id", "INT-20260830-012-mixed", "--source", "synthetic", "--issue", "https://example.com 以及 E:/local"]);
+    assert.notEqual(mixed.status, 0);
+    assert.match(mixed.stderr, /本机盘符绝对路径/);
+
+    // 其余几条敏感规则一条不减。
+    const secret = invoke(rootPath, ["init", "--id", "INT-20260830-013-secret", "--source", "synthetic", "--issue", "token: abc"]);
+    assert.notEqual(secret.status, 0);
+    assert.match(secret.stderr, /凭据键值/);
+  } finally { rmSync(rootPath, removeOptions); }
+});
+
+test("T-03.1 立项门因内容检查拒绝时，两侧文件逐字节不变", () => {
+  const rootPath = root();
+  const runtimePath = makeRuntimeRoot();
+  try {
+    // doc-expression 不需要分析线，于是唯一会失败的判定就是内容检查——这样才测得到「顺序」，
+    // 而不是被更早的某个判定挡住。
+    writeIntake(rootPath, "doc-expression", "\n本机路径 F:/leak 写进了正文。\n");
+    const changeRoot = makeChangeTarget(rootPath, "target");
+    const changeFile = join(changeRoot, "01-原始需求/原始需求索引.md");
+    const intakeBefore = readFileSync(file(rootPath), "utf8");
+    const changeBefore = readFileSync(changeFile, "utf8");
+
+    const blocked = invoke(rootPath, ["promote", "--file", intakeRelative, "--change", "target", "--change-root", changeRoot, "--runtime-root", runtimePath]);
+    assert.notEqual(blocked.status, 0);
+    assert.match(blocked.stderr, /本机盘符绝对路径/);
+    // 关键断言：**两侧**都没有被写。此前失败的正是目标 Change 这一侧。
+    assert.equal(readFileSync(changeFile, "utf8"), changeBefore, "立项被拒，目标 Change 却被写入了半截来源行");
+    assert.equal(readFileSync(file(rootPath), "utf8"), intakeBefore, "立项被拒，条目文件却被改动了");
+
+    // 正向对照：把违规内容去掉之后，同一条立项应当成功，且这次两侧都被写。
+    writeFileSync(file(rootPath), intakeBefore.replace("本机路径 F:/leak 写进了正文。", "正文已经改成人话。"), "utf8");
+    const allowed = invoke(rootPath, ["promote", "--file", intakeRelative, "--change", "target", "--change-root", changeRoot, "--runtime-root", runtimePath]);
+    assert.equal(allowed.status, 0, allowed.stderr);
+    assert.match(readFileSync(changeFile, "utf8"), /- Intake 来源：/);
+    assert.match(readFileSync(file(rootPath), "utf8"), /state: promoted/);
+  } finally { rmSync(rootPath, removeOptions); rmSync(runtimePath, removeOptions); }
+});

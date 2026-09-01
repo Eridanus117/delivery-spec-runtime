@@ -110,7 +110,33 @@ function text(value: string | undefined, label: string): string { if (!value) fa
 function rootOf(options: Map<string, string>): string { const root = resolve(options.get("intake-root") ?? options.get("asset-root") ?? "."); if (root.split(/[\\/]/).includes(".delivery-spec-runtime")) fail("Intake 不得写入 Runtime submodule"); return root; }
 function safeFile(root: string, input: string | undefined): string { const value = text(input, "file"); if (isAbsolute(value)) fail("--file 必须是相对路径"); const target = resolve(root, value); const rel = relative(root, target); if (!rel || rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) fail("Intake 文件越出项目根"); return target; }
 function safeChangeRoot(root: string, input: string | undefined, change: string): string { const value = text(input, "change-root"); const target = resolve(value); const rel = relative(root, target); if (!rel || rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel) || target.split(/[\\/]/).at(-1) !== change) fail("目标 Change 越出项目根或 slug 不匹配"); return target; }
-function assertSafeContent(content: string): void { if (content.includes("PRIVATE KEY") || /\b(?:password|passwd|secret|token|api[_-]?key)\s*[:=]/i.test(content) || /[A-Za-z]:[\\/]/.test(content) || content.includes("/Users/") || content.includes("/home/") || content.includes("/etc/")) fail("Intake 内容包含禁止的敏感凭据或绝对路径"); }
+/**
+ * 敏感内容检查。这个仓库是公开的，所以本机绝对路径、凭据一律不许写进来。
+ *
+ * 盘符那一条曾经写成 `[A-Za-z]:[\/]`，于是把**所有网址**一起拦掉了——网址里协议名的
+ * 最后一个字母加上后面的冒号斜杠，形状与盘符路径完全一样。后果是：说明文件要求
+ * 「存在 Issue 时记录其网址」，而机器根本不让写；更直接的是，一份记录该缺陷的事项记录
+ * 因为在正文里写出了那几个字符，被它记录的这条缺陷本身挡在了流水线外面。
+ *
+ * 修法是给盘符加一个左边界：盘符只有一个字母，它左边不可能再是字母；而网址协议名
+ * 至少两个字母，倒数第二个字母正好落在这个位置。`C:/` 与 `D:\` 仍然被拦，`https://`
+ * 与 `file:///` 放行。判据从「看起来像不像」换成「左边是不是字母」，这是一个结构判据，
+ * 不是白名单——不需要维护一张协议名清单。
+ */
+const sensitiveRules: Array<{ label: string; test: (content: string) => string | null }> = [
+  { label: "私钥", test: (content) => (content.includes("PRIVATE KEY") ? "PRIVATE KEY" : null) },
+  { label: "凭据键值", test: (content) => /\b(?:password|passwd|secret|token|api[_-]?key)\s*[:=]/i.exec(content)?.[0] ?? null },
+  { label: "本机盘符绝对路径", test: (content) => /(?<![A-Za-z])[A-Za-z]:[\\/]/.exec(content)?.[0] ?? null },
+  { label: "本机用户目录", test: (content) => ["/Users/", "/home/", "/etc/"].find((needle) => content.includes(needle)) ?? null },
+];
+function assertSafeContent(content: string): void {
+  for (const rule of sensitiveRules) {
+    const hit = rule.test(content);
+    // 报出命中的是哪一条规则、命中了什么，而不是只丢一句「包含敏感内容」——
+    // 上一次这条检查误拦时，调用方光看错误文案完全无法判断该改哪里。
+    if (hit) fail(`Intake 内容命中敏感规则「${rule.label}」: ${JSON.stringify(hit)}`);
+  }
+}
 function atomic(path: string, content: string): void { assertSafeContent(content); mkdirSync(dirname(path), { recursive: true }); const temp = `${path}.tmp-${process.pid}-${Date.now()}`; const fd = openSync(temp, "wx", 0o600); try { writeFileSync(fd, content, "utf8"); fsyncSync(fd); } finally { closeSync(fd); } renameSync(temp, path); }
 function readFrontmatter(path: string): Frontmatter {
   const content = readFileSync(path, "utf8");
@@ -296,7 +322,15 @@ function promote(options: Map<string, string>): void {
   target = history(target, `promoted to ${change}（交付档位 ${decision.profileId}，改动对象 ${decision.changeObject ?? "未声明"}${decision.matched ? "" : "，未匹配取最重档"}）`);
   const sourceLine = `- Intake 来源：${relative(root, file).split(sep).join("/")}`;
   const changeContent = readFileSync(changeFile, "utf8");
-  if (!changeContent.includes(sourceLine)) atomic(changeFile, `${changeContent.trimEnd()}\n${sourceLine}\n`);
+  const nextChangeContent = changeContent.includes(sourceLine) ? null : `${changeContent.trimEnd()}\n${sourceLine}\n`;
+  // 立项门对外的承诺是「写入任何状态之前完成全部判定，任一不满足即两侧文件逐字节不变」。
+  // 此前的实现先写目标 Change、再让 atomic() 顺带校验条目内容，于是一次被拒的立项会在
+  // 目标 Change 里留下半截来源行——本 Change 自己立项时就真实撞到过一次。
+  // 半截写入比彻底失败更糟：下一次重试要从一个说不清的中间状态开始。
+  // 修法是把两侧内容的全部校验都提到第一次写盘之前。
+  assertSafeContent(target);
+  if (nextChangeContent !== null) assertSafeContent(nextChangeContent);
+  if (nextChangeContent !== null) atomic(changeFile, nextChangeContent);
   atomic(file, target);
   console.log(JSON.stringify({ id: parsed.state.id, state: "promoted", promotedTo: change, routing: decision }, null, 2));
 }

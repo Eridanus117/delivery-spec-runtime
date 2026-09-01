@@ -40,7 +40,7 @@
     },
     {
       "id": "3.1",
-      "state": "planned",
+      "state": "implemented_unverified",
       "deliverables": [
         "intake-control.ts 立项门改为全部判定通过后再写两侧文件",
         "敏感内容检查区分网址与本机盘符路径"
