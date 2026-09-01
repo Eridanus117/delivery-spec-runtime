@@ -1,0 +1,354 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "e6d3637a678404dcf6c4496609c392050d10de46",
+  "reviewedCommit": "f0fb49d64354bbae1f7b524c12cff4e6c5a4e6ae",
+  "reviewedPaths": [
+    {
+      "path": ".claude/skills/delivery-pilot/SKILL.md",
+      "exists": true,
+      "sha256": "sha256:41d4e927b3739b922d93c0c02410f12267560530a0a3557a92cc6e537bdaeba2"
+    },
+    {
+      "path": "AGENTS.md",
+      "exists": true,
+      "sha256": "sha256:129564e4cc59285f0d3b970e9cc8b84c174b2911ec5f361e009feb7ae8e42929"
+    },
+    {
+      "path": "README.md",
+      "exists": true,
+      "sha256": "sha256:c753f86329dfa2bdfd12d7b938f6843c8f7697c93b038decf951af15366ef611"
+    },
+    {
+      "path": "docs/glossary.md",
+      "exists": true,
+      "sha256": "sha256:e050f772e581b210224a4fd2d1e0287cfe2370186b4f213933c68e4987ec9061"
+    },
+    {
+      "path": "docs/governance.md",
+      "exists": true,
+      "sha256": "sha256:8a3afbadcaa2ee720918bdfeb9d8569cd654b47a216f27bc96297d61592412f9"
+    },
+    {
+      "path": "docs/portable-core.md",
+      "exists": true,
+      "sha256": "sha256:31c660f04bd8fe246540964026d4788ebc976f2710bac3ca4ea75e659810cd43"
+    },
+    {
+      "path": "docs/workflow-guide.md",
+      "exists": true,
+      "sha256": "sha256:f06e20862212a85a87419189397a9a3cd49549a5483e8539e1e74b6e3dbe1761"
+    },
+    {
+      "path": "openspec/contracts/artifact-approvals.schema.json",
+      "exists": true,
+      "sha256": "sha256:194ca91a24affa094f64a80683cf761c044e10b5bca3fb0683f40a0158bcce5d"
+    },
+    {
+      "path": "openspec/contracts/plain-language.schema.json",
+      "exists": true,
+      "sha256": "sha256:2449c78bdc90a1710d7bcd9cd43418017094645293f7f7219ba5532fa0437133"
+    },
+    {
+      "path": "openspec/contracts/readability-review.schema.json",
+      "exists": true,
+      "sha256": "sha256:7ce86a38c65b3a924d8cacf474a698c5f5d4c0c94fba34d14d0ed19f5b23ef67"
+    },
+    {
+      "path": "openspec/contracts/task-state.schema.json",
+      "exists": true,
+      "sha256": "sha256:5cd13021f35375ca20da117a0dc984a61ad49b933588f48570a60ea2552d8f40"
+    },
+    {
+      "path": "openspec/contracts/workflow-profile.schema.json",
+      "exists": true,
+      "sha256": "sha256:632f758c656b8e76219bdc2357eefb5a1e43a862341b9c349fdee937c67e6ca9"
+    },
+    {
+      "path": "openspec/intake/INT-20260831-014-calibration-signals.md",
+      "exists": true,
+      "sha256": "sha256:61732b7d7bd06bd98386b5efac9d432e951fae3dae4e78d2b0cad319871f4248"
+    },
+    {
+      "path": "openspec/intake/INT-20260901-023-repo-suited-workflow.md",
+      "exists": true,
+      "sha256": "sha256:f8e5e3319e30826a720e2b0f26a28f786b9546c597b40457ef350d8e719bbee1"
+    },
+    {
+      "path": "openspec/intake/INT-20260901-025-upgrade-agent-system-round2.md",
+      "exists": true,
+      "sha256": "sha256:408e5af7036d8cc3979006f89efba4ec4b50dc1299be7feed7bb3ee890264ed6"
+    },
+    {
+      "path": "openspec/intake/analysis/INT-20260901-023-repo-suited-workflow/workflow-binding.json",
+      "exists": true,
+      "sha256": "sha256:23fb3609bd4c6769ea57f46345dc44946ccd9df8eabf7e6c5f6db54a5119e2fc"
+    },
+    {
+      "path": "openspec/intake/analysis/INT-20260901-023-repo-suited-workflow/workflow-request.json",
+      "exists": true,
+      "sha256": "sha256:46e8feeecef00d58e47084a045ad8479e74ee93faa5e8f45e1df68dd8f901449"
+    },
+    {
+      "path": "openspec/intake/analysis/INT-20260901-023-repo-suited-workflow/workflow-result.json",
+      "exists": true,
+      "sha256": "sha256:04453ac90ee633f98bd883240159cb685c3cd5319470b0cacde36d06c49d84b3"
+    },
+    {
+      "path": "openspec/profiles/change-routing-v1.json",
+      "exists": true,
+      "sha256": "sha256:82e4f9d8dc50881690522348e006a0413697df4c4abb05b7ef5fcee0dc28ad32"
+    },
+    {
+      "path": "openspec/profiles/delivery-change-v1.json",
+      "exists": true,
+      "sha256": "sha256:2b030fab7c9ccf716727d31dc1b979432cbc2b615a794df768dff20e20b4ebfb"
+    },
+    {
+      "path": "openspec/profiles/plain-language-v1.json",
+      "exists": true,
+      "sha256": "sha256:f5ca30f04df0ecf483c0c483ddfdee2a9dc5d2852c9930730cb0a5a03211bed5"
+    },
+    {
+      "path": "openspec/schemas/delivery-change/schema.yaml",
+      "exists": true,
+      "sha256": "sha256:8f2c3108b8edbed2a0bd213ad8138a10eea47ab373c441d8d549b9c91a420077"
+    },
+    {
+      "path": "openspec/schemas/delivery-change/templates/change-plan.md",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "openspec/schemas/delivery-change/templates/current-state.md",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "openspec/schemas/delivery-change/templates/solution-proposal.md",
+      "exists": true,
+      "sha256": "sha256:c9c174f7527ffc6f0d2f56cc4ac0088ef63e4723e2e5c648ff52aa9b1587bbdc"
+    },
+    {
+      "path": "openspec/schemas/delivery-change/templates/tasks.md",
+      "exists": true,
+      "sha256": "sha256:ed5f703670031622fa2f2833f6cb8218f2efdb00d46133cde0a94392622eff13"
+    },
+    {
+      "path": "openspec/tools/delivery-control.ts",
+      "exists": true,
+      "sha256": "sha256:9f9a399c990bfd94b6342de9b36086068a81d838db7b8c55c2dc0d1c8f838060"
+    },
+    {
+      "path": "openspec/tools/delivery-lifecycle.ts",
+      "exists": true,
+      "sha256": "sha256:b448363f06271da527aa042e664fc836dbd33c2b9013ea4ad483d41fd384a585"
+    },
+    {
+      "path": "openspec/tools/intake-control.ts",
+      "exists": true,
+      "sha256": "sha256:39c9c733da3defd69a2f519a4413f28666b66a2f345e2c54b369f02a1d35b32e"
+    },
+    {
+      "path": "openspec/tools/openspec-upgrade.ts",
+      "exists": true,
+      "sha256": "sha256:454d5b9d1e1c63c68607956332245b6aa846e03e5418588ec2c966716953e46f"
+    },
+    {
+      "path": "openspec/tools/plain-language.ts",
+      "exists": true,
+      "sha256": "sha256:dcf8e26ec727f18dcafbfbd5035803849b1ffc95068a43552f418f7659957cd1"
+    },
+    {
+      "path": "openspec/tools/upgrade-report.ts",
+      "exists": true,
+      "sha256": "sha256:b514b56efc8cf64bb5a644d75154327af7b56b915526a5eaefd9ad7d71552a07"
+    },
+    {
+      "path": "openspec/tools/workflow-control.ts",
+      "exists": true,
+      "sha256": "sha256:4f62da4dced0fae12c7d80807c743299a97da8cfbb8ec06fdeef3cf1da8f19c1"
+    },
+    {
+      "path": "openspec/tools/workflow-core.ts",
+      "exists": true,
+      "sha256": "sha256:3f38ce5a9e8d91e4a1e7bebd585e87e3fde6ae02ec63a1f0699f527fe1ae1faa"
+    },
+    {
+      "path": "public-allowlist.json",
+      "exists": true,
+      "sha256": "sha256:a0de01d420dcd3b4e4e42473e35dcc610ac29b4499a5df12ded9070e9106b5e5"
+    },
+    {
+      "path": "test/candidate.test.ts",
+      "exists": true,
+      "sha256": "sha256:004212227f8c7dadd0c78c5bdaf3ee9fca41447ceee96793b73e1bbf2de9739c"
+    },
+    {
+      "path": "test/contracts.test.ts",
+      "exists": true,
+      "sha256": "sha256:8bd0e7d4e3abbdc77187b06f68c0aabe703ee731d790de008c6a18c91f0f7f33"
+    },
+    {
+      "path": "test/control.test.ts",
+      "exists": true,
+      "sha256": "sha256:11197a963f8fac68222572ed4e77a6e83c5c27b85c8008592fb063c58969a242"
+    },
+    {
+      "path": "test/intake.test.ts",
+      "exists": true,
+      "sha256": "sha256:c35cab008c5c61d0328d371b763629d70cf1c2a5dcc3e8da1c1225be40c59cba"
+    },
+    {
+      "path": "test/interaction.test.ts",
+      "exists": true,
+      "sha256": "sha256:685be6a0cc372475a8549e5d79212e9a8de7cddbfa3a657ad1ea4dbfc8ab85e4"
+    },
+    {
+      "path": "test/lifecycle.test.ts",
+      "exists": true,
+      "sha256": "sha256:8790dbd7080876ad4318ef4012aa9f06e36b600d96b25cd0b23dd8c8bc125e75"
+    },
+    {
+      "path": "test/plain-language.test.ts",
+      "exists": true,
+      "sha256": "sha256:3c654a3de65154ced383f13ef670a439a46d58e0e90ec55e3e2fcc1a2b930d39"
+    },
+    {
+      "path": "test/station-authority.test.ts",
+      "exists": true,
+      "sha256": "sha256:ae8bbb953c25082f59211533dd31959375e718b87dbda9d3b60be5f646601dfd"
+    }
+  ],
+  "reviewedDigest": "sha256:ae06b984a9ad4eb2fb6bd6806e524b1ca1a635788fd54368026f573dd6218cdd",
+  "reviewer": "独立实施评审（未参与实施的空白会话；只读审查加敌对实测，全量测试连跑三次）",
+  "reviewedAt": "2026-09-01T19:20:00Z",
+  "findings": [
+    {
+      "id": "REV-001",
+      "severity": "HIGH",
+      "path": "(general)",
+      "line": null,
+      "summary": "工件升到第 7 版时漏改 openspec/config.yaml 的 rules 段（第 16 至 20 行）：它仍然给 current-state 与 change-plan 两个已经不存在的工件挂规则。实测 `openspec instructions solution-proposal --change slim-workflow-and-plain-language` 每次都打印两行 Unknown artifact ID in rules；两条治理规则（升级职责与失败处置、安全修复与升级框架的区分）在第 7 版下不再挂到任何工件，等于静默失效，而承接了这些内容的 solution-proposal 与 tasks 并没有补上对应规则。上一版 schema 里这两个 id 是合法的，所以这是本次改动引入的回归。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-002",
+      "severity": "HIGH",
+      "path": "(general)",
+      "line": null,
+      "summary": "命令正文没跟着升版：.omp/command-sources/bodies/opsx-propose.md 第 13 行与其渲染副本 .omp/commands/opsx-propose.md 第 26 行仍写着「最后才能创建 change-plan……Proposal、Decision 和 Plan 分别批准」。一句话同时踩两个已被本单废止的口径（已取消的工件、已废止的按份批准）。实测按此指令执行 `openspec instructions change-plan` 直接硬失败并列出八个合法工件。render-commands check 报 changed 为空，因为源文件与渲染副本同病，这道检查在结构上发现不了。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-003",
+      "severity": "HIGH",
+      "path": "(general)",
+      "line": null,
+      "summary": "长期规范增量漏了 MODIFIED 段。openspec/specs/delivery-lifecycle-governance/spec.md 第 9 至 17 行仍规定「Schema MUST 在 05 中依次要求 solution-proposal、solution-decision 和 change-plan。三者 MUST 分别计算 digest 和批准」，并在场景里写「不得用 change-plan 的批准代替 Proposal 或 Decision 批准」。这与本单新增的「一次表态只记一条批准」直接对立，且点名一个已被删除的工件。本单五份增量全部只有 ## ADDED Requirements，没有任何 MODIFIED 或 REMOVED；规范同步站合入后，长期规范正文会同时挂着两条互相否定的 MUST。本仓已有 MODIFIED 段的先例（archive/2026-09-01-enforce-analysis-line-and-prune-pipeline）。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-004",
+      "severity": "HIGH",
+      "path": "openspec/tools/delivery-control.ts",
+      "line": 359,
+      "summary": "批准改按门记之后，防篡改能力实际被削弱了。一条门批准是整体覆写：机械回填 07-实施任务（每次 task render 都会发生）让 tasks 转 stale，而唯一的修复手段就是重签整条门批准，于是维护者对另外五份工件的原始表态与时间被一并抹掉，记录变成「Claude 代笔的机械重批准」。更要紧的是重签会重算并重新祝福全部工件的哈希。实测：在 07-实施任务里做一处机械改动、同时在 05-改造方案/方案决策.md 里做一处语义篡改，两份先都转 stale；随后以「证据回填后重批准」名义重签一次，八份全部回到 approved，guard apply 放行，被篡改的方案决策没有任何提示。旧的按份口径不存在这条通道（重签 tasks 不会重签 solution-decision）。这与 AGENTS.md「任何改变语义的改动都必须重新取得维护者表态，不得由 agent 重签」直接冲突，而该条规则正是本仓上一次被判 FAIL 的原因。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-005",
+      "severity": "HIGH",
+      "path": "openspec/tools/plain-language.ts",
+      "line": 188,
+      "summary": "说人话关宣布的必过范围比它实际检查的范围大一圈，而且在自己的立法单里就没生效。配置里的 repoMustPass（README.md、docs/**、openspec/specs/**）被加载、被 inspect 回显，却没有任何门禁读它：verifyPlainLanguage 只处理 Change 内的 mustPass。而 AGENTS.md 与 .claude/skills/delivery-pilot/SKILL.md 第 54 行都对外承诺「README 与说明文档、长期规范……归档前的门禁会检查它」。后果之二是禁词单在本单自己新产出的人读文字里大面积落空：现状.md、方案提案.md、方案决策.md、原始需求索引.md 等六份文件落在「未归类」，其中反复出现本单新立的禁词「台账」「砍纸」，门禁如实报出未归类却放行。未归类只报不拦这条设计本身没问题，问题是必过清单没有覆盖维护者在方案门实际阅读的材料。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-006",
+      "severity": "MEDIUM",
+      "path": "openspec/tools/delivery-control.ts",
+      "line": 400,
+      "summary": "第 7 版的任务模板与渲染器互相打架，首次渲染就静默删掉模板自带的两节。实测：把 openspec/schemas/delivery-change/templates/tasks.md 原样放进 Change 再跑 task render，模板第 27 至 37 行的「## 依赖关系」与「## 关于证据」两节被整段删除——后者恰恰是本单新写的、解释可否重跑判据的说明。原因是渲染以「## 任务清单」为界，界线以下全部重新生成，而模板在界线之下还放了两节内容。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-007",
+      "severity": "MEDIUM",
+      "path": "openspec/tools/delivery-control.ts",
+      "line": 400,
+      "summary": "渲染边界用的是裸子串查找（existing.indexOf），不是行锚定。人写部分只要提到「## 任务清单」这五个字，首次渲染就从该子串处腰斩：实测一份在正文里写「渲染规则：以 `## 任务清单` 这一行为界」的实施任务文件，渲染后那句话被截成「本节由人写。渲染规则：以 `## 任务清单」，其后的全部人写内容消失，而 verifyTaskProjection 仍然通过、没有任何门禁报警。触发条件并不罕见——schema.yaml 的 instruction 与模板本身都在要求作者理解并可能复述这条边界规则。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-008",
+      "severity": "MEDIUM",
+      "path": "openspec/contracts/readability-review.schema.json",
+      "line": 17,
+      "summary": "审读记录不绑定被审文件的内容哈希：条目只记 target 路径，verifyPlainLanguage 也只比对路径集合。于是一份文字审读完之后被整篇改写，这道关照样放行。本仓其它每一条人工记录（工件批准、实施评审、验收、归档就绪）都绑内容哈希并在内容变化时转 stale，唯独这道新关没有。契约的 description 只声明了「证明不了确实找过一个不知情的会话，伪造面由独立评审兜」，没有覆盖「审读之后又改了」这一侧——那不是伪造，是新鲜度。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-009",
+      "severity": "MEDIUM",
+      "path": "docs/workflow-guide.md",
+      "line": 76,
+      "summary": "说明文档内部自相矛盾，且都落在「宣称必过、实际不检查」的 repoMustPass 范围里。docs/glossary.md 第 33 行正确写明今天是六份工件；docs/workflow-guide.md 第 76 行仍在讲「02 归一化 WHAT/WHY……03 记录业务与技术现状（v6 起合并为一份）」，而第 7 版下 02 与 03 两个目录都已不存在；README.md 第 75 行更旧，仍写「业务/技术现状」这个第 5 版的说法。一个照着说明文档建 Change 的人会去找两个不存在的目录。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-010",
+      "severity": "LOW",
+      "path": "openspec/tools/delivery-lifecycle.ts",
+      "line": 220,
+      "summary": "把长期规范纳入评审范围这一改只做对了一半。函数上方的说明明确写着情形二（评审之后由规范同步站写长期规范）「继续排除长期规范目录」，但实际只有工作树那一侧的 dirtyImplementationPaths 排除了它；评审后漂移检查走的 implementationPaths（reviewedCommit 到 HEAD 的提交区间）没有排除。当前流水线把 Spec Sync 留在工作树里、与归档一起提交，所以没撞上；一旦有人先提交 Spec Sync 再跑 guard archive，就会拿到一句指向 openspec/specs 的 review stale，而按注释这不该失效。测试 T-04.2 只覆盖了工作树那一侧。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-011",
+      "severity": "LOW",
+      "path": "test/control.test.ts",
+      "line": 17,
+      "summary": "三份测试里各留了一个零引用的 const artifacts 数组（control.test.ts 第 17 行、lifecycle.test.ts 第 21 行、station-authority.test.ts 第 21 行）。它们是按份批准时代的遗留，本单还顺手把它们从八项改成六项，却没发现已经没有任何调用方。这恰好是本单要消灭的「第二份清单」的三份复制品：它们硬编码了当前工件集，却不被任何断言约束，下次升版时会静默过时。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-012",
+      "severity": "LOW",
+      "path": "openspec/tools/intake-control.ts",
+      "line": 129,
+      "summary": "敏感内容检查的修法正确，但有两处锐边值得入档。实测 18 个边界样例：所有网址放行（https、http、file、ftp，含括号、反引号、尖括号包裹），所有盘符写法拦下（行首、空格前导、中文字紧邻、连字符后、表格单元内、大小写、正反斜杠）。两处例外是这个结构判据的固有代价：一是单字母协议 s:// 会被当成盘符拦下（现实中没有这种协议，可接受）；二是 ASCII 字母紧贴盘符时逃逸（pathC:\\Users\\x 放行，因为「本机用户目录」那条只认正斜杠的 /Users/）。中文正文里几乎不会出现后者，但建议在注释里写明这个已知逃逸口，而不是留给下一个人重新发现。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-013",
+      "severity": "LOW",
+      "path": "openspec/tools/delivery-control.ts",
+      "line": 146,
+      "summary": "三代结构并存的一处锐边：parseGateApproval 用 Change 当前声明的版本去校验批准记录里的工件名，遇到表外工件是直接解析失败，而不是降级成 stale。所以把一个已批准的第 6 版 Change 的 deliverySchemaVersion 改成 7，整份批准记录会以「含未知工件: current-state」报错，而不是给出「这些工件已合并，需要重新批准」这样可操作的提示。目前没有自动迁移路径所以不会触发，但三代并存的升版指引里没有写这一条，第一个真去升版的人会撞上。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-014",
+      "severity": "LOW",
+      "path": "(general)",
+      "line": null,
+      "summary": "遗留项裁断：openspec/tools/bootstrap.ts 仍映射到 03-现状/现状.md 与 05-改造方案/改造方案.md，并把 deliverySchemaVersion 写死为 6。实测走完 dry-run、stage、activate、rollback 全流程，产出的 Change 自洽：显式声明第 6 版，落地文件与第 6 版路径表逐项匹配，bootstrap-state 合同校验通过，不与第 7 版冲突，也不会被误判。它是为单一历史 slug optimize-logistics-change-review-workflow 写的一次性迁移工具，而该 slug 在本仓既不在 active 也不在 archive。建议不在本单返工，另开一条事项二选一：要么取消（连同 test/bootstrap.test.ts 一并删），要么冻结并在文件头写明「本工具固定产出第 6 版结构，迁移后需另走一次第 6 版到第 7 版的升版」。",
+      "status": "OPEN",
+      "resolution": null
+    }
+  ],
+  "result": "FAIL"
+}
