@@ -8,6 +8,7 @@ import {
   sha256File, sha256Paths, stringArray, text, withFileLock,
 } from "./runtime-lib.ts";
 import { requireAcceptance, requireReadiness, requireReview } from "./delivery-lifecycle.ts";
+import { changeMustPassFiles, loadPolicy, scanBannedWords, verifyPlainLanguage } from "./plain-language.ts";
 
 // 本仓只有 delivery 一种模式。rehearsal 演练模式已随 change-mode.json 一并退场
 // （全历史零实例）；默认值在这里显式写死，不再从文件解析。
@@ -339,7 +340,9 @@ function guard(root: string, operation: string, options: Map<string, string> = n
   parseInfo(infoPath(root)); const approvals = parseApprovals(approvalsPath(root), root); const requiredBeforeAcceptance = requiredBeforeAcceptanceFor(root);
   if (operation === "apply") { requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); }
   else if (operation === "acceptance") { requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); if (state.tasks.some((task) => task.state !== "verified")) fail("验收前全部任务必须 verified"); requireReview(root); }
-  else if (operation === "release") { guard(root, "acceptance", options); requireAcceptance(root); }
+  // 说人话关的关口设在归档之前：本仓的「发出」就是开 PR，而 PR 在归档之后才创建。
+  // 放在验收门之前会拦住验收记录自己（它要先写出来才能被审读），放在归档之后就来不及了。
+  else if (operation === "release") { guard(root, "acceptance", options); requireAcceptance(root); verifyPlainLanguage(root, runtimeRootFor(options)); }
   else if (operation === "verify") { requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); verifyDeclaredScope(root, options); }
   else if (operation === "sync") { requireAcceptance(root); }
   else if (operation === "archive") { guard(root, "release", options); requireReadiness(root); }
@@ -347,5 +350,36 @@ function guard(root: string, operation: string, options: Map<string, string> = n
   console.log(JSON.stringify({ allowed: true, operation, mode }, null, 2));
 }
 function adapterInspect(options: Map<string, string>): void { const registry = object(readJson(requiredOption(options, "registry")), "source-adapters"); exactKeys(registry, ["schemaVersion", "adapters"], ["schemaVersion", "adapters"], "source-adapters"); if (registry.schemaVersion !== 1 || !Array.isArray(registry.adapters)) fail("source-adapters合同非法"); const ids = new Set<string>(); for (const [index, value] of registry.adapters.entries()) { const adapter = object(value, `adapters[${index}]`); exactKeys(adapter, ["id", "command", "trustDomain", "kinds"], ["id", "command", "trustDomain", "kinds"], `adapters[${index}]`); const id = text(adapter.id, `adapters[${index}].id`); if (ids.has(id)) fail(`重复adapter id: ${id}`); ids.add(id); const command = text(adapter.command, `adapters[${index}].command`); if (isAbsolute(command) || command.split(/[\\/]/).includes("..")) fail(`adapter command越界: ${command}`); const domain = text(adapter.trustDomain, `adapters[${index}].trustDomain`); if (domain !== "work" && domain !== "private") fail("adapter trustDomain非法"); stringArray(adapter.kinds, `adapters[${index}].kinds`); } console.log(JSON.stringify(registry, null, 2)); }
-function main(): void { const parsed = parseArgs(process.argv.slice(2)); const root = resolve(requiredOption(parsed.options, "change-root")); const [command, action] = parsed.positional; if (command === "init") init(root, parsed.options); else if (command === "inspect") inspect(root); else if (command === "approval" && action === "inspect") approvalsInspect(root); else if (command === "approval" && action === "set") approvalSet(root, parsed.options); else if (command === "task" && action === "inspect") { const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); console.log(JSON.stringify(state, null, 2)); } else if (command === "task" && action === "write") taskWrite(root, parsed.options); else if (command === "task" && action === "set") taskSet(root, parsed.options); else if (command === "task" && action === "render") renderTasks(root); else if (command === "adapter" && action === "inspect") adapterInspect(parsed.options); else if (command === "runtime-check") console.log(JSON.stringify({ allowed: true, runtime: "delivery-spec-runtime", schema: "delivery-change" }, null, 2)); else if (command === "guard") guard(root, requiredOption(parsed.options, "operation"), parsed.options); else fail("未知delivery-control命令"); }
+/**
+ * 说人话关的命令行入口。放在这里而不是 plain-language.ts 里，是因为那份文件是库模块——
+ * 入口模块不得导出需要被断言的纯判据函数，判据和入口必须分开住。
+ *
+ * `check` 跑完整判定（必过文件都有审读记录、没有挂着的意见、没有禁词）；
+ * `scan` 只扫禁词，用于 PR 正文这类没有落盘位置、机器扫不到的文字：把草稿写成文件喂进来。
+ */
+function plainLanguage(root: string, options: Map<string, string>, action: string | undefined): void {
+  const runtime = runtimeRootFor(options);
+  if (action === undefined || action === "check") {
+    const result = verifyPlainLanguage(root, runtime);
+    console.log(JSON.stringify({ allowed: true, ...result }, null, 2));
+    return;
+  }
+  if (action === "scan") {
+    const policy = loadPolicy(runtime);
+    const file = requiredOption(options, "file");
+    const target = resolve(file);
+    if (!existsSync(target)) fail(`待扫描文件不存在: ${file}`);
+    const hits = scanBannedWords(dirname(target), [basename(target)], policy);
+    if (hits.length) fail(`人读文字里出现了禁词：\n  ${hits.map((hit) => `${file}:${hit.line} 「${hit.word}」→ 改用「${hit.replacement}」`).join("\n  ")}`);
+    console.log(JSON.stringify({ allowed: true, file, bannedWords: policy.bannedWords.map((item) => item.word) }, null, 2));
+    return;
+  }
+  if (action === "inspect") {
+    const policy = loadPolicy(runtime);
+    console.log(JSON.stringify({ policyVersion: policy.policyVersion, mustPassInChange: changeMustPassFiles(root, policy), repoMustPass: policy.repoMustPass, manualMustPass: policy.manualMustPass, bannedWords: policy.bannedWords }, null, 2));
+    return;
+  }
+  fail("plain-language 的动作必须是 check、scan 或 inspect");
+}
+function main(): void { const parsed = parseArgs(process.argv.slice(2)); const root = resolve(requiredOption(parsed.options, "change-root")); const [command, action] = parsed.positional; if (command === "init") init(root, parsed.options); else if (command === "plain-language") plainLanguage(root, parsed.options, action); else if (command === "inspect") inspect(root); else if (command === "approval" && action === "inspect") approvalsInspect(root); else if (command === "approval" && action === "set") approvalSet(root, parsed.options); else if (command === "task" && action === "inspect") { const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); console.log(JSON.stringify(state, null, 2)); } else if (command === "task" && action === "write") taskWrite(root, parsed.options); else if (command === "task" && action === "set") taskSet(root, parsed.options); else if (command === "task" && action === "render") renderTasks(root); else if (command === "adapter" && action === "inspect") adapterInspect(parsed.options); else if (command === "runtime-check") console.log(JSON.stringify({ allowed: true, runtime: "delivery-spec-runtime", schema: "delivery-change" }, null, 2)); else if (command === "guard") guard(root, requiredOption(parsed.options, "operation"), parsed.options); else fail("未知delivery-control命令"); }
 try { main(); } catch (error) { console.error((error as Error).message); process.exitCode = 1; }

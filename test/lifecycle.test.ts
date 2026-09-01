@@ -33,6 +33,15 @@ function prepareChange(repo: string): { change: string; baseline: string; review
   };
   for (const [path, content] of Object.entries(files)) write(join(change, path), content);
   write(join(change, "task-state.json"), `${JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "verified", deliverables: ["src/app.ts"], verification: ["node --test"], evidence: ["PASS"], blocker: null }] }, null, 2)}\n`);
+  // 说人话关在归档前的门禁上生效，所以这个能走到归档的 fixture 必须带审读记录。
+  // 它同时是这道关的正向对照：记录齐备、没有挂着的意见时，归档照常放行。
+  write(join(change, "readability-review.json"), `${JSON.stringify({
+    schemaVersion: 1,
+    reviews: [
+      { target: "specs/example/spec.md", reviewedAt: "2026-08-30T11:00:00Z", reviewer: "无本仓上下文的空白会话", findings: [] },
+      { target: "08-验收/验收记录.md", reviewedAt: "2026-08-30T11:00:00Z", reviewer: "无本仓上下文的空白会话", findings: [{ id: "RD-001", quote: "结论：PASS", issue: "PASS 是什么意思", status: "ACCEPTED", resolution: "通用词，保留" }] },
+    ],
+  }, null, 2)}\n`);
   let result = runTool("delivery-control.ts", ["init", "--change-root", change, "--slug", "demo-change", "--display-name", "演示", "--mode", "delivery"], { cwd: repo }); assert.equal(result.status, 0, result.stderr);
   for (const artifact of artifacts) { result = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", artifact, "--decision", "approved", "--approved-by", "tester"], { cwd: repo }); assert.equal(result.status, 0, result.stderr); }
   write(join(repo, "src/app.ts"), "export const value = 1;\n");

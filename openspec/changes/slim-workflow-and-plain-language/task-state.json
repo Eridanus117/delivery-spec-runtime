@@ -3,7 +3,7 @@
   "tasks": [
     {
       "id": "1.1",
-      "state": "planned",
+      "state": "implemented_unverified",
       "deliverables": [
         "openspec/profiles/plain-language-v1.json",
         "openspec/contracts/plain-language.schema.json",
