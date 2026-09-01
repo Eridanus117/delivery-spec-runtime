@@ -18,7 +18,7 @@ import { createArtifactTree, runTool, runtimeRoot, removeOptions } from "./helpe
 const profilePath = join(runtimeRoot, "openspec/profiles/delivery-change-v1.json");
 const proposal = "# 方案提案\n## 候选 A：简单\n## 候选 B：严格\n## Trade-off 矩阵\n## 推荐\n## 未决问题\n";
 const approvedDecision = "# 方案决策\n- 状态：APPROVED\n- 选择：B\n- 决策人：maintainer\n- 决策时间：2026-08-30\n## 接受的后果\n## 拒绝方案\n";
-const artifacts = ["raw-requirements", "specs", "current-state", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"];
+const artifacts = ["raw-requirements", "specs", "solution-proposal", "solution-decision", "test-plan", "tasks"];
 const deltaSpec = "openspec/changes/demo-change/specs/example/spec.md";
 const mainSpec = "openspec/specs/example/spec.md";
 

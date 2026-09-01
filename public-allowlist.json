@@ -61,8 +61,6 @@
     "openspec/profiles/registry.json",
     "openspec/schemas/delivery-change/schema.yaml",
     "openspec/schemas/delivery-change/templates/acceptance.md",
-    "openspec/schemas/delivery-change/templates/change-plan.md",
-    "openspec/schemas/delivery-change/templates/current-state.md",
     "openspec/schemas/delivery-change/templates/raw-requirements.md",
     "openspec/schemas/delivery-change/templates/release-plan.md",
     "openspec/schemas/delivery-change/templates/solution-decision.md",

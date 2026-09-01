@@ -14,7 +14,7 @@ const artifactFiles: Record<string, string> = {
   "07-实施任务/实施任务.md": "# 实施任务\n- [ ] 1.1 [planned] 完成演示\n- [ ] 9.9 [planned] 已删除任务\n  - 交付物：obsolete\n",
   "specs/example/spec.md": "## ADDED Requirements\n",
 };
-const artifacts = ["raw-requirements", "specs", "current-state", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"];
+const artifacts = ["raw-requirements", "specs", "solution-proposal", "solution-decision", "test-plan", "tasks"];
 test("严格来源、批准失效、任务状态和投影合同", () => {
   const root = mkdtempSync(join(tmpdir(), "delivery-control-"));
   try {
@@ -70,14 +70,22 @@ test("严格来源、批准失效、任务状态和投影合同", () => {
     result = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", "tasks", "--decision", "approved", "--approved-by", "tester"]); assert.equal(result.status, 0, result.stderr);
     result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "acceptance"]); assert.notEqual(result.status, 0); assert.match(result.stderr, /implementation-review/);
     // VC-024：update snapshot / diagnose 两个命令随 .delivery-update-snapshot.json 概念一并移除。
-    const updatePaths = join(root, "update-paths.json"); writeFileSync(updatePaths, JSON.stringify(["05-改造方案/改造方案.md"]));
+    const updatePaths = join(root, "update-paths.json"); writeFileSync(updatePaths, JSON.stringify(["05-改造方案/方案提案.md"]));
     for (const args of [["update", "snapshot", "--paths-file", updatePaths], ["update", "diagnose"]]) {
       result = runTool("delivery-control.ts", [args[0], args[1], "--change-root", change, ...args.slice(2)]);
       assert.notEqual(result.status, 0); assert.match(result.stderr, /未知delivery-control命令/);
     }
     assert.equal(existsSync(join(change, ".delivery-update-snapshot.json")), false);
     // 批准新鲜度不依赖 snapshot：工件事后改动仍然直接使批准 stale。
-    writeFileSync(join(change, "05-改造方案/改造方案.md"), "changed plan\n"); result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]); assert.notEqual(result.status, 0); assert.match(result.stderr, /change-plan 批准状态为 stale/);
+    // v7 起 03-现状/现状.md 与 05-改造方案/改造方案.md 仍留在这个 fixture 的磁盘上，
+    // 但它们已不是工件，改动它们不影响任何批准——这正是「合并后旧文件不再参与门禁」的现场。
+    writeFileSync(join(change, "03-现状/现状.md"), "current drifted\n");
+    result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
+    assert.equal(result.status, 0, `已合并的旧文件不应再影响门禁: ${result.stderr}`);
+    // 批准新鲜度不依赖 snapshot：真正的工件事后改动仍然直接使批准 stale。
+    writeFileSync(join(change, "05-改造方案/方案提案.md"), `${artifactFiles["05-改造方案/方案提案.md"]}事后追加\n`);
+    result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
+    assert.notEqual(result.status, 0); assert.match(result.stderr, /solution-proposal 批准状态为 stale/);
     const infoPath = join(change, "change-info.json"); const info = JSON.parse(readFileSync(infoPath, "utf8")); info.unknown = true; writeFileSync(infoPath, JSON.stringify(info)); result = runTool("delivery-control.ts", ["inspect", "--change-root", change]); assert.notEqual(result.status, 0); assert.match(result.stderr, /未知字段 unknown/);
   } finally { rmSync(root, removeOptions); }
 });

@@ -92,7 +92,7 @@
     },
     {
       "id": "6.1",
-      "state": "planned",
+      "state": "implemented_unverified",
       "deliverables": [
         "schema.yaml 升到第 7 版",
         "solution-proposal 模板并入现状章节",

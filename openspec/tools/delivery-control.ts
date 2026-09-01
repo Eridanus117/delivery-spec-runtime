@@ -50,6 +50,19 @@ const v5ArtifactPaths: Record<string, string[]> = {
   "test-plan": ["06-测试方案/测试方案.md"],
   tasks: ["07-实施任务/实施任务.md"],
 };
+// v7 起再合两份：现状并进方案提案（现状本来就是提案的事实依据），改造方案并进实施任务
+// （两者同在方案决策之后产生、同是写给实施者看的）。测试方案不并——它的编号被任务表与
+// 验收覆盖表逐条回引，删了会断链。合并只减少工件数，不减少任何一项校验：合并后那份文件的
+// 内容哈希涵盖原来两份的全部内容。
+const v7ArtifactPaths: Record<string, string[]> = {
+  "raw-requirements": ["01-原始需求/原始需求索引.md"],
+  specs: ["specs"],
+  "solution-proposal": ["05-改造方案/方案提案.md"],
+  "solution-decision": ["05-改造方案/方案决策.md"],
+  "test-plan": ["06-测试方案/000-测试方案索引.md"],
+  tasks: ["07-实施任务/实施任务.md"],
+};
+const currentDeliverySchemaVersion = 7;
 function artifactPathsFor(root: string): Record<string, string[]> {
   // 优先用 change-info.json 的显式标记判版本：靠「03-现状/现状.md 是否存在」推断，
   // 会让一个新建的 v6 Change 在写出该文件之前被判成 v5，报错文案还会要求已经不存在的模板。
@@ -57,7 +70,7 @@ function artifactPathsFor(root: string): Record<string, string[]> {
   try {
     const value = object(readJson(infoPath(root)), "change-info");
     const declared = value.deliverySchemaVersion;
-    if (typeof declared === "number") return declared >= 6 ? v6ArtifactPaths : v5ArtifactPaths;
+    if (typeof declared === "number") return declared >= 7 ? v7ArtifactPaths : declared >= 6 ? v6ArtifactPaths : v5ArtifactPaths;
   } catch {}
   return existsSync(join(root, currentStatePath)) ? v6ArtifactPaths : v5ArtifactPaths;
 }
@@ -225,7 +238,7 @@ function init(root: string, options: Map<string, string>): void {
   if (existsSync(infoPath(root))) fail("Change 已初始化"); const slug = requiredOption(options, "slug"); if (slug !== slugFor(root)) fail("--slug 必须等于Change目录名");
   const requestedMode = options.get("mode") ?? mode; if (requestedMode !== mode) fail(`--mode 只能是 ${mode}：rehearsal 演练模式已随 change-mode.json 一并移除，如需演练模式须重新立法`);
   // 新建 Change 一律显式标记为当前 schema 版本，使版本判别不再依赖目录形状推断。
-  const info = { schemaVersion: 1, displayName: requiredOption(options, "display-name"), deliverySchemaVersion: 6 };
+  const info = { schemaVersion: 1, displayName: requiredOption(options, "display-name"), deliverySchemaVersion: currentDeliverySchemaVersion };
   withFileLock(lockPath(root), () => { atomicWriteJson(infoPath(root), info); atomicWriteJson(approvalsPath(root), { schemaVersion: 1, artifacts: {} }); });
   parseInfo(infoPath(root)); console.log(JSON.stringify({ slug, displayName: info.displayName, mode }, null, 2));
 }
@@ -244,18 +257,34 @@ function taskWrite(root: string, options: Map<string, string>): void { const fil
 function taskSet(root: string, options: Map<string, string>): void {
   withFileLock(lockPath(root), () => { const state = parseTasks(tasksPath(root)); const task = state.tasks.find((item) => item.id === requiredOption(options, "id")); if (!task) fail("未知 task id"); const next = requiredOption(options, "state"); if (!( ["planned", "implemented_unverified", "blocked_external", "verified"] as string[]).includes(next)) fail("任务状态非法"); task.state = next as TaskStateName; task.evidence = options.has("evidence") ? [requiredOption(options, "evidence")] : []; task.blocker = options.has("blocker") ? requiredOption(options, "blocker") : null; parseTask(task, 0); validateEvidence(root, task.evidence, `tasks[${task.id}]`); atomicWriteJson(tasksPath(root), state); console.log(JSON.stringify(state, null, 2)); });
 }
+/**
+ * 任务清单渲染。
+ *
+ * 第 7 版起「实施切片、迁移与回滚」并进了这份文件，而那一节是人写的、不参与渲染。
+ * 所以渲染不再整份覆盖：以 `## 任务清单` 这一行为界，界线以上原样保留，界线以下重新生成。
+ * 文件里没有这条界线时（存量 Change 都没有）行为与从前逐字节一致——整份覆盖。
+ *
+ * 状态真源仍然只有 task-state.json 一处；这里保留的是人写的说明，不是状态。
+ */
+const taskListHeading = "## 任务清单";
 function renderTasks(root: string): void {
   const state = parseTasks(tasksPath(root));
-  let content = "# 实现任务拆分\n\n> 状态真源：`task-state.json`。本文件由 `delivery-control.ts task render` 生成，只用于人工审阅；禁止反向解析复选框。\n";
+  let list = "";
   for (const task of state.tasks) {
-    content += `\n- [${task.state === "verified" ? "x" : " "}] ${task.id} [${task.state}]\n`;
-    content += `  - 交付物：${task.deliverables.join("；")}\n`;
-    content += `  - 验证：${task.verification.join("；")}`;
+    list += `\n- [${task.state === "verified" ? "x" : " "}] ${task.id} [${task.state}]\n`;
+    list += `  - 交付物：${task.deliverables.join("；")}\n`;
+    list += `  - 验证：${task.verification.join("；")}`;
   }
-  writeFileSync(taskMarkdownPath(root), `${content.replace(/\n+$/, "")}\n`, "utf8");
+  const existing = existsSync(taskMarkdownPath(root)) ? readFileSync(taskMarkdownPath(root), "utf8") : "";
+  const boundary = existing.indexOf(taskListHeading);
+  const content = boundary >= 0
+    ? `${existing.slice(0, boundary)}${taskListHeading}\n${list.replace(/\n+$/, "")}\n`
+    : `# 实现任务拆分\n\n> 状态真源：\`task-state.json\`。本文件由 \`delivery-control.ts task render\` 生成，只用于人工审阅；禁止反向解析复选框。\n${list.replace(/\n+$/, "")}\n`;
+  writeFileSync(taskMarkdownPath(root), content, "utf8");
   verifyTaskProjection(root, state);
   console.log(JSON.stringify({ path: taskMarkdownPath(root), tasks: state.tasks.length }, null, 2));
 }
+
 // ---- 声明与事实的交叉校验（REV-002）--------------------------------------
 // 登记时声明的 changeObject 是自报字段。只查表不核对，等于把豁免开关交回给调用方。
 // 这里按路由表的路径前缀表把「实际 git diff 触碰的路径」归类，与声明的档位序对照：

@@ -9,7 +9,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { resolveChangeDir, runTool, runtimeRoot, removeOptions } from "./helpers.ts";
 
 
-test("runtime manifest、八层schema与九个Commands一致", () => {
+test("runtime manifest、六层schema与九个Commands一致", () => {
   const manifest = JSON.parse(readFileSync(join(runtimeRoot, "runtime-manifest.json"), "utf8"));
   assert.equal(manifest.schemaVersion, 2);
   assert.equal(manifest.node.minimum, "22.6.0");
@@ -23,11 +23,13 @@ test("runtime manifest、八层schema与九个Commands一致", () => {
   ]);
   for (const item of manifest.submodule.links) assert.equal(existsSync(join(runtimeRoot, item.source)), true, item.source);
   const schema = readFileSync(join(runtimeRoot, "openspec/schemas/delivery-change/schema.yaml"), "utf8");
-  for (const path of ["01-原始需求", "02-需求理解", "03-现状", "05-改造方案", "06-测试方案", "07-实施任务", "08-验收", "09-发布"]) assert.match(schema, new RegExp(path));
+  // v7 起只剩六层：现状并进方案提案、改造方案并进实施任务。
+  for (const path of ["01-原始需求", "05-改造方案", "06-测试方案", "07-实施任务", "08-验收", "09-发布"]) assert.match(schema, new RegExp(path));
+  for (const gone of ["03-现状/现状.md", "05-改造方案/改造方案.md"]) assert.doesNotMatch(schema, new RegExp(gone.replace("/", "\/")), `已取消的工件仍在 schema 里: ${gone}`);
   assert.match(schema, /name: delivery-change/);
-  assert.match(schema, /version: 6/);
+  assert.match(schema, /version: 7/);
   assert.ok(schema.indexOf("id: solution-proposal") < schema.indexOf("id: solution-decision"));
-  assert.ok(schema.indexOf("id: solution-decision") < schema.indexOf("id: change-plan"));
+  assert.ok(schema.indexOf("id: solution-decision") < schema.indexOf("id: test-plan"));
   assert.match(schema, /`task-state\.json`/);
   const commands = readdirSync(join(runtimeRoot, ".omp/commands")).filter((name) => /^opsx-.*\.md$/.test(name)).sort();
   assert.deepEqual(commands, ["opsx-apply.md", "opsx-archive.md", "opsx-continue.md", "opsx-explore.md", "opsx-new.md", "opsx-propose.md", "opsx-sync.md", "opsx-update.md", "opsx-verify.md"]);
@@ -199,45 +201,83 @@ test("VC-027/VC-029 归档目录与旧结构 Change 不受 v6 与 evidence 新�
   }
 });
 
-test("VC-028 现状合并后门禁条目逐项可对应且一项不减", () => {
-  const v5Keys = ["raw-requirements", "specs", "business-current", "technical-current", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"];
+/**
+ * T-06 / VC-028：工件合并只减少工件数，不减少任何一项校验。
+ *
+ * 本仓合过两次。v6 把两份现状并成一份；v7 又把现状并进方案提案、改造方案并进实施任务，
+ * 只剩六份。每一次合并都必须满足同一条不变量：**合并后那份工件承接原先各份各自参与的
+ * 全部门禁与内容哈希**，一项都不能丢。存量 Change 按各自声明的版本解析，不迁移。
+ */
+test("VC-028/T-06 工件合并只减工件数不减校验，存量结构按各自版本解析", () => {
+  const proposalBody = "# 方案提案\n## 现状\n改造前长这样。\n## 候选 A：简单\n## 候选 B：严格\n## Trade-off 矩阵\n## 推荐\n## 未决问题\n";
+  const decisionBody = "# 方案决策\n- 状态：APPROVED\n- 选择：B\n- 决策人：tester\n- 决策时间：2026-09-01\n## 接受的后果\n## 拒绝方案\n";
   const root = mkdtempSync(join(tmpdir(), "delivery-merge-"));
   try {
     const change = join(root, "openspec/changes/demo-change");
-    for (const dir of ["01-原始需求", "03-现状", "05-改造方案", "06-测试方案", "07-实施任务", "specs/example"]) mkdirSync(join(change, dir), { recursive: true });
+    for (const dir of ["01-原始需求", "05-改造方案", "06-测试方案", "07-实施任务", "specs/example"]) mkdirSync(join(change, dir), { recursive: true });
     const files: Record<string, string> = {
-      "01-原始需求/原始需求索引.md": "raw\n", "03-现状/现状.md": "current\n",
-      "05-改造方案/方案提案.md": "# 方案提案\n## 候选 A：简单\n## 候选 B：严格\n## Trade-off 矩阵\n## 推荐\n## 未决问题\n",
-      "05-改造方案/方案决策.md": "# 方案决策\n- 状态：APPROVED\n- 选择：B\n- 决策人：tester\n- 决策时间：2026-08-30\n## 接受的后果\n## 拒绝方案\n",
-      "05-改造方案/改造方案.md": "plan\n", "06-测试方案/000-测试方案索引.md": "tests\n",
-      "07-实施任务/实施任务.md": "# 实施任务\n", "specs/example/spec.md": "## ADDED Requirements\n",
+      "01-原始需求/原始需求索引.md": "raw\n",
+      "05-改造方案/方案提案.md": proposalBody,
+      "05-改造方案/方案决策.md": decisionBody,
+      "06-测试方案/000-测试方案索引.md": "tests\n",
+      "07-实施任务/实施任务.md": "# 实施任务\n## 实施切片、迁移与回滚\n一片。\n## 任务清单\n",
+      "specs/example/spec.md": "## ADDED Requirements\n",
     };
     for (const [path, body] of Object.entries(files)) writeFileSync(join(change, path), body);
     assert.equal(runTool("delivery-control.ts", ["init", "--change-root", change, "--slug", "demo-change", "--display-name", "演示", "--mode", "delivery"]).status, 0);
+    // T-06.4：新建 Change 一律显式声明当前版本，版本判别不靠目录形状推断。
+    assert.equal(JSON.parse(readFileSync(join(change, "change-info.json"), "utf8")).deliverySchemaVersion, 7);
 
     const effective = JSON.parse(runTool("delivery-control.ts", ["approval", "inspect", "--change-root", change]).stdout).effective;
-    const v6Keys = Object.keys(effective);
-    // 门禁条目集合逐项可对应：v6 = v5 去掉两份现状、并入 current-state，其余一一对应，无遗漏。
-    const expected = v5Keys.filter((key) => key !== "business-current" && key !== "technical-current");
-    expected.splice(2, 0, "current-state");
-    assert.deepEqual(v6Keys, expected);
-    assert.deepEqual(v5Keys.filter((key) => !["business-current", "technical-current"].includes(key)).filter((key) => !v6Keys.includes(key)), []);
+    const v7Keys = Object.keys(effective);
+    // T-06.1：六份，且顺序与依赖顺序一致。
+    assert.deepEqual(v7Keys, ["raw-requirements", "specs", "solution-proposal", "solution-decision", "test-plan", "tasks"]);
+    // 被合并掉的那几项确实不在清单里了；没被合并的一项不少。
+    for (const merged of ["business-current", "technical-current", "current-state", "change-plan"]) {
+      assert.equal(v7Keys.includes(merged), false, `已合并的工件仍单列: ${merged}`);
+    }
+    for (const kept of ["raw-requirements", "specs", "solution-proposal", "solution-decision", "test-plan", "tasks"]) {
+      assert.equal(v7Keys.includes(kept), true, `未合并的工件丢了: ${kept}`);
+    }
 
-    // 合并后的 artifact 承接原两份各自参与的全部校验：先把除它以外的工件全部批准，
-    // 此时 apply 必须恰好卡在 current-state 上，证明它确实在门禁清单里。
-    assert.equal(effective["current-state"], "pending");
-    for (const artifact of v6Keys.filter((key) => key !== "current-state")) assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", artifact, "--decision", "approved", "--approved-by", "tester"]).status, 0);
+    // 承接校验：把除方案提案以外的全部批准，apply 必须恰好卡在方案提案上——证明它确实在门禁清单里。
+    for (const artifact of v7Keys.filter((key) => key !== "solution-proposal")) {
+      assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", artifact, "--decision", "approved", "--approved-by", "tester"]).status, 0);
+    }
     let guard = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
-    assert.notEqual(guard.status, 0); assert.match(guard.stderr, /current-state 批准状态为 pending/);
-    // 批准后放行；随后改动正文即 stale，说明 digest 计算确实接在该 artifact 上。
-    assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", "current-state", "--decision", "approved", "--approved-by", "tester"]).status, 0);
+    assert.notEqual(guard.status, 0);
+    assert.match(guard.stderr, /solution-proposal 批准状态为 pending/);
+    assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", "solution-proposal", "--decision", "approved", "--approved-by", "tester"]).status, 0);
     assert.equal(runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]).status, 0);
-    writeFileSync(join(change, "03-现状/现状.md"), "current drifted\n");
+
+    // 改动并进来的那一节（现状）同样让批准失效——说明内容哈希确实盖住了被合并的内容。
+    writeFileSync(join(change, "05-改造方案/方案提案.md"), proposalBody.replace("改造前长这样。", "改造前其实长那样。"));
     guard = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
-    assert.notEqual(guard.status, 0); assert.match(guard.stderr, /current-state 批准状态为 stale/);
-    // 旧工件名在 v6 结构下不再被接受，避免两套命名并存。
-    const stale = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", "business-current", "--decision", "approved", "--approved-by", "tester"]);
-    assert.notEqual(stale.status, 0); assert.match(stale.stderr, /批准参数非法/);
+    assert.notEqual(guard.status, 0);
+    assert.match(guard.stderr, /solution-proposal 批准状态为 stale/);
+    writeFileSync(join(change, "05-改造方案/方案提案.md"), proposalBody);
+
+    // 改动并进实施任务的那一节同样失效。
+    writeFileSync(join(change, "07-实施任务/实施任务.md"), files["07-实施任务/实施任务.md"].replace("一片。", "两片。"));
+    guard = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
+    assert.notEqual(guard.status, 0);
+    assert.match(guard.stderr, /tasks 批准状态为 stale/);
+
+    // T-06.2：旧工件名在新结构下一律不被接受，避免两套命名并存。
+    for (const legacy of ["current-state", "change-plan", "business-current"]) {
+      const stale = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", legacy, "--decision", "approved", "--approved-by", "tester"]);
+      assert.notEqual(stale.status, 0, `旧工件名仍被接受: ${legacy}`);
+    }
+
+    // T-06.3：存量结构按各自声明的版本解析，行为不变。
+    for (const [declared, expected] of [
+      [6, ["raw-requirements", "specs", "current-state", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"]],
+      [5, ["raw-requirements", "specs", "business-current", "technical-current", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"]],
+    ] as const) {
+      writeFileSync(join(change, "change-info.json"), JSON.stringify({ schemaVersion: 1, displayName: "演示", deliverySchemaVersion: declared }, null, 2));
+      const keys = Object.keys(JSON.parse(runTool("delivery-control.ts", ["approval", "inspect", "--change-root", change]).stdout).effective);
+      assert.deepEqual(keys, expected as unknown as string[], `声明第 ${declared} 版的 Change 未按该版解析`);
+    }
   } finally { rmSync(root, removeOptions); }
 });
 
@@ -591,4 +631,38 @@ test("T-02.2 samePath 是唯一能吸收软链的判据，它必须真的做 rea
   const lib = readFileSync(join(runtimeRoot, "openspec/tools/runtime-lib.ts"), "utf8");
   const body = lib.slice(lib.indexOf("export function samePath"));
   assert.match(body.slice(0, body.indexOf("\n}")), /realpath/i, "samePath 必须解析真实路径，否则所有双重身份模块的守卫都会在软链下失配");
+});
+
+/** T-06.5：合并后的模板必须真的带上承接来的那一节，否则「并进去」只是嘴上说说。 */
+test("T-06.5 第 7 版模板承接被合并的两节，且旧模板已不存在", () => {
+  const templates = join(runtimeRoot, "openspec/schemas/delivery-change/templates");
+  const proposal = readFileSync(join(templates, "solution-proposal.md"), "utf8");
+  assert.match(proposal, /^## 现状$/m, "方案提案模板缺少承接来的现状一节");
+  assert.match(proposal, /^## 落地后维护者能感知到的具体变化清单$/m, "方案提案模板缺少可感知变化清单");
+  const tasks = readFileSync(join(templates, "tasks.md"), "utf8");
+  assert.match(tasks, /^## 实施切片、迁移与回滚$/m, "实施任务模板缺少承接来的实施切片一节");
+  assert.match(tasks, /^## 任务清单$/m, "实施任务模板缺少渲染边界");
+  assert.match(tasks, /能不能再跑一遍/, "实施任务模板没有说清证据规则");
+  for (const gone of ["current-state.md", "change-plan.md"]) {
+    assert.equal(existsSync(join(templates, gone)), false, `已合并的模板仍然存在: ${gone}`);
+  }
+});
+
+/** 渲染以「任务清单」为界：界线以上人写的内容原样保留，界线以下由机器状态重生成。 */
+test("T-06.5 任务清单渲染保留人写的实施切片一节", () => {
+  const root = mkdtempSync(join(tmpdir(), "delivery-render-"));
+  try {
+    const change = join(root, "openspec/changes/demo-change");
+    mkdirSync(join(change, "07-实施任务"), { recursive: true });
+    writeFileSync(join(change, "change-info.json"), JSON.stringify({ schemaVersion: 1, displayName: "演示", deliverySchemaVersion: 7 }));
+    writeFileSync(join(change, "artifact-approvals.json"), JSON.stringify({ schemaVersion: 1, artifacts: {} }));
+    writeFileSync(join(change, "task-state.json"), JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "planned", deliverables: ["d"], verification: ["v"], evidence: [], blocker: null, replayable: true }] }));
+    const human = "# 实现任务拆分\n\n## 实施切片、迁移与回滚\n\n这一段是人写的，渲染不得动它。\n\n## 任务清单\n旧的渲染结果\n";
+    writeFileSync(join(change, "07-实施任务/实施任务.md"), human, "utf8");
+    assert.equal(runTool("delivery-control.ts", ["task", "render", "--change-root", change]).status, 0);
+    const rendered = readFileSync(join(change, "07-实施任务/实施任务.md"), "utf8");
+    assert.match(rendered, /这一段是人写的，渲染不得动它。/, "渲染把人写的一节冲掉了");
+    assert.doesNotMatch(rendered, /旧的渲染结果/, "界线以下没有被重新生成");
+    assert.match(rendered, /- \[ \] 1\.1 \[planned\]/);
+  } finally { rmSync(root, removeOptions); }
 });
