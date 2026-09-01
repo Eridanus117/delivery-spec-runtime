@@ -1,11 +1,11 @@
 ---
 schemaVersion: 1
 id: INT-20260901-023-repo-suited-workflow
-state: captured
+state: promoted
 phase: capture
 source: maintainer-direction
 capturedAt: 2026-09-01
-promotedTo: null
+promotedTo: slim-workflow-and-plain-language
 changeObject: governance-contract
 ---
 
@@ -199,11 +199,19 @@ changeObject: governance-contract
    现在任何命令都不会再写入这个状态。
 3. **第 42 行**要求「存在 Issue 时在 intake 中记录 URL」，**而机器根本不让存**：敏感内容检查里有
    一条规则，把「单个字母 + 冒号 + 斜杠」的形式一律当成 Windows 盘符绝对路径拦下（本意是防止把
-   本机路径写进这个公开仓库）。网址里的 `s://` 恰好就是这个形式，于是**任何网址都会被一并拦下**。
+   本机路径写进这个公开仓库）。网址里协议名的最后一个字母加上后面的冒号斜杠，恰好就是这个形式，
+   于是**任何网址都会被一并拦下**。
 
 **本轮实测确认了第 3 条**：把一个以 h-t-t-p-s 开头的网址喂给那条规则，它返回「命中」。
 （这里把 h-t-t-p-s 拆成字母写，不是排版失误——**正是为了让这份台账自己能存进去**：写成完整形式
 就会被同一条规则拦掉。这个细节本身就是问题的现场演示。）
+
+> **2026-09-01 立项时又撞了一次，这次是真的挡住了流程。** 上面这段原本写着协议名后半截那五个
+> 字符的字面形式，结果 `intake promote` 的敏感内容检查当场命中、立项被拒——**一份记录该缺陷的
+> 台账，被它记录的那条缺陷挡在了流水线外面**。处置是把那五个字符改成文字描述（就是现在这句）。
+> 顺带暴露出一件更值得记的事：`promote` 自称「写入任何状态之前完成全部判定，任一不满足即两侧
+> 文件逐字节不变」，但这次拒绝发生时，目标 Change 的原始需求索引已经被追加了来源行，只有台账
+> 这一侧没写——**两侧不是逐字节不变，判定顺序与自述不符**。已作为一条待处置缺陷进入本 Change。
 
 三条合起来印证信号7 的通则：要求写在文档里没用，写在机器里才算数；**而两边写反了的时候，机器赢**
 ——带链接的台账条目至今存不进去，而文档还在要求你写链接。
@@ -447,3 +455,4 @@ changeObject: governance-contract
 - 2026-09-01T07:43:47.487Z captured
 - 2026-09-01 分析线第二单跑通（capture → clarify → discover → evaluate 四站完成），停在决定站
   `blocked`，缺「决策报告」与「处置结论」——按维护者指示留给他在门口裁断，agent 不代填。
+- 2026-09-01T16:18:23.678Z promoted to slim-workflow-and-plain-language（交付档位 delivery-change，改动对象 governance-contract）

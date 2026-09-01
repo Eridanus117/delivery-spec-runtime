@@ -270,7 +270,9 @@ test("VC-039 早期目录归档后 active Change 只剩两个", () => {
   // 曾在此登记，当日归档后再次移除：一建一归两次改动，都只是这条快照的记账。
   // 该断言形态是否改为真正的不变量（两个早期目录不在 active），已记录在
   // INT-20260831-014 信号9 与 INT-20260901-023，随工作流重设计裁定。
-  assert.deepEqual(active, ["establish-runtime-metrics-baseline"]);
+  // **第三次记账（2026-09-01）**：slim-workflow-and-plain-language 建立时在此登记。
+  // 这次撞红没有暴露任何真问题，只是又一次为快照缴费——正是它自己要处置的那条缺陷的现场。
+  assert.deepEqual(active, ["establish-runtime-metrics-baseline", "slim-workflow-and-plain-language"]);
   // 两个早期目录确实落到了 archive 且带处置记录。
   for (const name of ["2026-09-01-establish-intake-inventory", "2026-09-01-establish-workflow-v01-contract"]) {
     const archived = join(runtimeRoot, "openspec/changes/archive", name);
