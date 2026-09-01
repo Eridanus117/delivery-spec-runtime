@@ -15,8 +15,11 @@ import {
   type WorkflowResult,
 } from "./workflow-core.ts";
 
-export const analysisBindingName = "workflow-binding.json";
-export const analysisResultName = "workflow-result.json";
+// 无人 import 本模块：这两个常量此前带 export，但仓内没有任何 import 方（intake-control 各自持有
+// 一份同值常量）。去掉 export 是为了让本文件落进「纯入口」这一类——纯入口不导出任何符号，
+// 也就不需要那道会被软链判错的执行守卫。
+const analysisBindingName = "workflow-binding.json";
+const analysisResultName = "workflow-result.json";
 
 function runtimeRoot(options: Map<string, string>): string {
   return resolve(options.get("runtime-root") ?? ".");

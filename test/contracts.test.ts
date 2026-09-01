@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { checkIgnoreIncomplete } from "../openspec/tools/runtime-lib.ts";
-import { validateReport } from "../openspec/tools/openspec-upgrade.ts";
+import { validateReport } from "../openspec/tools/upgrade-report.ts";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
@@ -522,4 +522,73 @@ test("T-GUARD-3 两个工具经软链路径调用时行为与真实路径一致"
     // rmSync 对 junction 走 unlink 而不递归进目标，实测不会波及被链接的仓库。
     rmSync(root, removeOptions);
   }
+});
+
+/**
+ * T-02.1/T-02.2（REV-008 通用化，INT-20260901-024 收口）
+ *
+ * 「只有被直接运行时才执行 main()」这类守卫的判据是路径比较，在路径中任意一段是软链或
+ * junction 时必然为假——ESM 主模块走 realpath，argv[1] 保留调用时的写法，两者不等。
+ * 后果不是报错，是进程以退出码 0、零输出静默结束，本应被拒的东西被放行。
+ *
+ * 本断言不再逐个点名文件，而是把 openspec/tools 下的模块按「有没有 main()、有没有导出」
+ * 自动分成三类，逐类施加规则。新加一个入口模块时不需要改这条断言，它自动被覆盖——
+ * 这正是「不变量断言」与「点时快照断言」的差别。
+ */
+test("T-02.1/T-02.2 入口模块一律无条件执行 main()，判据函数不住在入口里", () => {
+  const toolsDir = join(runtimeRoot, "openspec/tools");
+  const stripComments = (source: string) => source.replace(/^\s*\/\/.*$/gm, "").replace(/^\s*\*.*$/gm, "");
+  const pureEntries: string[] = [];
+  const dualRole: string[] = [];
+  const libraries: string[] = [];
+  for (const name of readdirSync(toolsDir).filter((item) => item.endsWith(".ts")).sort()) {
+    const source = readFileSync(join(toolsDir, name), "utf8");
+    const code = stripComments(source);
+    const invokesMain = /\bmain\(\);/.test(code);
+    const exportsSymbols = /^export /m.test(code);
+    if (!invokesMain) { libraries.push(name); continue; }
+    (exportsSymbols ? dualRole : pureEntries).push(name);
+
+    if (!exportsSymbols) {
+      // 纯入口：不导出任何东西，也就没有任何 import 方，守卫失去全部存在理由。
+      // 无条件执行：文件末尾那段调用 main() 的代码必须是一个裸 try，里面不得有任何条件判断。
+      // 不钉具体写法（单行还是多行），只钉「没有条件」这个不变量。
+      const tailIndex = code.lastIndexOf("\ntry");
+      assert.ok(tailIndex >= 0, `${name}: 找不到调用 main() 的收尾代码`);
+      const tail = code.slice(tailIndex);
+      assert.ok(tail.includes("main();"), `${name}: 收尾代码没有调用 main()`);
+      assert.ok(!tail.includes("if ("), `${name}: main() 的调用被条件包住了，入口必须无条件执行`);
+      assert.doesNotMatch(code, /import\.meta\.filename/, `${name}: 入口不得出现 import.meta.filename 守卫`);
+      assert.doesNotMatch(code, /process\.argv\[1\]/, `${name}: 入口不得按 argv[1] 决定是否执行 main`);
+    } else {
+      // 双重身份（既是入口又被别人 import）：守卫不能删，但判据必须能吸收软链，
+      // 也就是两侧都过 realpath 之后再比。行为侧的对照在 T-GUARD-3。
+      assert.ok(code.includes("samePath(process.argv[1]"), `${name}: 既是入口又被 import，其执行守卫必须走 samePath 这一个能吸收软链的判据`);
+      assert.ok(!code.includes("resolve(process.argv[1]) ==="), `${name}: 不得用原样字符串比较作为执行守卫`);
+    }
+  }
+  // 三类都不为空，否则说明分类逻辑本身失效了（比如正则没匹配上任何文件）。
+  assert.ok(pureEntries.length > 0 && dualRole.length > 0 && libraries.length > 0, `分类失效: ${JSON.stringify({ pureEntries, dualRole, libraries })}`);
+  // 升级报告的判据必须已经搬出入口：它是本轮收口的那一处。
+  assert.ok(libraries.includes("upgrade-report.ts"), "升级报告的判据必须住在库模块里");
+  assert.ok(pureEntries.includes("openspec-upgrade.ts"), "openspec-upgrade.ts 必须已成为不导出任何符号的纯入口");
+});
+
+/** T-02.3：判据换了住处之后仍然是同一份判据——搬家不得把校验弄丢。 */
+test("T-02.3 升级报告校验搬进库模块后仍拒绝残缺报告", () => {
+  const archived = join(runtimeRoot, "openspec/changes/archive/2026-08-30-establish-controlled-openspec-upgrades/08-验收/runs/20260830T1151Z-upgrade-final/upgrade-evaluation/upgrade-report.json");
+  const report = JSON.parse(readFileSync(archived, "utf8")) as Record<string, unknown>;
+  validateReport(report);
+  for (const key of ["schemaVersion", "consumers", "result"]) {
+    const broken = { ...report };
+    delete broken[key];
+    assert.throws(() => validateReport(broken), new RegExp(""), `删掉 ${key} 之后校验竟然通过`);
+  }
+});
+
+/** 双重身份模块的守卫全靠 samePath 一处吸收软链，所以它自己必须真的过 realpath。 */
+test("T-02.2 samePath 是唯一能吸收软链的判据，它必须真的做 realpath", () => {
+  const lib = readFileSync(join(runtimeRoot, "openspec/tools/runtime-lib.ts"), "utf8");
+  const body = lib.slice(lib.indexOf("export function samePath"));
+  assert.match(body.slice(0, body.indexOf("\n}")), /realpath/i, "samePath 必须解析真实路径，否则所有双重身份模块的守卫都会在软链下失配");
 });

@@ -84,6 +84,7 @@
     "openspec/tools/intake-control.ts",
     "openspec/tools/runtime-lib.ts",
     "openspec/tools/plain-language.ts",
+    "openspec/tools/upgrade-report.ts",
     "openspec/tools/workflow-control.ts",
     "openspec/tools/workflow-entry.ts",
     "openspec/tools/workflow-core.ts",

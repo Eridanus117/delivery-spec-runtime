@@ -24,7 +24,7 @@
     },
     {
       "id": "2.1",
-      "state": "planned",
+      "state": "implemented_unverified",
       "deliverables": [
         "openspec/tools/upgrade-report.ts（把报告校验函数挪出入口模块）",
         "openspec/tools/openspec-upgrade.ts 去掉路径比较守卫且不再导出符号",
