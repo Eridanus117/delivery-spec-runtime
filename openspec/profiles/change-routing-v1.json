@@ -78,8 +78,8 @@
     },
     {
       "changeObject": "ledger-only",
-      "displayName": "纯台账",
-      "description": "只在 openspec/intake/** 内增删改条目本身，不产生任何 Change 目录与代码改动。",
+      "displayName": "纯事项记录",
+      "description": "只在 openspec/intake/** 内增删改事项记录本身，不产生任何 Change 目录与代码改动。",
       "profileId": "light-change",
       "requiresAnalysis": false,
       "rank": 0,
@@ -87,7 +87,7 @@
       "pathPrefixes": [
         "openspec/intake/"
       ],
-      "reason": "台账条目就是分析线的输入，要求它先跑一遍分析线会形成自指循环；条目写错的代价只是台账不整洁，可直接改。因其定义自述「不产生任何 Change 目录」，它与 promote（恰恰就是产生 Change 的操作）自相矛盾，故 promotable 为 false：这类条目只能 hold 或 close，要立项就必须先改声明并因此落入需要分析线的档位。"
+      "reason": "事项记录就是分析线的输入，要求它先跑一遍分析线会形成自指循环；条目写错的代价只是事项记录不整洁，可直接改。因其定义自述「不产生任何 Change 目录」，它与 promote（恰恰就是产生 Change 的操作）自相矛盾，故 promotable 为 false：这类条目只能 hold 或 close，要立项就必须先改声明并因此落入需要分析线的档位。"
     }
   ]
 }

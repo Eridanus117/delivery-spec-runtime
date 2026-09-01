@@ -25,6 +25,7 @@ export type PlainLanguagePolicy = {
   mustPass: MustPassEntry[];
   repoMustPass: MustPassEntry[];
   manualMustPass: Array<{ id: string; displayName: string; reason: string }>;
+  exempt: MustPassEntry[];
   bannedWords: BannedWord[];
 };
 export type Finding = { id: string; quote: string; issue: string; status: "RESOLVED" | "ACCEPTED" | "OPEN"; resolution: string | null };
@@ -93,6 +94,7 @@ export function loadPolicy(runtimeRoot: string): PlainLanguagePolicy {
   return {
     policyVersion: text(value.policyVersion, "plain-language.policyVersion"),
     mustPass: entries(value.mustPass, "plain-language.mustPass", "changePathPatterns", 1),
+    exempt: entries(value.exempt, "plain-language.exempt", "changePathPatterns", 1),
     repoMustPass: entries(value.repoMustPass, "plain-language.repoMustPass", "repoPathPatterns", 1),
     manualMustPass: (value.manualMustPass as unknown[]).map((item, index) => {
       const record = object(item, `manualMustPass[${index}]`);
@@ -120,6 +122,18 @@ export function changeMustPassFiles(changeRoot: string, policy: PlainLanguagePol
   return all.filter((path) => patterns.some((pattern) => matchesPattern(path, pattern))).sort();
 }
 
+/**
+ * 两张清单都没命中的文件。**未归类不是过错，是清单的缺口**：机器如实报出、不拦流程，
+ * 处置方式是补清单。这条刻意不做成拒绝——把「清单没写全」的账算到这份文字头上，
+ * 只会让人为了过门去乱填清单。
+ */
+export function unclassifiedFiles(changeRoot: string, policy: PlainLanguagePolicy): string[] {
+  if (!existsSync(changeRoot)) return [];
+  const all: string[] = [];
+  walk(changeRoot, changeRoot, all);
+  const known = [...policy.mustPass, ...policy.exempt].flatMap((entry) => entry.patterns);
+  return all.filter((path) => !known.some((pattern) => matchesPattern(path, pattern))).sort();
+}
 /** 逐行扫禁词。返回命中而不是直接抛错，好让调用方一次报全所有命中，而不是改一个报一个。 */
 export function scanBannedWords(root: string, relativePaths: string[], policy: PlainLanguagePolicy): BannedHit[] {
   const hits: BannedHit[] = [];
@@ -169,7 +183,7 @@ export function parseReadabilityReviews(path: string): Review[] {
  * 这道关的收口判定，在归档前的门禁上调用——「发出」在本仓就是开 PR，所以关口设在归档前。
  * 三件事同时满足才放行：必过文件都有审读记录、没有挂着未处置的意见、人读文字里没有禁词。
  */
-export function verifyPlainLanguage(changeRoot: string, runtimeRoot: string): { checkedFiles: string[]; reviewedTargets: string[] } {
+export function verifyPlainLanguage(changeRoot: string, runtimeRoot: string): { checkedFiles: string[]; reviewedTargets: string[]; unclassified: string[] } {
   const policy = loadPolicy(runtimeRoot);
   const files = changeMustPassFiles(changeRoot, policy);
   const reviewPath = join(changeRoot, reviewFileName);
@@ -186,5 +200,5 @@ export function verifyPlainLanguage(changeRoot: string, runtimeRoot: string): { 
   if (hits.length) {
     fail(`说人话关拒绝：人读文字里出现了禁词（名单在 ${policyRelativePath}）：\n  ${hits.map((hit) => `${hit.path}:${hit.line} 「${hit.word}」→ 改用「${hit.replacement}」`).join("\n  ")}`);
   }
-  return { checkedFiles: files, reviewedTargets: [...reviewed].sort() };
+  return { checkedFiles: files, reviewedTargets: [...reviewed].sort(), unclassified: unclassifiedFiles(changeRoot, policy) };
 }

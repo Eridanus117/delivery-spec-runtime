@@ -6,13 +6,17 @@
     {
       "id": "acceptance-record",
       "displayName": "验收记录",
-      "changePathPatterns": ["08-验收/验收记录.md"],
+      "changePathPatterns": [
+        "08-验收/验收记录.md"
+      ],
       "reason": "验收记录是维护者在验收门要读的东西，也是事后唯一能复核当时结论的文字。"
     },
     {
       "id": "spec-delta",
       "displayName": "长期规范增量",
-      "changePathPatterns": ["specs/**/*.md"],
+      "changePathPatterns": [
+        "specs/**/*.md"
+      ],
       "reason": "长期规范会被合入 openspec/specs 并长期存在，读它的人不会有本次改动的上下文。"
     }
   ],
@@ -20,13 +24,18 @@
     {
       "id": "readme-and-docs",
       "displayName": "README 与说明文档",
-      "repoPathPatterns": ["README.md", "docs/**/*.md"],
+      "repoPathPatterns": [
+        "README.md",
+        "docs/**/*.md"
+      ],
       "reason": "说明文档的读者按定义就是不熟悉本仓的人。"
     },
     {
       "id": "long-term-specs",
       "displayName": "长期规范",
-      "repoPathPatterns": ["openspec/specs/**/*.md"],
+      "repoPathPatterns": [
+        "openspec/specs/**/*.md"
+      ],
       "reason": "同 spec-delta，合入之后依然要被没有上下文的人读。"
     }
   ],
@@ -46,11 +55,23 @@
     {
       "id": "machine-format",
       "displayName": "机器格式文件",
+      "changePathPatterns": [
+        "**/*.json",
+        "**/*.yaml",
+        "**/*.yml",
+        "**/*.log",
+        "**/*.txt"
+      ],
       "reason": "JSON、状态文件、契约不是写给人读的连续文字，逐词审读只会制造噪音。"
     },
     {
       "id": "routine-trace",
       "displayName": "例行过程留痕",
+      "changePathPatterns": [
+        "07-实施任务/**",
+        "08-验收/runs/**",
+        "09-发布/**"
+      ],
       "reason": "只有 agent 自己读的中间产物，没有第二个读者，审读它等于给自己写作业。"
     }
   ],

@@ -8,7 +8,7 @@ import {
   sha256File, sha256Paths, stringArray, text, withFileLock,
 } from "./runtime-lib.ts";
 import { requireAcceptance, requireReadiness, requireReview } from "./delivery-lifecycle.ts";
-import { changeMustPassFiles, loadPolicy, scanBannedWords, verifyPlainLanguage } from "./plain-language.ts";
+import { changeMustPassFiles, loadPolicy, scanBannedWords, unclassifiedFiles, verifyPlainLanguage } from "./plain-language.ts";
 
 // 本仓只有 delivery 一种模式。rehearsal 演练模式已随 change-mode.json 一并退场
 // （全历史零实例）；默认值在这里显式写死，不再从文件解析。
@@ -559,7 +559,7 @@ function plainLanguage(root: string, options: Map<string, string>, action: strin
   }
   if (action === "inspect") {
     const policy = loadPolicy(runtime);
-    console.log(JSON.stringify({ policyVersion: policy.policyVersion, mustPassInChange: changeMustPassFiles(root, policy), repoMustPass: policy.repoMustPass, manualMustPass: policy.manualMustPass, bannedWords: policy.bannedWords }, null, 2));
+    console.log(JSON.stringify({ policyVersion: policy.policyVersion, mustPassInChange: changeMustPassFiles(root, policy), unclassifiedInChange: unclassifiedFiles(root, policy), repoMustPass: policy.repoMustPass, manualMustPass: policy.manualMustPass, exempt: policy.exempt, bannedWords: policy.bannedWords }, null, 2));
     return;
   }
   fail("plain-language 的动作必须是 check、scan 或 inspect");

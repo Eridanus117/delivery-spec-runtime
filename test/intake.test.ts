@@ -23,7 +23,7 @@ const minimalRouting = {
   routes: [
     { changeObject: "tool-code", displayName: "工具代码", description: "改工具行为", profileId: "delivery-change", requiresAnalysis: true, analysisProfileId: "requirement-analysis", rank: 20, pathPrefixes: ["openspec/tools/", "test/"], reason: "门禁执行体" },
     { changeObject: "doc-expression", displayName: "文档表达", description: "只改说明面", profileId: "light-change", requiresAnalysis: false, rank: 10, pathPrefixes: ["docs/"], reason: "零风险" },
-    { changeObject: "ledger-only", displayName: "纯台账", description: "只改台账条目", profileId: "light-change", requiresAnalysis: false, rank: 0, promotable: false, pathPrefixes: ["openspec/intake/"], reason: "自指循环" },
+    { changeObject: "ledger-only", displayName: "纯事项记录", description: "只改事项记录条目", profileId: "light-change", requiresAnalysis: false, rank: 0, promotable: false, pathPrefixes: ["openspec/intake/"], reason: "自指循环" },
   ],
 };
 function makeRuntimeRoot(routing: unknown = minimalRouting): string {
@@ -328,7 +328,7 @@ test("路由表必须给流水线自己会碰的四处路径定档，且档位�
   for (const [name, rank] of [["长期规范目录", specsRank], ["归档目录", archiveRank]] as const) {
     // 不变量一：快车道的两档碰不到它们——否则一次「只改说明面」的快改就能重写长期规范或改写历史证据。
     assert.ok(rank > rankOf("doc-expression"), `${name}的档位序必须严格高于文档表达`);
-    assert.ok(rank > rankOf("ledger-only"), `${name}的档位序必须严格高于纯台账`);
+    assert.ok(rank > rankOf("ledger-only"), `${name}的档位序必须严格高于纯事项记录`);
     // 不变量二：走完整流程的两档做收尾动作时不会被自己拦住——这正是本次修表要消除的误挡。
     assert.ok(rank <= rankOf("tool-code"), `${name}的档位序不得高于工具代码，否则工具代码档做规范同步与归档会被自己拦住`);
   }

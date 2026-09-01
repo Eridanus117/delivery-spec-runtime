@@ -163,3 +163,24 @@ test("T-01 路径样式与单文件扫描：PR 正文这类没有落盘位置的
     assert.equal(scanBannedWords(draft, ["pr-body.md"], policy).length, 2);
   } finally { rmSync(draft, removeOptions); }
 });
+
+test("T-01.7 两张清单都没命中的文字被报为「未归类」，但不拦流程", () => {
+  const root = fixture(goodReview);
+  try {
+    // 造一份两张清单都没命中的文字：它既不在必过清单，也不在已声明豁免的范围里。
+    write(join(root, "05-改造方案/方案提案.md"), "# 方案提案\n");
+    const result = check(root);
+    // 未归类是清单的缺口，不是这份文字的过错——机器如实报出，但不拦。
+    assert.equal(result.status, 0, result.stderr);
+    const payload = JSON.parse(result.stdout);
+    assert.ok(payload.unclassified.includes("05-改造方案/方案提案.md"), `未归类的文字没被报出: ${JSON.stringify(payload.unclassified)}`);
+    // 已声明豁免的不算未归类——否则报告会被噪音淹没，等于没报。
+    write(join(root, "task-state.json"), "{}\n");
+    write(join(root, "07-实施任务/过程留痕.md"), "过程\n");
+    const again = JSON.parse(check(root).stdout);
+    assert.ok(!again.unclassified.includes("task-state.json"), "机器格式文件被误报为未归类");
+    assert.ok(!again.unclassified.includes("07-实施任务/过程留痕.md"), "例行过程留痕被误报为未归类");
+    // 必过清单里的也不算未归类。
+    assert.ok(!again.unclassified.includes("specs/example/spec.md"));
+  } finally { rmSync(root, removeOptions); }
+});
