@@ -1,4 +1,21 @@
 {
-  "schemaVersion": 1,
-  "artifacts": {}
+  "schemaVersion": 2,
+  "gates": {
+    "decision": {
+      "decision": "approved",
+      "approvedBy": "维护者（2026-09-01 方案门口逐条表态，由 Claude 转录，非亲签）",
+      "approvedAt": "2026-09-01T18:59:19.863Z",
+      "migrationSource": null,
+      "artifacts": {
+        "raw-requirements": "sha256:8686d701317e8234a507814359ae36f7c2538e25b6841a133a82c1170de4e1ec",
+        "specs": "sha256:b7f4343ea33be0748acab71b12972370fedcd80dc01a02f6ca314318a2a55166",
+        "current-state": "sha256:2ce7820471773d7d24ea5d944b966de57d71804ab163a8f96edcbb15cf9b9f06",
+        "solution-proposal": "sha256:3f7e589929f57b14ec4921b97bae7f41d0f2980f3dd549a70ce84de61cc9c95a",
+        "solution-decision": "sha256:9e43f37f6e19ddb057dc22678c440e190c39e7694fbd1ce37100e1aecfe724e9",
+        "change-plan": "sha256:2ebe4b13121e147dd1e36c0d85513d9126678e689d173432cee1e3439ccc48a1",
+        "test-plan": "sha256:ffcfcc7afe75ae1f77ce8861bca4340dde5cb620b390df2b1d5fcb10957ea2ca",
+        "tasks": "sha256:78a92d23301fccba27b21c96c0dbaa70ff216fd69bb62c062d80d2aed7c82fe8"
+      }
+    }
+  }
 }
