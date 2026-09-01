@@ -44,6 +44,13 @@ changeObject: governance-contract
   仍写着已被并站移除的五阶段顺序，且其「记录 Issue URL」的要求与 `assertSafeContent()` 的绝对路径
   正则冲突（该正则会把任何 `https` 开头的链接一并拦下），带链接的条目无法被处置。
 - `AGENTS.md` 的校准条款：预置了「强制版分析线跑满 2 单后复盘裁定 A1 留/修/杀」的触发点。
+- **「点时快照断言」这一类问题在 `fix-thorn-batch` 一单里被撞到三次**，可作为重设计的具体素材：
+  `VC-039` 在该 Change **建立**时转红（需登记新目录）、**归档**时再次转红（需注销该目录）；
+  `VC-027/VC-029` 在归档时转红——它把「归档目录一律按 v5 解析」写死了，而那一刻归档区里
+  第一次出现 v6 结构的 Change。三次都不是缺陷被发现，而是**正常流程动作触发了记账型断言**。
+  前两次按快照记账处理（裁定 #8 明确不改形态），第三次改为按各 Change 自己声明的
+  `deliverySchemaVersion` 取期望键集，判据未削弱。重设计时应回答：
+  哪些断言该表达不变量、哪些记账信息本就不该进断言。
 - **两条由独立评审判为 ACCEPTED、明确移交本条目在重设计时消费的残余风险**（见
   `openspec/changes/fix-thorn-batch/implementation-review.json` 的 REV-006 / REV-007，两条均附实测结论，
   当前不构成缺陷，故未要求 `fix-thorn-batch` 返工）：

@@ -1,0 +1,21 @@
+读侧长路径能力的负向对照（2026-09-01，Windows 11 / git 未设 core.longpaths）
+—— 目的：证明 T-LONG-1 是一条能判别的断言，而不是恒真的摆设。
+
+【对照组一：受控路径探针】在临时根按八档总长构造同一条干净路径后跑 git status --porcelain
+total=250  plain=""                                       longpaths=""
+total=255  plain=""                                       longpaths=""
+total=258  plain=""                                       longpaths=""
+total=259  plain=""                                       longpaths=""
+total=260  plain="M \"openspec/changes/archive/2026-08-30-prevent-live-runtime-…"  longpaths=""
+total=261  plain="M …"                                    longpaths=""
+total=265  plain="M …"                                    longpaths=""
+total=270  plain="M …"                                    longpaths=""
+结论：阈值精确落在 260；加 -c core.longpaths=true 后恒为干净。
+
+【对照组二：把修复临时撤回后跑本 Change 新增的断言】
+把 runtime-entry.ts 的 withGitCapability() 改成直接返回 args（NEGATIVE CONTROL）后：
+  ✖ 超长路径不被误判为 dirty，同一路径下的真实修改仍被拒 (4462.0894ms)
+  运行时 submodule 包含未提交修改，拒绝执行:  D openspec/changes/archive/pppppp…ppp/evidence.json
+  ℹ pass 9 / fail 1
+恢复修复后同一条断言通过（ℹ pass 10 / fail 0）。
+结论：断言确实由「读侧是否具备长路径能力」决定，未被其他因素恒真化。

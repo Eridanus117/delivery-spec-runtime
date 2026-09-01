@@ -121,13 +121,23 @@ changeObject: tool-code
 ### 候选处置
 
 范围已收窄到**只剩 `openspec-upgrade.ts` 一处**（判据 `resolve(argv[1]) === resolve(import.meta.filename)`）。
-它的 `renderCommands` 调用方向是单向的（它 import 别人，没有别人 import 它的导出），
-故两条路都开着：
+
+> **勘误（2026-09-01，据终审 REV-010 订正）**：本节原写「它 import 别人，没有别人 import 它的导出，
+> 故两条路都开着」，该陈述**不成立**。`test/contracts.test.ts` 第 5 行
+> `import { validateReport } from "../openspec/tools/openspec-upgrade.ts"`——而这个 import 正是
+> `fix-thorn-batch` 自己在 REV-002 返工时加的（用于把真实归档报告喂进唯一的校验实现）。
+> 终审按候选乙实测：临时删掉该文件的守卫后，import 即触发 `main()`，`contracts.test.ts` 整个文件
+> 转红并打出「用法: openspec-upgrade.ts evaluate --request <request.json>」。
+> 详见 `openspec/changes/archive/2026-09-01-fix-thorn-batch/implementation-review.json` 的 REV-010。
+
+因此该文件**确有 import 方**，两条候选并非对等：
 
 - **甲｜最小修**：判据改为 `samePath()`，与本批已修的两处一致。投入最小，形态不变；
-  仍把「入口是否执行」系在路径比较上，只是把已知的一类失配堵上。
-- **乙｜换取向**：确认无 import 方后删除守卫、`main()` 无条件执行，与 `runtime-entry.ts`
-  的处置同原则，根除这一整类问题。需先核实确无 import 方（登记时的检索显示没有）。
+  仍把「入口是否执行」系在路径比较上，只是把已知的一类失配堵上。**当前唯一无前置的选项。**
+- **乙｜换取向**：删除守卫、`main()` 无条件执行，与 `runtime-entry.ts` 的处置同原则，
+  根除这一整类问题。**但有前置**：必须先解决「谁来 import `validateReport`」——
+  把该判据移出这个入口模块（例如挪进 `runtime-lib.ts`，与 `samePath` / `checkIgnoreIncomplete`
+  同一处置），否则守卫一删测试即转红。
 
 丙（先补断言再修）已随本批次的 `T-GUARD-3` 提前落地，可直接扩一条覆盖 `openspec-upgrade.ts`。
 留待重设计或下一批次裁定。
@@ -146,3 +156,4 @@ changeObject: tool-code
 
 - 2026-09-01T08:44:01.238Z captured
 - 2026-09-01 裁定变更（维护者采纳本条目的爆炸半径订正）：`delivery-lifecycle.ts` 与 `render-commands.ts` 两处提前到 `fix-thorn-batch` 本批修复，`openspec-upgrade.ts` 维持登记不修。条目保持 captured。
+- 2026-09-01 按 `fix-thorn-batch` 终审 REV-010 勘误 Options 节：原称 `openspec-upgrade.ts` 无 import 方，实测有（`test/contracts.test.ts` 的 `validateReport`），候选乙因此带前置条件。

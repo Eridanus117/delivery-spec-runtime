@@ -181,7 +181,15 @@ test("VC-027/VC-029 归档目录与旧结构 Change 不受 v6 与 evidence 新�
     const inspected = runTool("delivery-control.ts", ["inspect", "--change-root", change]);
     assert.equal(inspected.status, 0, `${name} 旧结构解析失败: ${inspected.stderr}`);
     const payload = JSON.parse(inspected.stdout);
-    assert.deepEqual(Object.keys(payload.effective), ["raw-requirements", "specs", "business-current", "technical-current", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"], `${name} 未按 v5 结构解析`);
+    // 期望的工件集由该 Change 自己声明的 schema 版本决定，不能钉死成 v5——
+    // 2026-09-01 归档 fix-thorn-batch 时，归档目录里第一次出现 v6 结构的 Change。
+    // 判据仍然是硬的：版本从 change-info.json 读，缺省即 v5（存量与旧归档不迁移），
+    // 两套键名各自逐字比对，不接受混写。
+    const declared = JSON.parse(readFileSync(join(change, "change-info.json"), "utf8")).deliverySchemaVersion;
+    const expectedKeys = typeof declared === "number" && declared >= 6
+      ? ["raw-requirements", "specs", "current-state", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"]
+      : ["raw-requirements", "specs", "business-current", "technical-current", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"];
+    assert.deepEqual(Object.keys(payload.effective), expectedKeys, `${name} 未按其声明的 v${typeof declared === "number" ? declared : 5} 结构解析`);
     // VC-027：归档目录里的自然语言 evidence 不被新的路径校验触及——只读解析不报错。
     const tasks = payload.tasks;
     if (tasks) {
@@ -257,10 +265,12 @@ test("VC-039 早期目录归档后 active Change 只剩两个", () => {
     .map((entry) => entry.name)
     .sort();
   // 本 Change 归档后，active 只余按裁定 C3 暂不处置的 metrics 目录。
-  // 注意：这是一份**点时快照**断言，不是不变量——每新建一个 Change 都必须在此登记，
-  // 否则测试立刻转红。fix-thorn-batch 是第一个撞上它的新 Change（2026-09-01），
-  // 该断言形态是否改为「两个早期目录不在 active」已作为未决问题提交维护者。
-  assert.deepEqual(active, ["establish-runtime-metrics-baseline", "fix-thorn-batch"]);
+  // 注意：这是一份**点时快照**断言，不是不变量——每新建一个 Change 都必须在此登记、
+  // 每归档一个又必须在此注销，否则测试立刻转红。fix-thorn-batch 于 2026-09-01 建立时
+  // 曾在此登记，当日归档后再次移除：一建一归两次改动，都只是这条快照的记账。
+  // 该断言形态是否改为真正的不变量（两个早期目录不在 active），已记录在
+  // INT-20260831-014 信号9 与 INT-20260901-023，随工作流重设计裁定。
+  assert.deepEqual(active, ["establish-runtime-metrics-baseline"]);
   // 两个早期目录确实落到了 archive 且带处置记录。
   for (const name of ["2026-09-01-establish-intake-inventory", "2026-09-01-establish-workflow-v01-contract"]) {
     const archived = join(runtimeRoot, "openspec/changes/archive", name);

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "implementationCommit": "108d9cc41356ad3cd91905be41a738722a6726f5",
+  "acceptanceDigest": "sha256:1d86c87dd46153c4ef485852e544d9518a938983db3f2be1e6bc101b42a7c666",
+  "releasePlanDigest": "sha256:0786fde46fc21d83c48348aa25992ad13f34e55d9fbf401f762f7fe16f569573",
+  "specSync": [
+    {
+      "deltaPath": "openspec/changes/fix-thorn-batch/specs/runtime-distribution/spec.md",
+      "deltaSha256": "sha256:4cc11ce9fd9fcb0ed92cd63eee2fde1498b9bd0288a450176a71a69db608d245",
+      "mainPath": "openspec/specs/runtime-distribution/spec.md",
+      "mainSha256": "sha256:e5bb9b66ea904e701a3c104b598b8f213b930af5eb14baf51cfaf8edc42bdd0e"
+    },
+    {
+      "deltaPath": "openspec/changes/fix-thorn-batch/specs/runtime-upgrade-safety/spec.md",
+      "deltaSha256": "sha256:b34377ab46eb1ce631c3a2125d9f1e693cbc9a015dfec2e4653b36327bf23dfd",
+      "mainPath": "openspec/specs/runtime-upgrade-safety/spec.md",
+      "mainSha256": "sha256:e1246d93d531075f8ddd7536b109eca8335a5903316636abccc0eaf2309a67eb"
+    },
+    {
+      "deltaPath": "openspec/changes/fix-thorn-batch/specs/delivery-lifecycle-governance/spec.md",
+      "deltaSha256": "sha256:0f3cbe889fc8bdf1931ced1aa901d0efd41c28e7cf8a652e1797677e6fb306e6",
+      "mainPath": "openspec/specs/delivery-lifecycle-governance/spec.md",
+      "mainSha256": "sha256:21dda4a519a7871daee19bc939752394a2731c9d82a34662a1d2e23fc8fd7b96"
+    }
+  ],
+  "strictValidation": "PASS",
+  "cleanupEvidence": {
+    "path": "openspec/changes/fix-thorn-batch/08-验收/runs/20260901T1330Z-thorn/cleanup/cleanup-pass.md",
+    "sha256": "sha256:59597d0d157c7fa3a4ba5e6ca5addd9c4ce4de317abd45d2e47caf1d9b61edd8"
+  },
+  "prStarted": false,
+  "migrationSource": null,
+  "historicalPr": null,
+  "attestedBy": "维护者（门口表态，Claude 代笔转录）",
+  "attestedAt": "2026-09-01T13:43:45.724Z",
+  "result": "READY"
+}
