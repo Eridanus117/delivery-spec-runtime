@@ -1,4 +1,17 @@
 #!/usr/bin/env -S node --experimental-strip-types
+/**
+ * 历史导入工具：把一份仓外的遗留分析材料搬进一个 Change 目录。
+ *
+ * **本工具固定产出第 6 版工件结构**（现状独立成 `03-现状/现状.md`，改造方案独立成
+ * `05-改造方案/改造方案.md`），并在 `change-info.json` 里显式声明 `deliverySchemaVersion: 6`。
+ * 第 7 版把这两份并进了方案提案与实施任务，所以**用本工具导入之后，还需要另走一次第 6 版到
+ * 第 7 版的升版**——本工具不做这件事，也不会假装做过。
+ *
+ * 之所以冻结而不是跟着升版：它是为单一历史 slug 写的一次性迁移工具，而那个 slug 在本仓既不在
+ * 在途目录也不在归档目录；跟着升版要付出的改造与测试成本，换不来任何已知的使用。它的产出自洽
+ * （显式声明第 6 版、落地文件与第 6 版路径表逐项匹配），不与第 7 版冲突，也不会被误判。
+ * 「取消它，还是给它升版」留作单独一条事项裁决：`INT-20260901-027-bootstrap-disposition`。
+ */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";

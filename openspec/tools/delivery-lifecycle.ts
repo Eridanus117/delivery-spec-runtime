@@ -217,7 +217,11 @@ function inspectReviewState(changeRoot: string): Review {
   const review = parseReview(readJson(reviewPath(changeRoot)));
   const repo = repoRoot(changeRoot);
   if (spawnSync("git", ["merge-base", "--is-ancestor", review.reviewedCommit, "HEAD"], { cwd: repo }).status !== 0) fail("implementation review stale: reviewedCommit不是当前HEAD祖先");
-  const later = implementationPaths(repo, review.reviewedCommit, "HEAD", changeRoot);
+  // 评审之后的漂移检查，两侧都要排除长期规范目录：工作树那一侧在 dirtyImplementationPaths 里排除，
+  // 提交区间这一侧在这里排除。此前只做了工作树那一侧，于是「先提交规范同步、再跑归档门禁」这条顺序
+  // 会拿到一句指向 openspec/specs 的评审过期——而按设计那不该失效。当前流水线把规范同步留在工作树里
+  // 与归档一起提交，所以还没撞上；但两侧判据不一致本身就是账没记清。
+  const later = implementationPaths(repo, review.reviewedCommit, "HEAD", changeRoot).filter((path) => !isPostReviewWritablePath(path));
   if (later.length) fail(`implementation review stale: review后实现路径变化 ${later.join(", ")}`);
   const dirty = dirtyImplementationPaths(repo, changeRoot);
   if (dirty.length) fail(`implementation review stale: 工作树实现路径变化 ${dirty.join(", ")}`);

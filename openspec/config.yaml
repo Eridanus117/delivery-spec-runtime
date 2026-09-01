@@ -13,15 +13,16 @@ rules:
     - 记录问题复现、用户决定、上游版本和可重放证据，不把推断写成事实
   specs:
     - 每项 Requirement 至少包含一个可观测 Scenario，并覆盖禁止写入实时仓的负向场景
-  current-state:
+  solution-proposal:
+    # 第 7 版起现状并进方案提案，原先挂在 current-state 上的两条规则随内容一起搬到这里。
     - 说明维护者、项目仓与资产仓的升级职责、触发条件和失败处置
-    - 记录软链、gitlink、版本 pin、CLI/JSON 合同和实际写入路径
-  change-plan:
-    - 区分安全修复、升级框架与候选版本评估，不把多个 Change 静默合并
+    - 记录受管投影、gitlink、版本 pin、CLI/JSON 合同和实际写入路径
   test-plan:
     - 必须包含真实 CLI 行为探针、submodule dirty 断言和消费仓无写入验证
   tasks:
     - task-state.json 是状态真源，07-实施任务/实施任务.md 只作为人工阅读视图
+    # 第 7 版起改造方案并进实施任务，原先挂在 change-plan 上的这条规则随内容一起搬到这里。
+    - 区分安全修复、升级框架与候选版本评估，不把多个 Change 静默合并
   acceptance:
     - delivery 模式必须全部任务 verified，且保存实际测试输出后才能 PASS
   release:
