@@ -109,3 +109,73 @@ test("Acceptance与Archive Readiness取代Markdown关键词并支持受控reopen
     assert.equal(existsSync(join(target, "lifecycle-history")), false);
   } finally { rmSync(repo, { recursive: true, force: true }); }
 });
+
+test("VC-031/VC-032 不得削弱项：Review 自算与 Acceptance 四 digest 新鲜度", () => {
+  const repo = mkdtempSync(join(tmpdir(), "delivery-lifecycle-strict-"));
+  try {
+    const { change, baseline, reviewed } = prepareChange(repo);
+
+    // VC-031-1：reviewedPaths 由代码自算，输入侧根本不接受该键（手工缩小被拒）。
+    const shrunk = join(change, "review-shrunk.json");
+    write(shrunk, JSON.stringify({ schemaVersion: 1, baselineCommit: baseline, reviewedCommit: reviewed, reviewer: "r", reviewedAt: "2026-08-30T12:00:00Z", findings: [], reviewedPaths: [] }));
+    let result = runTool("delivery-lifecycle.ts", ["review", "write", "--change-root", change, "--file", shrunk], { cwd: repo });
+    assert.notEqual(result.status, 0); assert.match(result.stderr, /review-input 存在未知字段 reviewedPaths/);
+    // result 同样不接受手工指定，裁决由 findings 计算。
+    const forced = join(change, "review-forced.json");
+    write(forced, JSON.stringify({ schemaVersion: 1, baselineCommit: baseline, reviewedCommit: reviewed, reviewer: "r", reviewedAt: "2026-08-30T12:00:00Z", findings: [], result: "PASS" }));
+    result = runTool("delivery-lifecycle.ts", ["review", "write", "--change-root", change, "--file", forced], { cwd: repo });
+    assert.notEqual(result.status, 0); assert.match(result.stderr, /review-input 存在未知字段 result/);
+
+    // VC-031-2：baseline 必须是 reviewedCommit 的祖先。
+    const badBaseline = join(change, "review-bad-baseline.json");
+    write(badBaseline, JSON.stringify({ schemaVersion: 1, baselineCommit: reviewed, reviewedCommit: baseline, reviewer: "r", reviewedAt: "2026-08-30T12:00:00Z", findings: [] }));
+    result = runTool("delivery-lifecycle.ts", ["review", "write", "--change-root", change, "--file", badBaseline], { cwd: repo });
+    assert.notEqual(result.status, 0);
+
+    // VC-031-3：写入前实现路径必须 clean。
+    write(join(repo, "src/app.ts"), "export const value = 99;\n");
+    const input = join(change, "review-input.json");
+    write(input, JSON.stringify({ schemaVersion: 1, baselineCommit: baseline, reviewedCommit: reviewed, reviewer: "r", reviewedAt: "2026-08-30T12:00:00Z", findings: [] }));
+    result = runTool("delivery-lifecycle.ts", ["review", "write", "--change-root", change, "--file", input], { cwd: repo });
+    assert.notEqual(result.status, 0); assert.match(result.stderr, /Review写入前实现路径必须clean/);
+    git(repo, ["checkout", "--", "src/app.ts"]);
+
+    // VC-031-4：OPEN finding 自动判 FAIL，且 FAIL 的 review 不能放行 acceptance guard。
+    const openInput = join(change, "review-open.json");
+    write(openInput, JSON.stringify({ schemaVersion: 1, baselineCommit: baseline, reviewedCommit: reviewed, reviewer: "r", reviewedAt: "2026-08-30T12:00:00Z", findings: [{ id: "REV-001", severity: "HIGH", path: "src/app.ts", line: 1, summary: "风险", status: "OPEN", resolution: null }] }));
+    result = runTool("delivery-lifecycle.ts", ["review", "write", "--change-root", change, "--file", openInput], { cwd: repo });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(JSON.parse(readFileSync(join(change, "implementation-review.json"), "utf8")).result, "FAIL");
+    result = runTool("delivery-lifecycle.ts", ["review", "inspect", "--change-root", change], { cwd: repo });
+    assert.notEqual(result.status, 0); assert.match(result.stderr, /未PASS或存在OPEN finding/);
+
+    // 恢复为 PASS 的 review，再验 acceptance 的四个 digest。
+    result = runTool("delivery-lifecycle.ts", ["review", "write", "--change-root", change, "--file", input], { cwd: repo });
+    assert.equal(result.status, 0, result.stderr);
+    write(join(change, "08-验收/验收记录.md"), "# 验收\n- 结论：PASS\n");
+    const acceptanceInput = join(change, "acceptance-input.json");
+    write(acceptanceInput, JSON.stringify({ schemaVersion: 1, acceptedBy: "maintainer", acceptedAt: "2026-08-30T12:01:00Z" }));
+    assert.equal(runTool("delivery-lifecycle.ts", ["acceptance", "write", "--change-root", change, "--file", acceptanceInput], { cwd: repo }).status, 0);
+    assert.equal(runTool("delivery-lifecycle.ts", ["acceptance", "inspect", "--change-root", change], { cwd: repo }).status, 0);
+
+    // VC-032：四个 digest 任一对应工件事后改动即 stale。
+    const targets: Array<[string, string]> = [
+      ["implementation-review.json", "reviewDigest"],
+      ["task-state.json", "taskStateDigest"],
+      ["08-验收/验收记录.md", "acceptanceDigest"],
+    ];
+    for (const [file, label] of targets) {
+      const path = join(change, file);
+      const original = readFileSync(path, "utf8");
+      write(path, `${original}\n<!-- drift -->\n`);
+      const inspected = runTool("delivery-lifecycle.ts", ["acceptance", "inspect", "--change-root", change], { cwd: repo });
+      assert.notEqual(inspected.status, 0, `${label} 事后改动未被判 stale`);
+      write(path, original);
+    }
+    // 第四个 digest：implementationCommit 绑定——新提交后 review 立即 stale，acceptance 随之失效。
+    write(join(repo, "src/app.ts"), "export const value = 2;\n");
+    git(repo, ["add", "."]); git(repo, ["commit", "-qm", "post-acceptance drift"]);
+    const drifted = runTool("delivery-lifecycle.ts", ["acceptance", "inspect", "--change-root", change], { cwd: repo });
+    assert.notEqual(drifted.status, 0); assert.match(drifted.stderr, /stale/);
+  } finally { rmSync(repo, { recursive: true, force: true }); }
+});

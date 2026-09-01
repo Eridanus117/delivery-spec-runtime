@@ -58,11 +58,11 @@
       "migrationSource": "主会话门口表态，由实施代理转录：同意（对测试方案与任务拆分一屏摆盘的表态）"
     },
     "tasks": {
-      "digest": "sha256:dd00ed5f8638262f6ab02d7d53cd046294d822379341c4ba4c491ac0d3d00971",
+      "digest": "sha256:f135f713fc62b90da1eca636773e755631c5c8f489c8ace1e1e079d8e2997c9a",
       "decision": "approved",
       "approvedBy": "维护者",
-      "approvedAt": "2026-09-01T01:15:08.636Z",
-      "migrationSource": "主会话门口表态，由实施代理转录：同意（对测试方案与任务拆分一屏摆盘的表态）"
+      "approvedAt": "2026-09-01T02:24:36.512Z",
+      "migrationSource": "主会话门口表态，由实施代理转录：同意（对测试方案与任务拆分一屏摆盘的表态）；26 项验证证据回填后按仓内既有惯例重批准，内容裁决未变"
     }
   }
 }

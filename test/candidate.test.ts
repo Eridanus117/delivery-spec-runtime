@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { runTool, runtimeRoot } from "./helpers.ts";
@@ -59,4 +59,36 @@ test("公开候选示例必须有合规provenance", () => {
     assert.equal(result.status, 0, result.stderr);
     assert.equal(JSON.parse(readFileSync(join(root, "candidate/candidate-report.json"), "utf8")).checks.examples, "provenance_pass");
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("VC-037 allowlist 与实际文件集合一致", () => {
+  const allowlist = JSON.parse(readFileSync(join(runtimeRoot, "public-allowlist.json"), "utf8"));
+  // 正向：表内每一项都必须在磁盘上存在，不留指向已删文件的死条目。
+  const missing = allowlist.paths.filter((path: string) => !existsSync(join(runtimeRoot, path)));
+  assert.deepEqual(missing, [], `allowlist 存在已删除的死条目: ${missing.join(", ")}`);
+  // 反向：合同、profile 与模板三个目录下的实际文件必须全部进表，不漏发。
+  for (const dir of ["openspec/contracts", "openspec/profiles", "openspec/schemas/delivery-change/templates"]) {
+    const actual = readdirSync(join(runtimeRoot, dir))
+      .filter((name) => name.endsWith(".json") || name.endsWith(".md"))
+      .map((name) => `${dir}/${name}`);
+    const notListed = actual.filter((path) => !allowlist.paths.includes(path));
+    assert.deepEqual(notListed, [], `${dir} 有文件未进 allowlist: ${notListed.join(", ")}`);
+  }
+  // 本轮删除的两份合同与两份模板必须不在表内。
+  for (const removed of [
+    "openspec/contracts/sources.schema.json",
+    "openspec/contracts/change-mode.schema.json",
+    "openspec/schemas/delivery-change/templates/business-current.md",
+    "openspec/schemas/delivery-change/templates/technical-current.md",
+  ]) {
+    assert.equal(allowlist.paths.includes(removed), false, `已删除资产仍在 allowlist: ${removed}`);
+  }
+  // 本轮新增的合同、路由表与合并模板必须在表内。
+  for (const added of [
+    "openspec/contracts/change-routing.schema.json",
+    "openspec/profiles/change-routing-v1.json",
+    "openspec/schemas/delivery-change/templates/current-state.md",
+  ]) {
+    assert.equal(allowlist.paths.includes(added), true, `新增资产未进 allowlist: ${added}`);
+  }
 });

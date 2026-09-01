@@ -379,19 +379,21 @@
     },
     {
       "id": "8.1",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
         "public-allowlist.json 随文件增删同步：移除 sources.schema.json 与 change-mode.schema.json，新增 change-routing.schema.json 与 change-routing-v1.json，模板条目按合并后调整"
       ],
       "verification": [
         "VC-037：allowlist 与实际文件集合一致"
       ],
-      "evidence": [],
+      "evidence": [
+        "07-实施任务/证据/8.1.md"
+      ],
       "blocker": null
     },
     {
       "id": "8.2",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
         "全量回归证据：node --test 全绿、openspec validate --all --strict 通过、runtime-entry.ts runtime-check 通过"
       ],
@@ -399,7 +401,9 @@
         "VC-031 与 VC-032 的不得削弱项断言与改造前一致",
         "VC-033：无 submodule dirty、manifest 漂移或额外 lock/hash 文件"
       ],
-      "evidence": [],
+      "evidence": [
+        "07-实施任务/证据/8.2.md"
+      ],
       "blocker": null
     }
   ]
