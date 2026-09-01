@@ -1,0 +1,12 @@
+- Validating...
+✓ spec/controlled-openspec-upgrades
+✓ spec/delivery-lifecycle-governance
+✓ change/enforce-analysis-line-and-prune-pipeline
+✓ change/establish-runtime-metrics-baseline
+✓ spec/human-interaction
+✓ spec/intake-workflow
+✓ spec/requirement-analysis
+✓ spec/runtime-distribution
+✓ spec/runtime-upgrade-safety
+✓ spec/workflow-profiles
+Totals: 10 passed, 0 failed (10 items)

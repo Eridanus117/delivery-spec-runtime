@@ -17,7 +17,11 @@
           "state": { "enum": ["planned", "implemented_unverified", "blocked_external", "verified"] },
           "deliverables": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
           "verification": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
-          "evidence": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "evidence": {
+            "type": "array",
+            "description": "证据是 Change 内的相对路径，写入时由 delivery-control 校验其存在且内容非空；绝对路径与 .. 越界一律拒绝且不写入任何状态。该校验只作用于 active Change 的写入路径，不回溯归档目录中的自然语言证据。",
+            "items": { "type": "string", "minLength": 1, "pattern": "^(?!/|[A-Za-z]:)(?!.*(^|[\\\\/])\\.\\.([\\\\/]|$)).+$" }
+          },
           "blocker": { "type": ["string", "null"] }
         },
         "allOf": [

@@ -1,0 +1,618 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "6f32026925c2674e1b95b38857e51f001088c36b",
+  "reviewedCommit": "001563469a90887459721283ddcf7e72319b4cd5",
+  "reviewedPaths": [
+    {
+      "path": ".claude/skills/delivery-pilot/SKILL.md",
+      "exists": true,
+      "sha256": "sha256:c1c233962c15f87f4292339321f421942510b9fd8e52312313de54bbf9c052af"
+    },
+    {
+      "path": ".omp/command-sources/bodies/opsx-apply.md",
+      "exists": true,
+      "sha256": "sha256:a5c23631afdd6ab55e52ebabaafb8040c51c0934be3b73b73e3f6ce38b4d5ba4"
+    },
+    {
+      "path": ".omp/command-sources/bodies/opsx-archive.md",
+      "exists": true,
+      "sha256": "sha256:388c8f31a26b36fed7418f238105b642191497a208524662bac13707f85f00f3"
+    },
+    {
+      "path": ".omp/command-sources/bodies/opsx-continue.md",
+      "exists": true,
+      "sha256": "sha256:7fb82d60a5de5b4bac41918ae58f70682683cc9f44a008820db7c83c9bf423e1"
+    },
+    {
+      "path": ".omp/command-sources/bodies/opsx-new.md",
+      "exists": true,
+      "sha256": "sha256:72209f9c1fd987fd446c7714b77f1401c681ebd222492648285f350ade12a955"
+    },
+    {
+      "path": ".omp/command-sources/bodies/opsx-sync.md",
+      "exists": true,
+      "sha256": "sha256:d0324ba01fca37c80a285aebf5ea11df431f0dd7ef0b80780bb286387e65501f"
+    },
+    {
+      "path": ".omp/command-sources/bodies/opsx-update.md",
+      "exists": true,
+      "sha256": "sha256:eb05d5f0ff812cd45a35accc5628078b02c9fa6d1003ed986c262592698e051c"
+    },
+    {
+      "path": ".omp/command-sources/bodies/opsx-verify.md",
+      "exists": true,
+      "sha256": "sha256:44a7d9ba2b096bc89855a07eda625094529f9aeeef9d7eb83f08d8f04227c81d"
+    },
+    {
+      "path": ".omp/commands/opsx-apply.md",
+      "exists": true,
+      "sha256": "sha256:e8ddda61632216a6fcb4d02f923aae087cc38fedbfc12be50e4d0510f5ee4b2a"
+    },
+    {
+      "path": ".omp/commands/opsx-archive.md",
+      "exists": true,
+      "sha256": "sha256:71b4061400fa90f64b75dc9b092e24c9eb396932703208635cde8b80b792e11f"
+    },
+    {
+      "path": ".omp/commands/opsx-continue.md",
+      "exists": true,
+      "sha256": "sha256:38ee235c1ca52cded86bd693863683cc1513b4e080b2a360ce95bc81f95cd965"
+    },
+    {
+      "path": ".omp/commands/opsx-new.md",
+      "exists": true,
+      "sha256": "sha256:fc224cfcba6dd2edd51f9621085a27e953688ffd2f262a0ac1385d9abf358551"
+    },
+    {
+      "path": ".omp/commands/opsx-sync.md",
+      "exists": true,
+      "sha256": "sha256:50830c3e11a56742f8e5bc51b657b9b0776ca327b33943766b0a23d0d7d89e73"
+    },
+    {
+      "path": ".omp/commands/opsx-update.md",
+      "exists": true,
+      "sha256": "sha256:4537b76d6ce6cb53a71a092cd3a0cc7693bcc5a4cd94f5f41d1aaf75c8acc57b"
+    },
+    {
+      "path": ".omp/commands/opsx-verify.md",
+      "exists": true,
+      "sha256": "sha256:eab52d9bfa924accf206b2ccde3496bad9d9054e8dfbc8bc8d6f5e49cd6e19b4"
+    },
+    {
+      "path": "AGENTS.md",
+      "exists": true,
+      "sha256": "sha256:bb2bd41b7cd9267c4744e8a9939957cd6c9e270a62bb9e767e6b089023fcf9f6"
+    },
+    {
+      "path": "README.md",
+      "exists": true,
+      "sha256": "sha256:2611ba9be85636038bf7dbf35caf66f43e15397881fb146f9c5dda06b1fec335"
+    },
+    {
+      "path": "docs/architecture.md",
+      "exists": true,
+      "sha256": "sha256:350e907409238496c09b49afa0f5b5d1a266f444620db4afdf6f6e0649e4bada"
+    },
+    {
+      "path": "docs/consumer-guide.md",
+      "exists": true,
+      "sha256": "sha256:3f4c28d97301d2e90f602503ab393f221f0ff82a0c766a84974e2e102ff96fab"
+    },
+    {
+      "path": "docs/governance.md",
+      "exists": true,
+      "sha256": "sha256:a797a26bd8131d995dc4ab244f75649a57cb183b456f25684145ecb51a28cba6"
+    },
+    {
+      "path": "docs/maintainer-guide.md",
+      "exists": true,
+      "sha256": "sha256:4c42e23c6ca2a4b7f81ed4beaae81d3de44bfa3ff440cbfbd5e6a59278e4b7e2"
+    },
+    {
+      "path": "docs/workflow-guide.md",
+      "exists": true,
+      "sha256": "sha256:99b89da7a1dd676158ad98cb89ada4270d9a752b370c8c18f7f3292c71551f9a"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-intake-inventory/.openspec.yaml",
+      "exists": true,
+      "sha256": "sha256:ab80b9624a4867c4a76f083fb0fb54c1dc34275d5669ce3e33a7680c4db397c0"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-intake-inventory/01-原始需求/原始需求索引.md",
+      "exists": true,
+      "sha256": "sha256:7e807444f5260804f9dbb1518552bb915f5b322df8439d8e875e78b5daac3f66"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-intake-inventory/03-业务现状/业务现状.md",
+      "exists": true,
+      "sha256": "sha256:b256ee967c8e958533356ab67a4aec3ae6f2cec367f7437bcbc083ad8e774376"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-intake-inventory/04-技术现状/技术现状.md",
+      "exists": true,
+      "sha256": "sha256:1ff114b8d0675bfceb9201381bed1c40b4a68948b78c70853c485934824832b7"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-intake-inventory/05-改造方案/改造方案.md",
+      "exists": true,
+      "sha256": "sha256:171efb94058fc8ea00c73c66dfa62456df31a2b80959f9e79b5fef092d841bbf"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-intake-inventory/05-改造方案/方案决策.md",
+      "exists": true,
+      "sha256": "sha256:c35004914df806485a9dab8b16d81169cd959294124162ee5c608760d76ee645"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-intake-inventory/05-改造方案/方案提案.md",
+      "exists": true,
+      "sha256": "sha256:2fd951ebfcf7810b51f1ead4b363dc8891879a22de54e6c5e511b9394f6593de"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-intake-inventory/06-测试方案/测试方案.md",
+      "exists": true,
+      "sha256": "sha256:c2f179d44a4bc89b3301b18649d45d5020753756a108956eddb8a0a2e5afad0b"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-intake-inventory/07-实施任务/实施任务.md",
+      "exists": true,
+      "sha256": "sha256:eb3c3a74635fa28f3dab4bf8dca6a3677a1a450b06467f9c0353053c2fe185ae"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-intake-inventory/artifact-approvals.json",
+      "exists": true,
+      "sha256": "sha256:3745d70a32362f9d4ce36d51036ab20534cc276683861ccf694f0212d5402fb1"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-intake-inventory/change-info.json",
+      "exists": true,
+      "sha256": "sha256:261461b276efbc37aa6d1d95176b5cb67f58e945f09e213072ed075a2fc4326f"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-intake-inventory/change-sources.json",
+      "exists": true,
+      "sha256": "sha256:6cd125cfa9e919434a9d757ef048aa7e1c61a1018428a1c119d46235f1dbb391"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-intake-inventory/specs/intake-inventory/spec.md",
+      "exists": true,
+      "sha256": "sha256:24fc72806c4bb4f87f075be629916dd12f27c0b3bfb5812be9b1e732661b26b2"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-intake-inventory/task-state.json",
+      "exists": true,
+      "sha256": "sha256:c6632869180cbadb16267e33cfa0bd309894b1365a50ebcbcabbb2d6b6404efa"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-intake-inventory/处置记录.md",
+      "exists": true,
+      "sha256": "sha256:c159ca6fdfdfab04487f07637d462f0e316ebf0309a3850cefb7408cc87a2b24"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-workflow-v01-contract/.openspec.yaml",
+      "exists": true,
+      "sha256": "sha256:ab80b9624a4867c4a76f083fb0fb54c1dc34275d5669ce3e33a7680c4db397c0"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-workflow-v01-contract/01-原始需求/原始需求索引.md",
+      "exists": true,
+      "sha256": "sha256:3926a7845a4e492b226d281b2c3888fd30b623d30aca7deb4f1bfc7b5c3fc5ff"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-workflow-v01-contract/03-业务现状/业务现状.md",
+      "exists": true,
+      "sha256": "sha256:bd7ab158d1bc18e16c746e2d85fe31bba32f3256ab43fb266a559f4f6148bc37"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-workflow-v01-contract/04-技术现状/技术现状.md",
+      "exists": true,
+      "sha256": "sha256:71b68ef49a34cedb3d136c2fda958c2f595c50a0196fac3aef9ff6dfdd1f911a"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-workflow-v01-contract/05-改造方案/改造方案.md",
+      "exists": true,
+      "sha256": "sha256:78ce1e1fd9f85c8bbbc195f4fd1a00ce30449a13b70608e44a1c3ad17919fb12"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-workflow-v01-contract/05-改造方案/方案决策.md",
+      "exists": true,
+      "sha256": "sha256:081a92ec82ece061f03f9b7e4983d735a9a8d88bc6e158b9e4325811d52b9952"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-workflow-v01-contract/05-改造方案/方案提案.md",
+      "exists": true,
+      "sha256": "sha256:c5596fa74b69bdf3656c903aa1771b1f09d7afe7b6fa944fefcf325eb81d53bc"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-workflow-v01-contract/06-测试方案/测试方案.md",
+      "exists": true,
+      "sha256": "sha256:1855948acb0ebd4cdf96bbb537e94a812ee723d56f636b37e8249aae6792091b"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-workflow-v01-contract/artifact-approvals.json",
+      "exists": true,
+      "sha256": "sha256:3745d70a32362f9d4ce36d51036ab20534cc276683861ccf694f0212d5402fb1"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-workflow-v01-contract/change-info.json",
+      "exists": true,
+      "sha256": "sha256:d9ecd86862985f303d08385df54090b0a92d7bf0d0d8dc96c01c19d846cc327c"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-workflow-v01-contract/change-sources.json",
+      "exists": true,
+      "sha256": "sha256:693461c72f3e575d65f75d0e5544fa385ce163a1ebb326bc49a32ab23fd4fc60"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-workflow-v01-contract/specs/workflow-execution/spec.md",
+      "exists": true,
+      "sha256": "sha256:44c5198d17f1187aa4df87813f83b8cbce4d041744a2a6c9ee52c4f94e759114"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-workflow-v01-contract/task-state.json",
+      "exists": true,
+      "sha256": "sha256:6231a4a3c49bfb1ca7cb9682a3fa87d16ee95830020d660fe158a4a358d3e169"
+    },
+    {
+      "path": "openspec/changes/archive/2026-09-01-establish-workflow-v01-contract/处置记录.md",
+      "exists": true,
+      "sha256": "sha256:45f58d5fa58c52e05dc7482619958952319e234b64a2615430a84cc4a6b2598e"
+    },
+    {
+      "path": "openspec/config.yaml",
+      "exists": true,
+      "sha256": "sha256:bbeae238d7f41a64f18c5e374c21ba98d1218212dba58fcb53dc4be21acc404d"
+    },
+    {
+      "path": "openspec/contracts/archive-readiness.schema.json",
+      "exists": true,
+      "sha256": "sha256:7e4b6549572e1c01377de6abb9dd3976bfd5b43421bde4a53a9c4d998417909c"
+    },
+    {
+      "path": "openspec/contracts/artifact-approvals.schema.json",
+      "exists": true,
+      "sha256": "sha256:64b0d965be6a2469a35ee3d5441b6498afaf6e5cf8fb9439d3fcc8798687e0ce"
+    },
+    {
+      "path": "openspec/contracts/change-info.schema.json",
+      "exists": true,
+      "sha256": "sha256:5991cd0f98ae7f19ecc8d4a83e59d7cfd7dba20b4ec3c6bd9ce0b308f91ad614"
+    },
+    {
+      "path": "openspec/contracts/change-mode.schema.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "openspec/contracts/change-routing.schema.json",
+      "exists": true,
+      "sha256": "sha256:b7cef0f7fe11b778b260645bdebd29542ed87934690e798d67b05013b4d31ccf"
+    },
+    {
+      "path": "openspec/contracts/intake-state.schema.json",
+      "exists": true,
+      "sha256": "sha256:dba657e3ff5b28e074da9d67327337a2954f81315fe04991fcd3471011a444c1"
+    },
+    {
+      "path": "openspec/contracts/sources.schema.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "openspec/contracts/task-state.schema.json",
+      "exists": true,
+      "sha256": "sha256:7ae945a9aab42f429e42503802d69edf9857ae7d68db9755ddd174c02e62614a"
+    },
+    {
+      "path": "openspec/contracts/workflow-binding.schema.json",
+      "exists": true,
+      "sha256": "sha256:7f7de9fc6e46c9638a69a51a5927d7e3ecad9a3a8cf946c231a3ac86be0b0067"
+    },
+    {
+      "path": "openspec/contracts/workflow-profile.schema.json",
+      "exists": true,
+      "sha256": "sha256:5dad56a043e44a3a806e24b16c6c66d90aea2d784da041d1f71e662b5e243203"
+    },
+    {
+      "path": "openspec/intake/INT-20260831-010-upgrade-smoke-flaky-status.md",
+      "exists": true,
+      "sha256": "sha256:049bf98373b44e24564e648388240c02f1dc76df09862000a6363141e45d5bca"
+    },
+    {
+      "path": "openspec/intake/INT-20260901-021-review-blindspots-and-probe-strength.md",
+      "exists": true,
+      "sha256": "sha256:ef3fc056d94de1272bfb6e727432bb8a12b966b423b9d8dd402106c986700a7a"
+    },
+    {
+      "path": "openspec/intake/stages.json",
+      "exists": true,
+      "sha256": "sha256:4ba35ab074d046ba2da4be92e67fb6d6b458d6722e56cff68a3bc97d43205de7"
+    },
+    {
+      "path": "openspec/intake/template.md",
+      "exists": true,
+      "sha256": "sha256:1bafc8df7bc3338f2a2da505c0be4649faffa3068738737f7fcf69159e568350"
+    },
+    {
+      "path": "openspec/profiles/change-routing-v1.json",
+      "exists": true,
+      "sha256": "sha256:0763b1ce9b00fc086c5ccf1c9f1e7c733edcd5109cde2ef4e0669468feca4d92"
+    },
+    {
+      "path": "openspec/profiles/delivery-change-v1.json",
+      "exists": true,
+      "sha256": "sha256:48a9f36dc1f2c214b1183d305b0d5e603c9ed631700aa265df4e73fd5a2e9002"
+    },
+    {
+      "path": "openspec/schemas/delivery-change/schema.yaml",
+      "exists": true,
+      "sha256": "sha256:d6204bc206f8aa1ce8d91aeef55e829df39b8a1a7224d295689c789b214d73d7"
+    },
+    {
+      "path": "openspec/schemas/delivery-change/templates/acceptance.md",
+      "exists": true,
+      "sha256": "sha256:8cfe51c7b3fe59021eb856fbbbbdf3a9cb1288cafa525f694c0ce8a85009b2e2"
+    },
+    {
+      "path": "openspec/schemas/delivery-change/templates/business-current.md",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "openspec/schemas/delivery-change/templates/current-state.md",
+      "exists": true,
+      "sha256": "sha256:7b8b92ebd97749418ef50ca5f5bc7a17e160a78dbda9ee8c733f88c790b01ddc"
+    },
+    {
+      "path": "openspec/schemas/delivery-change/templates/raw-requirements.md",
+      "exists": true,
+      "sha256": "sha256:27fc533cdab02050ea0e0f828f1fa84a2752840f005a2fc95ee29cad197d5377"
+    },
+    {
+      "path": "openspec/schemas/delivery-change/templates/release-plan.md",
+      "exists": true,
+      "sha256": "sha256:40d50a9021abdcbda54053dfd2b1a967ce83798fd0ce65ddbc86c5aeb121b212"
+    },
+    {
+      "path": "openspec/schemas/delivery-change/templates/technical-current.md",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "openspec/tools/bootstrap.ts",
+      "exists": true,
+      "sha256": "sha256:aecd1d10503cc3c2bf99c59f1f4847f6fc679ae656d32411ea8fffe98e925818"
+    },
+    {
+      "path": "openspec/tools/delivery-control.ts",
+      "exists": true,
+      "sha256": "sha256:3cfb7c94428757412eb2ca48dad2785600a041bc44d7aeb7496cf56954d47cfd"
+    },
+    {
+      "path": "openspec/tools/delivery-lifecycle.ts",
+      "exists": true,
+      "sha256": "sha256:d43928c2072019c75659a49e2810becac222f22b09ab00074ce345ae8b02e906"
+    },
+    {
+      "path": "openspec/tools/intake-control.ts",
+      "exists": true,
+      "sha256": "sha256:0bd9d8033928c4774d17eb96f60039872cf3a4ed2735df58f0bd24060f6b9c9b"
+    },
+    {
+      "path": "openspec/tools/runtime-entry.ts",
+      "exists": true,
+      "sha256": "sha256:531590e28be5d797b27ca6937621aa9cea17687a2e540efd6c59d2bf0838e403"
+    },
+    {
+      "path": "openspec/tools/workflow-control.ts",
+      "exists": true,
+      "sha256": "sha256:00ccdbf7436c255559c317a47d57884a42c63aedcab0be72612b86bddf1b1d79"
+    },
+    {
+      "path": "openspec/tools/workflow-core.ts",
+      "exists": true,
+      "sha256": "sha256:4ed87ac423bbc831195ed0aa253612b9b355f539726392466c5e751c8de5c898"
+    },
+    {
+      "path": "public-allowlist.json",
+      "exists": true,
+      "sha256": "sha256:d5b07a33a74087d71041629f7273cfabf841d3c3b0b1391b4592609fd37133bc"
+    },
+    {
+      "path": "test/bootstrap.test.ts",
+      "exists": true,
+      "sha256": "sha256:acc39688d3a35cb148b3cde95d54ad8aa9beb62053f206d45f644487a1ab0deb"
+    },
+    {
+      "path": "test/candidate.test.ts",
+      "exists": true,
+      "sha256": "sha256:a266fc9a76de92553bf42e7169aab3793907dce97bf4a50d3e326ec32b110566"
+    },
+    {
+      "path": "test/command-renderer.test.ts",
+      "exists": true,
+      "sha256": "sha256:f8c082ec44116645e41e11d28821daa394622ed710ba47fef9908a366df21033"
+    },
+    {
+      "path": "test/contracts.test.ts",
+      "exists": true,
+      "sha256": "sha256:cb13aaad75c8430467a990b85ca55f679bfb11ed766bb41bc090e3ec04c4125f"
+    },
+    {
+      "path": "test/control.test.ts",
+      "exists": true,
+      "sha256": "sha256:01618c1519f8504e4006ffe8ab4429b29fce6741a16886485cf87a0e70afbe41"
+    },
+    {
+      "path": "test/helpers.ts",
+      "exists": true,
+      "sha256": "sha256:f42a86b3b616e57e2a62323b1ac3c2ec50a474080287c3d42b547990996cda15"
+    },
+    {
+      "path": "test/intake.test.ts",
+      "exists": true,
+      "sha256": "sha256:e4f1d2f03ce0e9a38b8df4605c1654a61586bc95fdfec84959a1034c3976d276"
+    },
+    {
+      "path": "test/interaction.test.ts",
+      "exists": true,
+      "sha256": "sha256:140937c5fb304dcb7050eb3bfb69ed288db7e7326f9936972ab85e4a3a2d008a"
+    },
+    {
+      "path": "test/lifecycle.test.ts",
+      "exists": true,
+      "sha256": "sha256:e4153ff9be11031a5e355bc3525f9ca8402dbd4d0f1d0495994a3593b56978cf"
+    },
+    {
+      "path": "test/station-authority.test.ts",
+      "exists": true,
+      "sha256": "sha256:937052475a3e10b1d77568836b7a0142c9fb4ebf9dec0df4506284b7b3d22e3d"
+    },
+    {
+      "path": "test/workflow.test.ts",
+      "exists": true,
+      "sha256": "sha256:fef025a9c8709f7e5c104f0c9e94eac181225711989e06f2cea8605492038554"
+    }
+  ],
+  "reviewedDigest": "sha256:c2c226e4eaec4e4c889308272a9bf19475d8fe8aee0d553b1fb2f5653a1d3f2c",
+  "reviewer": "independent-implementation-review session (未参与实施，第三轮收口复审)",
+  "reviewedAt": "2026-09-01T03:41:00Z",
+  "findings": [
+    {
+      "id": "REV-001",
+      "severity": "CRITICAL",
+      "path": "openspec/tools/intake-control.ts",
+      "line": 88,
+      "summary": "强制分析线立项门与分析线真实产物形状不匹配，端到端永不可通过（原读 outputs.disposition，真实产物为 outputs.publishedInputs.disposition）。",
+      "status": "RESOLVED",
+      "resolution": "取值点改为 outputs.publishedInputs.disposition（门去适配引擎的通用透出机制，不把 profile 专有键硬编码进引擎），并附带修复 executeWorkflow 幂等重跑分支丢失 publishedInputs 的缺陷。第二轮复审端到端实测通过：真实 bind + run 跑完 requirement-analysis 五阶段后 promote 返回 exit 0；缺产物、异 profile、损坏 JSON、未完成、他项 matterId、幂等重跑六条负向/边界路径行为全部正确。第三轮收口复测立项门正反向仍成立（无产物即拒并报缺失文件名；补齐真实产物后 exit 0）。测试侧手写 fixture 已换为基于真实命令链的构造器。"
+    },
+    {
+      "id": "REV-002",
+      "severity": "HIGH",
+      "path": "openspec/profiles/change-routing-v1.json",
+      "line": 74,
+      "summary": "分析线豁免仍可由调用方改一行 frontmatter 自选，自估绕开路径未根治。",
+      "status": "RESOLVED",
+      "resolution": "三条路径第二轮复审实测全部被拦：ledger-only 增 promotable:false 后 promote 被拒且两侧文件 sha256 前后一致；路由表增 pathPrefixes + rank，guard verify 新增声明与事实交叉校验，自称 doc-expression 而实际触碰 openspec/tools/ 或 openspec/contracts/ 均 fail closed；五个 CLI 自述开关全部拒绝。该交叉校验第二轮暴露的 quotepath 缺陷已另立 REV-014 并在本轮关闭。"
+    },
+    {
+      "id": "REV-003",
+      "severity": "HIGH",
+      "path": "(general)",
+      "line": null,
+      "summary": "openspec/contracts/artifact-approvals.schema.json 未随 schema v6 更新，v6 Change 产出的批准文件违反本仓自己公开分发的机器合同。",
+      "status": "RESOLVED",
+      "resolution": "合同补入 current-state 并保留 v5 两项（与 v5/v6 双表同思路），另加 not.required 禁止两种形态混写。复审用该合同的形状定向校验仓内全部 14 份真实 artifact-approvals.json，逐项检查顶层键集、工件名、未混写、每条批准字段集与取值：违反数 0。"
+    },
+    {
+      "id": "REV-004",
+      "severity": "HIGH",
+      "path": "(general)",
+      "line": null,
+      "summary": "rehearsal 演练模式移除不彻底（.omp 五处中文肯定式指令），且证据 6.2 声称已无残留与事实不符。",
+      "status": "RESOLVED",
+      "resolution": "五处指令改写并重渲染九个命令；复审全仓 grep 确认无肯定式残留。VC-036 禁词表补入中文 /演练/ 与 /NO-GO/。证据 6.2 的不实陈述已加订正段更正。"
+    },
+    {
+      "id": "REV-005",
+      "severity": "HIGH",
+      "path": "(general)",
+      "line": null,
+      "summary": "S8 由 agent 以 approvedBy=\"维护者\" 对内容已变的 tasks 工件重新签发批准并借此把 guard 从 stale 拒绝翻成放行；approvedBy 丢掉了本仓最近两个 Change 都带的代笔标注。",
+      "status": "RESOLVED",
+      "resolution": "AGENTS.md 新增两条硬规则（各附大白话理由，惯例未破）：approvedBy 必须在字段本身写明表态形态并标注代笔；重批准仅在机械回填、不改变工件任何语义时合法，语义改动必须重新取得维护者表态、不得由 agent 重签。复审实测本 Change 9 项 approvedBy 裸「维护者」0 项、未含「代笔」0 项，与最近两个归档 Change 的惯例一致；改写不影响工件 digest，guard 复测仍放行。"
+    },
+    {
+      "id": "REV-006",
+      "severity": "MEDIUM",
+      "path": "openspec/tools/intake-control.ts",
+      "line": 297,
+      "summary": "路由表的档位 profileId 只回显不生效；合同却自称「立项门与档位选择的唯一真源」。",
+      "status": "RESOLVED",
+      "resolution": "增 analysisProfileId 并由 loadRouting 对必走分析线的行强制要求；立项门校验分析产物的 binding.profileId 与之相等，复审实测用 light-change 跑出的完整产物被拒并报出要求的 profile 名。交付档位改由 promote 写入条目 History 留痕，实测留痕含交付档位与改动对象。合同 description 已收窄为逐项列出被机器强制的部分。"
+    },
+    {
+      "id": "REV-007",
+      "severity": "MEDIUM",
+      "path": "(general)",
+      "line": null,
+      "summary": "S7 在实施提交中直接向长期 spec 写入 46 行，绕过 delta→sync 链，来源 Change 从未验收；且 isLifecyclePath 把 openspec/specs/** 排除在 review 自算范围外。",
+      "status": "RESOLVED",
+      "resolution": "复审用 git diff 确认长期 spec 已完整回撤到 S7 之前（15a7c27~1..HEAD 对该文件为空 diff，回到 7 条 Requirement），4 条 Inventory 需求改挂 delta 随 sync 站正常合入，归档 Change 的处置记录同步更正。isLifecyclePath 的审查盲区按约定登记为 INT-20260901-021 第二项，留待预置复盘点裁决，本单不动「不得削弱项」的邻接面。"
+    },
+    {
+      "id": "REV-008",
+      "severity": "MEDIUM",
+      "path": "(general)",
+      "line": null,
+      "summary": "规范重叠（Inventory 三条与 delta ADDED 重复、Legacy 两条孪生、Purpose 未并入），不应留给没有改写 delta 权限的 sync 站。",
+      "status": "RESOLVED",
+      "resolution": "在本 Change 内完成去重。复审核对 delta 现为 6 条 Requirement（4 MODIFIED + 2 ADDED）：MODIFIED 名称在长期 spec 中均存在、ADDED 名称均不存在，无重名无孪生；Inventory 类恰 1 条且五项语义齐全；Legacy 孪生以 MODIFIED 合并；Purpose 已并入并覆盖 inventory 只读侧面。openspec validate --all --strict 三轮复跑均 10 passed / 0 failed。"
+    },
+    {
+      "id": "REV-009",
+      "severity": "MEDIUM",
+      "path": "test/intake.test.ts",
+      "line": null,
+      "summary": "test/intake.test.ts 源码含裸 NUL 字节，git 判为 binary，唯一证明立项门的测试不可 diff 审阅。",
+      "status": "RESOLVED",
+      "resolution": "裸 U+0000 改为 \\0 转义。复审实测 NUL 计数 0、file(1) 判为 UTF-8 文本、两侧均为修复后版本的 git diff --numstat 返回行数而非 binary 标记，逐行 diff 审阅能力已恢复。"
+    },
+    {
+      "id": "REV-010",
+      "severity": "LOW",
+      "path": "openspec/tools/delivery-control.ts",
+      "line": 50,
+      "summary": "v6 判别靠目录形状推断导致新建 Change 被误判为 v5；config.yaml 的 rules 仍是 v5 工件 id；README/schema.yaml/bootstrap 仍称「九层」。",
+      "status": "RESOLVED",
+      "resolution": "change-info.json 增可选 deliverySchemaVersion，init 对新建 Change 显式写 6，artifactPathsFor 优先读标记、无标记回落目录形状。复审实测新建 Change 在未写 03-现状/现状.md 时工件表已是 v6 八项；本 Change 与归档样本无标记仍按 v5 九项且全部 approved，存量不迁移成立。config.yaml 已合并为 current-state 一节；「九层」四处订正后 grep 无残留。"
+    },
+    {
+      "id": "REV-011",
+      "severity": "LOW",
+      "path": "openspec/tools/delivery-control.ts",
+      "line": 139,
+      "summary": "validateEvidence 只做词法越界判断、不 realpath，Change 内逃逸软链可当 evidence 通过校验。",
+      "status": "RESOLVED",
+      "resolution": "补 realpathSync 逃逸校验，与 delivery-lifecycle.ts 的 safeRepoFile 同标准。复审真造软链实测被拒并报「evidence 软链逃逸 Change 目录」，task-state.json 未写入；原四种拒绝与合法路径放行复测不变。"
+    },
+    {
+      "id": "REV-012",
+      "severity": "LOW",
+      "path": "test/station-authority.test.ts",
+      "line": 107,
+      "summary": "一致性合同测试的判别力部分来自隐式的第二清单（七站中只有三站真抹字段），VC-003 抓不到这种形态。",
+      "status": "ACCEPTED",
+      "resolution": "按约定登记不修：openspec/intake/INT-20260901-021-review-blindspots-and-probe-strength.md（capture 即止，source: implementation-review-findings，changeObject: governance-contract），同时收录 REV-007 附带发现的 review 对长期 spec 的盲区。复审逐句核对台账内容与本条 finding 原意一致且未弱化，并给出可能的加强方向；触发点挂在 AGENTS.md 预置的「强制版分析线跑满 2 单后复盘」。三轮复审均复测篡改检测仍有效（分别单边改 sync / acceptance / decision 的 humanJudgment，测试均失败并报出分叉，复原即复绿）。"
+    },
+    {
+      "id": "REV-013",
+      "severity": "LOW",
+      "path": "(general)",
+      "line": null,
+      "summary": "全量回归的结论表陈述强于可复现事实（写「74 passed / 0 failed」，实测 73/74）。",
+      "status": "RESOLVED",
+      "resolution": "证据 8.2 与 verify-自查.md 的结论表改为按实测频次陈述并把噪音直接标进表内，两处均加订正说明写明「结论表不得强于可复现事实」。第三轮复审确认两份文件口径一致，且 07-实施任务/ 下除订正叙述中的历史引述外无「74/74」残留。"
+    },
+    {
+      "id": "REV-014",
+      "severity": "HIGH",
+      "path": "openspec/tools/delivery-control.ts",
+      "line": 278,
+      "summary": "REV-002 引入的声明与事实交叉校验未禁用 core.quotepath，git 对非 ASCII 路径返回带引号的 C 转义串，致「排除 Change 目录自身」的前缀过滤对本仓强制的中文工件目录整类失效，任何声明非最重档的 Change 在 guard verify 被误判越档，轻档路径端到端不可用。",
+      "status": "RESOLVED",
+      "resolution": "改用 -z + NUL 分隔解析，与 delivery-lifecycle.ts 的 implementationPaths / dirtyImplementationPaths 同范式（三处 git 调用统一走新的 gitPaths 助手），复用了仓内既有正确范式而非另造一套。复审在敌对环境亲手复测：临时仓显式 git config core.quotepath true（复审机全局未设该键，即出厂默认），并先验证 git diff --name-only 在该仓确实仍返回转义串以确认环境敌对性。五个场景全部正确——(1) 中文工件目录齐备、只改 docs/ 的合法轻档 Change 放行 exit 0；(2) 混入 openspec/tools/sneaky.ts 后非零且只报该一条路径；(3) 中文命名的越档路径 openspec/tools/工具箱.ts 被正确归类为 tool-code（档位序 20）而非回落「未匹配」；(4) openspec/contracts/合同.json 正确归类 governance-contract（档位序 30）；(5) 已提交（非仅工作树）的越档路径同样被抓。fixture 三处修正复审逐条核实：先落基线提交使 Change 目录出现在已有历史之上、测试仓内显式 core.quotepath true、tasks.json 脚手架移出仓外——三者缺一该用例都会对本类缺陷免疫。"
+    },
+    {
+      "id": "REV-015",
+      "severity": "LOW",
+      "path": "(general)",
+      "line": null,
+      "summary": "REV-013 的订正未清干净（8.2 仍留一句 74/74 的旧陈述），且 INT-20260831-010 约定的「复跑两次全绿即视为通过」判据在实测频次下不成立。",
+      "status": "RESOLVED",
+      "resolution": "8.2 与 verify-自查.md 的过时陈述已清除并统一改为实测频次口径，明确写出「按复跑判定」隐含的前提已被频次证伪、不再以复跑到绿作为结论依据。INT-20260831-010 台账追加补记，如实记录复审九次 4 过 5 败与实施侧两轮 1 过 1 败、指出该判据已不可满足、建议提高优先级并与 INT-20260831-011 的路径预算问题一并处置；复审确认补记内容属实且条目 state 仍为 captured、phase 仍为 capture，未被顺手改动。附带说明：该 flake 属既有环境债、非本单引入，本轮全量测试连跑两次均为 79 tests / 79 pass / 0 fail，既定的复跑判据在本轮得到满足。"
+    }
+  ],
+  "result": "PASS"
+}

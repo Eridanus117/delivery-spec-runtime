@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "implementationCommit": "001563469a90887459721283ddcf7e72319b4cd5",
+  "acceptanceDigest": "sha256:be6da8afad01fbc16e7228efbebe919db74061494673adaa69e24b847b2a0a47",
+  "releasePlanDigest": "sha256:a296d513c421af216c03dc73c0986e4468ab58d1254cf72e3e4d81fdea7c8f14",
+  "specSync": [
+    {
+      "deltaPath": "openspec/changes/enforce-analysis-line-and-prune-pipeline/specs/delivery-lifecycle-governance/spec.md",
+      "deltaSha256": "sha256:5e388b4c9fa250bff9cdfbb9d7d9be77d15a4e72711af2f0c6da61c88b392b5d",
+      "mainPath": "openspec/specs/delivery-lifecycle-governance/spec.md",
+      "mainSha256": "sha256:8b245414d41ed4749a010b03569f39e95cecda507616111afdc43d2b0b41a398"
+    },
+    {
+      "deltaPath": "openspec/changes/enforce-analysis-line-and-prune-pipeline/specs/human-interaction/spec.md",
+      "deltaSha256": "sha256:c4bc53dbbfd7b2de1b10991e7eee8eb5ca5e51612169d59092ed1ffc32bab17a",
+      "mainPath": "openspec/specs/human-interaction/spec.md",
+      "mainSha256": "sha256:75d5b0d5a1647cf26561ab086b0c6aa0814ae589672f9150ea5f3d99364bec15"
+    },
+    {
+      "deltaPath": "openspec/changes/enforce-analysis-line-and-prune-pipeline/specs/intake-workflow/spec.md",
+      "deltaSha256": "sha256:2a6789eb771af5b48b6a14fc466b9385f6358472b8c14645c8e213a0c46eb615",
+      "mainPath": "openspec/specs/intake-workflow/spec.md",
+      "mainSha256": "sha256:1077c2aad3d6f040fa7b421e59ae45ab55db9acf7520e7587bbeb016404f2abe"
+    },
+    {
+      "deltaPath": "openspec/changes/enforce-analysis-line-and-prune-pipeline/specs/workflow-profiles/spec.md",
+      "deltaSha256": "sha256:edaf0047b643d3a2fe96465eb439fc2bb1076ece84f2c7c789cc7cccda3de672",
+      "mainPath": "openspec/specs/workflow-profiles/spec.md",
+      "mainSha256": "sha256:591a759cee4bc1b9c068442de59489d5d72d1218f5da77c26fa64d7a1e385a9a"
+    }
+  ],
+  "strictValidation": "PASS",
+  "cleanupEvidence": {
+    "path": "openspec/changes/enforce-analysis-line-and-prune-pipeline/08-验收/runs/20260901T035020Z/cleanup.md",
+    "sha256": "sha256:07359411951eaeaf838e093ef9042a74c86a14184f8103037fd5063ad3f07eaf"
+  },
+  "prStarted": false,
+  "migrationSource": null,
+  "historicalPr": null,
+  "attestedBy": "维护者（门口表态，Claude 代笔转录）",
+  "attestedAt": "2026-09-01T03:56:10.207Z",
+  "result": "READY"
+}

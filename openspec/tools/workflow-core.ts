@@ -22,6 +22,12 @@ export type WorkflowStage = {
  outputInputs?: string[];
 };
 
+export type WorkflowDefinitionAuthority = {
+ kind: "runtime-code";
+ paths: string[];
+ note: string;
+};
+
 export type WorkflowProfile = {
  schemaVersion: 1;
  profileId: string;
@@ -31,6 +37,7 @@ export type WorkflowProfile = {
  recommendedFor: string[];
  notRecommendedFor: string[];
  handoff: string;
+ definitionAuthority?: WorkflowDefinitionAuthority;
  inputContracts?: Record<string, WorkflowInputContract>;
  stages: WorkflowStage[];
 };
@@ -39,6 +46,8 @@ export type WorkflowBinding = {
  schemaVersion: 1;
  profileId: string;
  profileVersion: string;
+ /** 可选：该 binding 所服务的 Intake 条目 id，供立项门按条目 id 定位分析线产物。 */
+ matterId?: string;
 };
 
 export type WorkflowRequest = {
@@ -89,14 +98,23 @@ function assertVersion(value: unknown, label: string): string {
   return version;
 }
 
+/** Intake 条目 id。分析线产物以它作目录名，故必须是路径安全的固定形状。 */
+export const intakeIdPattern = /^INT-[0-9]{8}-[0-9]{3}-[a-z0-9][a-z0-9-]*$/;
+export function assertMatterId(value: unknown, label: string): string {
+  const matterId = text(value, label);
+  if (!intakeIdPattern.test(matterId)) fail(`${label} 必须是 Intake 条目 id（形如 INT-YYYYMMDD-NNN-slug）: ${matterId}`);
+  return matterId;
+}
+
 function assertBinding(value: unknown, label = "binding"): WorkflowBinding {
   const binding = object(value, label);
-  exactKeys(binding, ["schemaVersion", "profileId", "profileVersion"], ["schemaVersion", "profileId", "profileVersion"], label);
+  exactKeys(binding, ["schemaVersion", "profileId", "profileVersion", "matterId"], ["schemaVersion", "profileId", "profileVersion"], label);
   if (binding.schemaVersion !== 1) fail(`${label}.schemaVersion 必须为 1`);
   return {
     schemaVersion: 1,
     profileId: assertId(binding.profileId, `${label}.profileId`),
     profileVersion: assertVersion(binding.profileVersion, `${label}.profileVersion`),
+    ...(binding.matterId === undefined ? {} : { matterId: assertMatterId(binding.matterId, `${label}.matterId`) }),
   };
 }
 
@@ -184,9 +202,23 @@ function parseStage(value: unknown, index: number): WorkflowStage {
  return parsed;
 }
 
+function parseDefinitionAuthority(value: unknown): WorkflowDefinitionAuthority | undefined {
+  if (value === undefined) return undefined;
+  const authority = object(value, "workflow profile.definitionAuthority");
+  exactKeys(authority, ["kind", "paths", "note"], ["kind", "paths", "note"], "workflow profile.definitionAuthority");
+  if (authority.kind !== "runtime-code") fail("workflow profile.definitionAuthority.kind 仅支持 runtime-code");
+  const paths = stringArray(authority.paths, "workflow profile.definitionAuthority.paths");
+  if (paths.length === 0) fail("workflow profile.definitionAuthority.paths 不得为空");
+  for (const path of paths) {
+    if (!path || path.startsWith("/") || /^[A-Za-z]:/.test(path) || path.split("/").includes("..")) fail(`workflow profile.definitionAuthority.paths 必须是仓库内相对路径: ${path}`);
+  }
+  if (new Set(paths).size !== paths.length) fail("workflow profile.definitionAuthority.paths 不得重复");
+  return { kind: "runtime-code", paths, note: text(authority.note, "workflow profile.definitionAuthority.note") };
+}
+
 export function parseWorkflowProfile(value: unknown): WorkflowProfile {
   const profile = object(value, "workflow profile");
-  exactKeys(profile, ["schemaVersion", "profileId", "profileVersion", "displayName", "purpose", "recommendedFor", "notRecommendedFor", "handoff", "inputContracts", "stages"], ["schemaVersion", "profileId", "profileVersion", "displayName", "stages"], "workflow profile");
+  exactKeys(profile, ["schemaVersion", "profileId", "profileVersion", "displayName", "purpose", "recommendedFor", "notRecommendedFor", "handoff", "definitionAuthority", "inputContracts", "stages"], ["schemaVersion", "profileId", "profileVersion", "displayName", "stages"], "workflow profile");
   if (profile.schemaVersion !== 1) fail("workflow profile.schemaVersion 必须为 1");
   const displayName = text(profile.displayName, "workflow profile.displayName");
   const recommendedFor = profile.recommendedFor === undefined ? ["未声明"] : stringArray(profile.recommendedFor, "workflow profile.recommendedFor");
@@ -205,6 +237,7 @@ export function parseWorkflowProfile(value: unknown): WorkflowProfile {
     recommendedFor,
     notRecommendedFor,
     handoff: profile.handoff === undefined ? "交给调用方继续处理。" : text(profile.handoff, "workflow profile.handoff"),
+    definitionAuthority: parseDefinitionAuthority(profile.definitionAuthority),
     inputContracts: Object.keys(inputContracts).length > 0 ? inputContracts : undefined,
     stages,
   };
@@ -350,7 +383,11 @@ export function executeWorkflow(profile: WorkflowProfile, request: WorkflowReque
   }
   const currentIndex = completed.length;
   if (currentIndex >= profile.stages.length) {
-    return resultBase(request, profile, "completed", null, null, null, { completedStages: completed });
+    // 幂等重跑：全部阶段都已在 completedStages 里。完成态必须与「本轮刚推完最后一站」
+    // 产出同一形状，否则同一份分析重跑一次就会把 publishedInputs 丢掉，
+    // 下游按产物取值的门禁会把一份合法完成的分析判成缺字段。
+    const last = profile.stages[profile.stages.length - 1];
+    return resultBase(request, profile, "completed", null, null, null, stageOutputs(request, last, completed));
   }
   const current = profile.stages[currentIndex];
   const inputs = stageInputError(profile, current, request);

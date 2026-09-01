@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "stages": ["capture", "triage", "evidence", "options", "disposition"],
-  "next": {
-    "capture": "triage",
-    "triage": "evidence",
-    "evidence": "options",
-    "options": "disposition"
+  "model": "two-node",
+  "note": "登记线只有两个真实节点：已登记与已处置。原 triage / evidence / options 三个中间站已于 2026-09-01 合并移除（裁定 A2）——被证明有价值的是 Intake 文件的五个小节结构，无价值的是把它们拆成分站状态机。五个小节原样保留，改为在处置时一次性校验并逐项报出缺失。",
+  "states": ["captured", "promoted", "held", "closed"],
+  "captured": "已登记。条目已建档，五个小节可以随时补写。",
+  "exits": {
+    "promote": "已处置：立项为 Change（须先过立项门）。",
+    "hold": "已处置：挂起，保留理由等待条件成熟。",
+    "close": "已处置：关闭，不再推进。"
   },
-  "exits": ["promote", "hold", "close"]
+  "reopen": {
+    "from": ["held", "closed"],
+    "to": "captured",
+    "note": "reopen 回到已登记，保留原 hold/close 理由与 History。"
+  },
+  "requiredSections": ["原始问题", "Triage", "Evidence", "Options", "Disposition"],
+  "legacy": {
+    "states": ["triaged"],
+    "phases": ["capture", "triage", "evidence", "options", "disposition"],
+    "note": "只读兼容：存量条目的 state: triaged 与 phase 字段仍可被 list / inspect 正常读出，但不再由任何命令写入。"
+  }
 }

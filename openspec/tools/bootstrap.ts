@@ -10,8 +10,11 @@ const removeSlugs = ["official-return-cp-quality-sort", "cross-border-template-a
 const directoryMap: Record<string, string> = {
   "01-requirements-raw": "01-原始需求",
   "02-requirements-understanding": "02-需求理解",
-  "03-business-current": "03-业务现状",
-  "04-technical-current": "04-技术现状",
+  // v6 起两份现状合并为一份，因此两个旧目录都并入 03-现状；copyTree 会把两侧内容并到同一目录。
+  // business-current.md 被改名为正文 现状.md，technical-current.md 原样留在旁边，
+  // 由维护者在首次编辑时并入——bootstrap 只做机械搬运，不代写合并后的叙述。
+  "03-business-current": "03-现状",
+  "04-technical-current": "03-现状",
   "05-change-plan": "05-改造方案",
   "06-test-plan": "06-测试方案",
   "07-implementation-tasks": "07-实施任务",
@@ -114,7 +117,7 @@ function dryRun(workRoot: string, privateRoot: string, consumerRoot: string): vo
     status: "ready_to_stage",
     baselineCommit: object(manifest.workSpec, "baseline.workSpec").baselineCommit,
     operations: [
-      `迁移 ${changeSlug} 到 delivery-change 中文九层并保持 active，严格完成08、09和verify后再归档`,
+      `迁移 ${changeSlug} 到 delivery-change 中文八层并保持 active，严格完成08、09和verify后再归档`,
       ...removeSlugs.map((slug) => `删除 active ${slug}，不迁移、不归档、不写 legacy`),
       "保留既有 openspec/changes/archive 与 openspec/specs 内容",
       `初始化私人资产仓 ${privateRoot}`,
@@ -158,8 +161,7 @@ function buildCandidate(workRoot: string, candidate: string): void {
   const primaryFiles: Array<[string, string]> = [
     ["01-原始需求/index.md", "01-原始需求/原始需求索引.md"],
     ["02-需求理解/index.md", "02-需求理解/需求理解.md"],
-    ["03-业务现状/business-current.md", "03-业务现状/业务现状.md"],
-    ["04-技术现状/technical-current.md", "04-技术现状/技术现状.md"],
+    ["03-现状/business-current.md", "03-现状/现状.md"],
     ["05-改造方案/change-plan.md", "05-改造方案/改造方案.md"],
     ["06-测试方案/test-plan.md", "06-测试方案/000-测试方案索引.md"],
     ["07-实施任务/tasks.md", "07-实施任务/实施任务.md"],
@@ -170,17 +172,14 @@ function buildCandidate(workRoot: string, candidate: string): void {
   if (pathExists(oldSpecsLink)) rmSync(oldSpecsLink, { recursive: true, force: true });
   symlinkSync("../specs", oldSpecsLink);
   // 控制 JSON 全部位于 Change 根目录；不得重新引入历史 `.delivery` 容器。
-  atomicWriteJson(join(candidate, "change-info.json"), { schemaVersion: 1, displayName: "优化物流 Change 审阅工作流" });
+  // 与 delivery-control init 保持一致：显式标记交付 schema 版本，
+  // 不让版本判别退回目录形状推断。
+  atomicWriteJson(join(candidate, "change-info.json"), { schemaVersion: 1, displayName: "优化物流 Change 审阅工作流", deliverySchemaVersion: 6 });
   // 旧流程没有持久化摘要批准；不得从文件存在或会话记忆伪造 migrationSource。
   atomicWriteJson(join(candidate, "artifact-approvals.json"), { schemaVersion: 1, artifacts: {} });
   atomicWriteJson(join(candidate, "task-state.json"), { schemaVersion: 1, tasks: parseLegacyTasks(join(source, "07-implementation-tasks/tasks.md")) });
-  atomicWriteJson(join(candidate, "change-sources.json"), {
-    schemaVersion: 1,
-    sources: [
-      { id: "user-session", kind: "user", authority: 1, locator: "current-session", adapter: "builtin:user" },
-      { id: "baseline-manifest", kind: "file", authority: 2, locator: "bootstrap/baseline-manifest.json", adapter: "builtin:file" },
-    ],
-  });
+  // change-sources.json 已移除：它唯一的读者是自己的回显命令，没有任何 guard 读取，
+  // 而其内容与 01-原始需求索引.md 的材料索引表重复。来源全序改由「RAW 编号顺序即权威顺序」承载。
 }
 
 

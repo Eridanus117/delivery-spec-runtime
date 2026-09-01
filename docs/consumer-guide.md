@@ -13,7 +13,7 @@
 
 消费仓的业务需求不属于 Runtime 仓。需求尚未决定实施时，先在消费仓自己的 Intake、Issue 或分析记录中澄清问题、影响、边界和候选方向；可以使用 `/opsx-explore` 读取代码、现有 spec 和相关资料，但不得修改项目实现。
 
-只有决定进入正式交付后，才在消费仓创建 `openspec/changes/<change>/`。Change 内应保留原始需求来源，并将需求理解、业务/技术现状、方案决策、测试方案和实施任务分别写入对应工件；不需要再建立一个游离的“需求分析.md”。这样，分析结论可以进入后续 `/opsx-apply`、Review、Acceptance 和归档门禁的追溯链。
+只有决定进入正式交付后，才在消费仓创建 `openspec/changes/<change>/`。Change 内应保留原始需求来源，并将需求理解、现状、方案决策、测试方案和实施任务分别写入对应工件；不需要再建立一个游离的“需求分析.md”。这样，分析结论可以进入后续 `/opsx-apply`、Review、Acceptance 和归档门禁的追溯链。
 
 不要把消费仓的业务需求、凭据、请求响应或交付证据写回 `delivery-spec-runtime`；Runtime 只保存公共工作流及 Runtime 自身 Change。
 

@@ -1,12 +1,10 @@
 #!/usr/bin/env -S node --experimental-strip-types
 import { createHash } from "node:crypto";
-import {
-  copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync,
-} from "node:fs";
+import { existsSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { spawnSync } from "node:child_process";
 import {
-  atomicWriteJson, exactKeys, fail, integer, object, parseArgs, readJson, requiredOption,
+  atomicWriteJson, exactKeys, fail, integer, now, object, parseArgs, readJson, requiredOption,
   sha256File, text, withFileLock,
 } from "./runtime-lib.ts";
 
@@ -68,17 +66,6 @@ function reviewPath(root: string): string { return join(root, implementationRevi
 function acceptancePath(root: string): string { return join(root, acceptanceStateName); }
 function readinessPath(root: string): string { return join(root, readinessName); }
 function lockPath(root: string): string { return join(root, ".delivery-lifecycle.lock"); }
-function copyTree(source: string, target: string): void {
-  const stat = lstatSync(source);
-  if (stat.isSymbolicLink()) {
-    symlinkSync(readlinkSync(source), target);
-  } else if (stat.isDirectory()) {
-    mkdirSync(target, { recursive: true });
-    for (const name of readdirSync(source)) copyTree(join(source, name), join(target, name));
-  } else {
-    copyFileSync(source, target);
-  }
-}
 function hashBytes(value: Buffer | string): string { return `sha256:${createHash("sha256").update(value).digest("hex")}`; }
 function digest(value: unknown): string { return hashBytes(`${JSON.stringify(value)}\n`); }
 function commit(value: unknown, label: string): string {
@@ -281,7 +268,7 @@ function acceptanceWrite(changeRoot: string, inputPath: string): void {
 }
 function readinessWrite(changeRoot: string, inputPath: string): void {
   const input = object(readJson(inputPath), "readiness-input");
-  exactKeys(input, ["schemaVersion", "specSync", "strictValidation", "cleanupEvidence", "prStarted", "migrationSource", "historicalPr", "attestedBy", "attestedAt"], ["schemaVersion", "specSync", "strictValidation", "cleanupEvidence", "prStarted", "migrationSource", "historicalPr", "attestedBy", "attestedAt"], "readiness-input");
+  exactKeys(input, ["schemaVersion", "specSync", "strictValidation", "cleanupEvidence", "prStarted", "migrationSource", "historicalPr"], ["schemaVersion", "specSync", "strictValidation", "cleanupEvidence", "prStarted", "migrationSource", "historicalPr"], "readiness-input");
   if (input.schemaVersion !== 1 || !Array.isArray(input.specSync) || input.strictValidation !== "PASS" || typeof input.prStarted !== "boolean") fail("readiness-input合同非法");
   const acceptance = requireAcceptance(changeRoot); const repo = repoRoot(changeRoot); const changeRel = relative(repo, realpathSync(changeRoot)).split(sep).join("/");
   const sync: SyncEntry[] = input.specSync.map((value, index) => {
@@ -297,8 +284,11 @@ function readinessWrite(changeRoot: string, inputPath: string): void {
   const migrationSource = input.migrationSource === null ? null : text(input.migrationSource, "migrationSource"); const historicalPr = input.historicalPr === null ? null : text(input.historicalPr, "historicalPr");
   const migration = migrationSource === "pre-v5-merged-change" && historicalPr !== null;
   if (input.prStarted && !migration) fail("正常Change必须声明prStarted=false");
-  const attestedAt = timestamp(input.attestedAt, "attestedAt"); requireLaterTimestamp(attestedAt, acceptance.acceptedAt, "attestedAt", "acceptedAt");
-  const state: Readiness = { schemaVersion: 1, implementationCommit: acceptance.implementationCommit, acceptanceDigest: sha256File(acceptancePath(changeRoot)), releasePlanDigest: sha256File(releasePlan), specSync: sync, strictValidation: "PASS", cleanupEvidence: { path: cleanupPath, sha256: sha256File(join(repo, cleanupPath)) }, prStarted: input.prStarted, migrationSource, historicalPr, attestedBy: text(input.attestedBy, "attestedBy"), attestedAt, result: "READY" };
+  // 归档不是人工门：attestedBy 由 acceptance-state 的 acceptedBy 派生，attestedAt 取写入时刻，
+  // 不再向维护者索取第二次表态（验收的「同意」即为归档授权）。校验项一项不减。
+  const attestedBy = acceptance.acceptedBy;
+  const attestedAt = timestamp(now(), "attestedAt"); requireLaterTimestamp(attestedAt, acceptance.acceptedAt, "attestedAt", "acceptedAt");
+  const state: Readiness = { schemaVersion: 1, implementationCommit: acceptance.implementationCommit, acceptanceDigest: sha256File(acceptancePath(changeRoot)), releasePlanDigest: sha256File(releasePlan), specSync: sync, strictValidation: "PASS", cleanupEvidence: { path: cleanupPath, sha256: sha256File(join(repo, cleanupPath)) }, prStarted: input.prStarted, migrationSource, historicalPr, attestedBy, attestedAt, result: "READY" };
   withFileLock(lockPath(changeRoot), () => atomicWriteJson(readinessPath(changeRoot), state)); console.log(JSON.stringify(state, null, 2));
 }
 function renderReopenedTasks(changeRoot: string): void {
@@ -314,13 +304,13 @@ function reopen(changeRoot: string, options: Map<string, string>): void {
   if (!relative(allowedArchive, source) || relative(allowedArchive, source).startsWith("..") || dirname(target) !== allowedActive || existsSync(target)) fail("reopen源或目标路径非法");
   if (git(repo, ["status", "--porcelain"]).toString("utf8").trim()) fail("reopen要求clean worktree");
   parseReadiness(readJson(readinessPath(source)));
-  const stamp = requiredOption(options, "reopened-at").replace(/[^0-9A-Za-z_-]/g, "-"); const history = join(source, "lifecycle-history", stamp); mkdirSync(history, { recursive: true });
-  for (const name of [implementationReviewName, acceptanceStateName, readinessName]) copyFileSync(join(source, name), join(history, name));
-  for (const name of ["08-验收", "09-发布"]) if (existsSync(join(source, name))) copyTree(join(source, name), join(history, name));
+  // reopen-state.json 与 lifecycle-history/<stamp>/** 已移除：全仓 grep 确认代码里没有任何
+  // reader，纯留痕。归档前的 review / acceptance / readiness 与 08/09 本来就在 git 历史里，
+  // 再复制一份快照既不被机器消费、也不比 git 更可信。
+  const reason = requiredOption(options, "reason"); requiredOption(options, "reopened-by"); requiredOption(options, "reopened-at");
   renameSync(source, target);
   for (const name of [implementationReviewName, acceptanceStateName, readinessName, "08-验收", "09-发布"]) rmSync(join(target, name), { recursive: true, force: true });
-  atomicWriteJson(join(target, "reopen-state.json"), { schemaVersion: 1, archivedName: basename(source), reason: requiredOption(options, "reason"), reopenedBy: requiredOption(options, "reopened-by"), reopenedAt: requiredOption(options, "reopened-at"), historyPath: relative(repo, join(target, "lifecycle-history", stamp)).split(sep).join("/") });
-  renderReopenedTasks(target); console.log(JSON.stringify({ reopened: true, target }, null, 2));
+  renderReopenedTasks(target); console.log(JSON.stringify({ reopened: true, target, archivedName: basename(source), reason }, null, 2));
 }
 
 function main(): void {

@@ -50,7 +50,7 @@ node --experimental-strip-types "<runtime入口路径>" runtime-check --change-r
      --change-root "<changeRoot>" --operation sync
    ```
 
-   非零结果具有权威性。演练变更必须停止，不得比较或修改长期规范。
+   非零结果具有权威性：验收未 PASS 时停止，不得比较或修改长期规范。
 
 3. **查找增量规范**
 

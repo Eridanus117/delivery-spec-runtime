@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "runId": "20260901T035020Z",
+  "implementationCommit": "a70ed5dcd4d5c4d9dbb3ffbaa0d5df8bbd6e3d09",
+  "environment": {
+    "os": "Windows 11",
+    "node": "25.2.1",
+    "openspec": "1.11.0"
+  },
+  "startedAt": "2026-09-01T03:51:12.250Z",
+  "scope": "全量合同测试、strict validate、命令渲染面、运行时入口"
+}

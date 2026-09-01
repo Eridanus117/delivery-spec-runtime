@@ -69,7 +69,7 @@
      node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" guard \
        --change-root "<changeRoot>" --operation "<acceptance-or-release>"
      ```
-     非零的守卫结果具有权威性：停止，不创建制品。交付保留原有的完成/`PASS` 门槛；演练只允许非 `PASS` 的 08，随后为 `NO-GO` 的 09。
+     非零的守卫结果具有权威性：停止，不创建制品。08 保留原有的完成/`PASS` 门槛。
    - 获取其说明：
      ```bash
      openspec instructions <artifact-id> --change "<name>" --json
@@ -109,7 +109,7 @@
 - 所使用的架构工作流
 - 当前进度（N/M 已完成）
 - 当前已解锁的制品
-- 有效的变更模式；演练的 08/09 结论必须报告为非 `PASS`/`NO-GO`
+- 08 结论只有在必需场景有证据、无 critical 且清理成功时才能是 `PASS`
 - 提示：“运行 `/opsx-continue` 以创建下一个制品”
 
 **制品创建指南**

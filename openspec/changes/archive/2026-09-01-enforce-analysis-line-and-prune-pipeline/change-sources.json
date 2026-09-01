@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "RAW-004",
+      "kind": "maintainer-confirmation",
+      "authority": 1,
+      "locator": "current-change-session-2026-08-31",
+      "adapter": "manual"
+    },
+    {
+      "id": "RAW-001",
+      "kind": "intake-item",
+      "authority": 2,
+      "locator": "openspec/intake/INT-20260831-019-three-item-retrospective.md",
+      "adapter": "manual"
+    },
+    {
+      "id": "RAW-002",
+      "kind": "intake-item",
+      "authority": 3,
+      "locator": "openspec/intake/INT-20260831-014-calibration-signals.md",
+      "adapter": "manual"
+    },
+    {
+      "id": "RAW-003",
+      "kind": "intake-item",
+      "authority": 4,
+      "locator": "openspec/intake/INT-20260830-002-change-profile-routing.md",
+      "adapter": "manual"
+    },
+    {
+      "id": "RAW-005",
+      "kind": "intake-item",
+      "authority": 5,
+      "locator": "openspec/intake/INT-20260831-007-workflow-usability-and-review-surface.md",
+      "adapter": "manual"
+    },
+    {
+      "id": "RAW-006",
+      "kind": "intake-item",
+      "authority": 6,
+      "locator": "openspec/intake/INT-20260830-005-metrics-concurrency.md",
+      "adapter": "manual"
+    }
+  ]
+}

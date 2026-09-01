@@ -60,3 +60,26 @@ test("renderer在恶意manifest下fail closed且不改渲染物", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("VC-036 渲染产物不含已删除的命令段与已移除资产", () => {
+  const commands = readdirSync(join(runtimeRoot, ".omp/commands")).filter((name) => name.endsWith(".md"));
+  assert.equal(commands.length, 9);
+  const removed: Array<[string, RegExp]> = [
+    ["update snapshot 命令", /update\s+snapshot/],
+    ["update diagnose 命令", /update\s+diagnose/],
+    ["change-mode.json", /change-mode\.json/],
+    ["change-sources.json", /change-sources\.json/],
+    ["rehearsal 模式", /rehearsal/],
+    ["中文「演练」", /演练/],
+    ["NO-GO 演练结论", /NO-GO/],
+    [".delivery-update-snapshot.json", /\.delivery-update-snapshot\.json/],
+    ["sources 子命令", /sources\s+(inspect|write)/],
+  ];
+  for (const name of commands) {
+    const body = readFileSync(join(runtimeRoot, ".omp/commands", name), "utf8");
+    for (const [label, pattern] of removed) {
+      // lifecycle-history 只允许以「不再复制」的否定形式出现，其余已移除资产一律不得出现。
+      assert.doesNotMatch(body, pattern, `${name} 仍引用已移除资产: ${label}`);
+    }
+  }
+});

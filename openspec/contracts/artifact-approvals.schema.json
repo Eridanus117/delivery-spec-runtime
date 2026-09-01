@@ -8,10 +8,12 @@
     "schemaVersion": { "const": 1 },
     "artifacts": {
       "type": "object",
+      "description": "工件集随 delivery-change schema 版本而变，两种形态都合法：v5 用 business-current + technical-current 两份现状；v6 起合并为 current-state。存量归档 Change 按 v5 解析、不迁移，故两组键名必须同时被本合同接受；delivery-control 按 Change 目录形状选表，不会把两种形态混写进同一个文件。",
       "additionalProperties": false,
       "properties": {
         "raw-requirements": { "$ref": "#/$defs/approval" },
         "specs": { "$ref": "#/$defs/approval" },
+        "current-state": { "$ref": "#/$defs/approval" },
         "business-current": { "$ref": "#/$defs/approval" },
         "technical-current": { "$ref": "#/$defs/approval" },
         "solution-proposal": { "$ref": "#/$defs/approval" },
@@ -19,6 +21,10 @@
         "change-plan": { "$ref": "#/$defs/approval" },
         "test-plan": { "$ref": "#/$defs/approval" },
         "tasks": { "$ref": "#/$defs/approval" }
+      },
+      "not": {
+        "description": "同一个文件里不得同时出现 v5 的两份现状与 v6 的合并现状——那说明工件集被混写了。",
+        "required": ["current-state", "business-current"]
       }
     }
   },

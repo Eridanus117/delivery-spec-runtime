@@ -9,7 +9,7 @@
 接入后，项目仓获得：
 
 - `/opsx-new` 到 `/opsx-archive` 的统一工作流；
-- 九层 `delivery-change` schema；
+- 八层 `delivery-change` schema（v6：原 03/04 两份现状已合并为一份）；
 - 执行前的 gitlink、受管投影、版本和工作树完整性检查；
 - 由项目仓 commit 精确锁定的 Runtime 版本。
 

@@ -1,11 +1,108 @@
 #!/usr/bin/env node
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, openSync, closeSync, fsyncSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
-import { fail, parseArgs, requiredOption, now } from "./runtime-lib.ts";
+import { fail, parseArgs, readJson, requiredOption, now } from "./runtime-lib.ts";
 
-type State = { schemaVersion: 1; id: string; state: "captured" | "triaged" | "held" | "promoted" | "closed"; phase: "capture" | "triage" | "evidence" | "options" | "disposition"; source: string; capturedAt: string; promotedTo: string | null; history: string[] };
-const stages = ["capture", "triage", "evidence", "options", "disposition"] as const;
-const nextStage: Record<string, string> = { capture: "triage", triage: "evidence", evidence: "options", options: "disposition" };
+type Route = { changeObject: string; profileId: string; requiresAnalysis: boolean; rank: number; analysisProfileId: string | null; pathPrefixes: string[]; promotable: boolean; reason: string };
+type Routing = { unmatched: Omit<Route, "changeObject" | "pathPrefixes" | "promotable">; routes: Route[] };
+type RoutingDecision = { changeObject: string | null; matched: boolean; profileId: string; requiresAnalysis: boolean; rank: number; analysisProfileId: string | null; promotable: boolean; reason: string };
+
+const routingRelativePath = "openspec/profiles/change-routing-v1.json";
+const analysisBindingName = "workflow-binding.json";
+const analysisResultName = "workflow-result.json";
+// 调用方一律不得自述豁免或自行降档：豁免与档位的唯一真源是路由表。
+// 自估正是分析线三单零执行的直接机制，给强制门留一个自助开关等于没有门。
+const selfDeclaredOptions = ["exempt", "exempt-analysis", "waive-analysis", "skip-analysis", "no-analysis", "profile-id", "delivery-tier", "downgrade"];
+
+function str(value: unknown, label: string): string {
+  if (typeof value !== "string" || value.length === 0) fail(`${label} 必须是非空字符串`);
+  return value as string;
+}
+function loadRouting(runtimeRoot: string): Routing {
+  const path = join(runtimeRoot, routingRelativePath);
+  if (!existsSync(path)) fail(`路由表不存在: ${routingRelativePath}（--runtime-root 指向 ${runtimeRoot}）`);
+  const value = readJson(path) as Record<string, unknown>;
+  if (!value || typeof value !== "object" || value.schemaVersion !== 1 || !Array.isArray(value.routes) || !value.unmatched) fail("change-routing 合同非法");
+  const unmatchedValue = value.unmatched as Record<string, unknown>;
+  if (unmatchedValue.profileId !== "delivery-change" || unmatchedValue.requiresAnalysis !== true) fail("change-routing.unmatched 必须是最重档且不豁免");
+  const unmatchedRank = unmatchedValue.rank;
+  if (typeof unmatchedRank !== "number" || !Number.isInteger(unmatchedRank)) fail("change-routing.unmatched.rank 必须是整数");
+  const seen = new Set<string>();
+  const routes = (value.routes as Array<Record<string, unknown>>).map((route, index) => {
+    const changeObject = str(route.changeObject, `routes[${index}].changeObject`);
+    if (seen.has(changeObject)) fail(`change-routing 存在重复的改动对象: ${changeObject}`);
+    seen.add(changeObject);
+    const profileId = str(route.profileId, `routes[${index}].profileId`);
+    if (profileId !== "delivery-change" && profileId !== "light-change") fail(`routes[${index}].profileId 非法: ${profileId}`);
+    if (typeof route.requiresAnalysis !== "boolean") fail(`routes[${index}].requiresAnalysis 必须是布尔值`);
+    const rank = route.rank;
+    if (typeof rank !== "number" || !Number.isInteger(rank)) fail(`routes[${index}].rank 必须是整数`);
+    if (rank >= (unmatchedRank as number)) fail(`routes[${index}].rank 必须严格小于 unmatched.rank`);
+    if (!Array.isArray(route.pathPrefixes) || route.pathPrefixes.length === 0) fail(`routes[${index}].pathPrefixes 必须是非空数组`);
+    const pathPrefixes = (route.pathPrefixes as unknown[]).map((prefix, prefixIndex) => str(prefix, `routes[${index}].pathPrefixes[${prefixIndex}]`));
+    if (route.promotable !== undefined && typeof route.promotable !== "boolean") fail(`routes[${index}].promotable 必须是布尔值`);
+    // 必走分析线的行必须声明由哪个 profile 产出分析：否则「有产物」就能过门，
+    // 随便绑一个 profile 跑出来的 result 也算数。
+    if (route.requiresAnalysis === true && route.analysisProfileId === undefined) fail(`routes[${index}] 必走分析线但未声明 analysisProfileId`);
+    const analysisProfileId = route.analysisProfileId === undefined ? null : str(route.analysisProfileId, `routes[${index}].analysisProfileId`);
+    return {
+      changeObject, profileId, requiresAnalysis: route.requiresAnalysis as boolean, rank, analysisProfileId,
+      pathPrefixes, promotable: route.promotable === undefined ? true : (route.promotable as boolean),
+      reason: str(route.reason, `routes[${index}].reason`),
+    };
+  });
+  return { unmatched: { profileId: "delivery-change", requiresAnalysis: true, rank: unmatchedRank as number, analysisProfileId: str(unmatchedValue.analysisProfileId, "unmatched.analysisProfileId"), reason: str(unmatchedValue.reason, "unmatched.reason") }, routes };
+}
+function routeFor(routing: Routing, changeObject: string | null): RoutingDecision {
+  const matched = changeObject === null ? undefined : routing.routes.find((route) => route.changeObject === changeObject);
+  if (!matched) return { changeObject, matched: false, promotable: true, ...routing.unmatched };
+  return { changeObject, matched: true, profileId: matched.profileId, requiresAnalysis: matched.requiresAnalysis, rank: matched.rank, analysisProfileId: matched.analysisProfileId, promotable: matched.promotable, reason: matched.reason };
+}
+/**
+ * 立项门的分析线校验。任一不满足即抛错；调用方必须在改动任何状态之前调用它。
+ * 只读，不写盘——fail closed 的前提是失败时两侧文件逐字节不变。
+ */
+function requireAnalysisLine(root: string, id: string, analysisProfileId: string): { bindingPath: string; resultPath: string } {
+  const dir = join(root, "openspec", "intake", "analysis", id);
+  const bindingPath = join(dir, analysisBindingName);
+  const resultPath = join(dir, analysisResultName);
+  const missing: string[] = [];
+  if (!existsSync(bindingPath)) missing.push(analysisBindingName);
+  if (!existsSync(resultPath)) missing.push(analysisResultName);
+  if (missing.length) fail(`立项门拒绝：${id} 缺少分析线产物 ${missing.join("、")}（应位于 openspec/intake/analysis/${id}/）`);
+  let binding: Record<string, unknown>;
+  let result: Record<string, unknown>;
+  try { binding = readJson(bindingPath) as Record<string, unknown>; } catch (error) { fail(`立项门拒绝：${analysisBindingName} 不可解析: ${(error as Error).message}`); }
+  try { result = readJson(resultPath) as Record<string, unknown>; } catch (error) { fail(`立项门拒绝：${analysisResultName} 不可解析: ${(error as Error).message}`); }
+  if (!binding || typeof binding !== "object" || !result || typeof result !== "object") fail("立项门拒绝：分析线产物不是合法对象");
+  if (binding.profileId !== analysisProfileId) fail(`立项门拒绝：分析线由 profile ${String(binding.profileId ?? "(缺失)")} 产出，路由表要求该改动对象的分析必须由 ${analysisProfileId} 产出`);
+  if (binding.matterId !== id) fail(`立项门拒绝：${analysisBindingName} 的 matterId ${String(binding.matterId ?? "(缺失)")} 与条目 id ${id} 不一致，不接受他项产物`);
+  if (result.matterId !== id) fail(`立项门拒绝：${analysisResultName} 的 matterId ${String(result.matterId ?? "(缺失)")} 与条目 id ${id} 不一致，不接受他项产物`);
+  if (result.status !== "completed") fail(`立项门拒绝：分析线未完成，${analysisResultName}.status 实际为 ${String(result.status ?? "(缺失)")}，要求 completed`);
+  // disposition 落在 outputs.publishedInputs 下：它是 requirement-analysis profile 在 decision 站
+  // 用 outputInputs 声明要发布的输入，workflow 引擎经 publishedInputs 这一通用机制透出。
+  // 不去引擎里把 disposition 提升到 outputs 顶层，是因为那会把某个 profile 专有的输入名
+  // 硬编码进服务所有 profile 的通用引擎；取值点该知道 profile 细节的是门，不是引擎。
+  const outputs = (result.outputs ?? {}) as Record<string, unknown>;
+  const published = (outputs.publishedInputs ?? {}) as Record<string, unknown>;
+  if (published.disposition !== "build") fail(`立项门拒绝：分析结论不是建造，${analysisResultName}.outputs.publishedInputs.disposition 实际为 ${String(published.disposition ?? "(缺失)")}，要求 build`);
+  return { bindingPath, resultPath };
+}
+function rejectSelfDeclaredRouting(options: Map<string, string>): void {
+  for (const key of selfDeclaredOptions) {
+    if (options.has(key)) fail(`--${key} 不被接受：交付档位与分析线豁免的唯一真源是 ${routingRelativePath}，调用方不得自述豁免或为绕过门禁失败而降档`);
+  }
+}
+
+type State = { schemaVersion: 1; id: string; state: "captured" | "triaged" | "held" | "promoted" | "closed"; phase: "capture" | "triage" | "evidence" | "options" | "disposition"; source: string; capturedAt: string; promotedTo: string | null; changeObject: string | null; history: string[] };
+// 登记线只有两个真实节点：已登记（captured）与已处置（promoted / held / closed 三出口）。
+// 原先的 triage / evidence / options 三次 advance 仪式已合并——被证明有价值的是五个小节的
+// 结构，无价值的是分站状态机；小节结构原样保留，改为在处置时一次性校验。
+const terminalStates = ["promoted", "held", "closed"] as const;
+// phase 降为只读兼容字段：不再由任何命令写入，仅用于解析 19 条存量条目。
+const legacyPhases = ["capture", "triage", "evidence", "options", "disposition"] as const;
+// 处置前必须写全的五个小节，缺失时一次性全部报出。
+const requiredSections = ["原始问题", "Triage", "Evidence", "Options", "Disposition"] as const;
 type Frontmatter = { content: string; values: Map<string, string> };
 type InventoryEntry = { file: string; id: string | null; classification: "current" | "legacy" | "invalid"; missingFields: string[]; state: string | null; phase: string | null };
 const requiredFields = ["schemaVersion", "id", "state", "phase", "source", "capturedAt", "promotedTo"] as const;
@@ -33,14 +130,17 @@ function parse(path: string): { state: State; content: string } {
   const state = text(values.get("state"), "state") as State["state"];
   const phase = text(values.get("phase"), "phase") as State["phase"];
   if (!["captured", "triaged", "held", "promoted", "closed"].includes(state)) fail("Intake state 非法");
-  if (!stages.includes(phase)) fail("Intake phase 非法");
+  if (!legacyPhases.includes(phase)) fail("Intake phase 非法");
   const source = text(values.get("source"), "source");
   const capturedAt = text(values.get("capturedAt"), "capturedAt");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(capturedAt)) fail("capturedAt 必须是日期");
   const promotedTo = values.get("promotedTo") ?? "null";
   if (promotedTo !== "null" && !/^[a-z0-9][a-z0-9-]*$/.test(promotedTo)) fail("promotedTo 非法");
+  // changeObject 是可选的兼容字段：存量条目没有它，路由时按「未匹配」取最重档。
+  const changeObjectValue = values.get("changeObject") ?? "";
+  if (changeObjectValue && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(changeObjectValue)) fail("changeObject 非法");
   const history = content.includes("## History") ? content.split("## History", 2)[1].split(/\r?\n/).filter((line) => line.startsWith("- ")) : [];
-  return { state: { schemaVersion: 1, id, state, phase, source, capturedAt, promotedTo: promotedTo === "null" ? null : promotedTo, history }, content };
+  return { state: { schemaVersion: 1, id, state, phase, source, capturedAt, promotedTo: promotedTo === "null" ? null : promotedTo, changeObject: changeObjectValue || null, history }, content };
 }
 function section(content: string, heading: string): string { const match = new RegExp(`## ${heading}\\r?\\n([\\s\\S]*?)(?=\\r?\\n## |$)`).exec(content); return match?.[1].replace(/\s/g, "").replace(/[：:]/g, "").replace(/范围|影响|判断/g, "") ?? ""; }
 function replaceFrontmatter(content: string, key: string, value: string): string { const re = new RegExp(`^(${key}: ).*$`, "m"); if (!re.test(content)) fail(`Intake frontmatter 缺少 ${key}`); return content.replace(re, `$1${value}`); }
@@ -53,7 +153,7 @@ function missingContractFields(values: Map<string, string>): string[] {
   if (values.has("schemaVersion") && values.get("schemaVersion") !== "1" && !missing.includes("schemaVersion")) missing.push("schemaVersion");
   if (values.has("id") && !/^INT-[0-9]{8}-[0-9]{3}-[a-z0-9][a-z0-9-]*$/.test(values.get("id") ?? "") && !missing.includes("id")) missing.push("id");
   if (values.has("state") && !["captured", "triaged", "held", "promoted", "closed"].includes(values.get("state") ?? "") && !missing.includes("state")) missing.push("state");
-  if (values.has("phase") && !stages.includes(values.get("phase") as typeof stages[number]) && !missing.includes("phase")) missing.push("phase");
+  if (values.has("phase") && !legacyPhases.includes(values.get("phase") as typeof legacyPhases[number]) && !missing.includes("phase")) missing.push("phase");
   return missing;
 }
 
@@ -119,7 +219,13 @@ function legacyInspection(root: string, file: string): boolean {
   return true;
 }
 
-function init(options: Map<string, string>): void { const root = rootOf(options); const id = text(options.get("id"), "id"); if (!/^INT-[0-9]{8}-[0-9]{3}-[a-z0-9][a-z0-9-]*$/.test(id)) fail("Intake id 非法"); const file = safeFile(root, options.get("file") ?? `openspec/intake/${id}.md`); if (existsSync(file)) fail(`Intake 已存在: ${file}`); const source = text(options.get("source"), "source"); const issue = text(options.get("issue"), "issue"); const date = new Date().toISOString().slice(0, 10); atomic(file, `---\nschemaVersion: 1\nid: ${id}\nstate: captured\nphase: capture\nsource: ${source}\ncapturedAt: ${date}\npromotedTo: null\n---\n\n# Intake\n\n## 原始问题\n\n${issue}\n\n## Triage\n\n范围：\n影响：\n判断：\n\n## Evidence\n\n### 已知事实\n\n### 未知与假设\n\n### 证据\n\n## Options\n\n### 候选处置\n\n## Disposition\n\n决定：\n理由：\n下一步：\n\n## History\n\n- ${now()} captured\n`); console.log(JSON.stringify({ id, state: "captured", phase: "capture", file }, null, 2)); }
+function init(options: Map<string, string>): void { const root = rootOf(options); const id = text(options.get("id"), "id"); if (!/^INT-[0-9]{8}-[0-9]{3}-[a-z0-9][a-z0-9-]*$/.test(id)) fail("Intake id 非法"); const file = safeFile(root, options.get("file") ?? `openspec/intake/${id}.md`); if (existsSync(file)) fail(`Intake 已存在: ${file}`); const source = text(options.get("source"), "source"); const issue = text(options.get("issue"), "issue"); const date = new Date().toISOString().slice(0, 10);
+  // changeObject 在登记时声明，落在条目自身的 frontmatter 里供路由表查表；
+  // 不声明即按「未匹配」取最重档。它是条目的公开声明而非 promote 时的临时说法。
+  const changeObject = options.get("change-object");
+  if (changeObject !== undefined && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(changeObject)) fail("--change-object 非法");
+  const changeObjectLine = changeObject === undefined ? "" : `changeObject: ${changeObject}\n`;
+  atomic(file, `---\nschemaVersion: 1\nid: ${id}\nstate: captured\nphase: capture\nsource: ${source}\ncapturedAt: ${date}\npromotedTo: null\n${changeObjectLine}---\n\n# Intake\n\n## 原始问题\n\n${issue}\n\n## Triage\n\n范围：\n影响：\n判断：\n\n## Evidence\n\n### 已知事实\n\n### 未知与假设\n\n### 证据\n\n## Options\n\n### 候选处置\n\n## Disposition\n\n决定：\n理由：\n下一步：\n\n## History\n\n- ${now()} captured\n`); console.log(JSON.stringify({ id, state: "captured", phase: "capture", changeObject: changeObject ?? null, file }, null, 2)); }
 function inspect(options: Map<string, string>): void {
   const root = rootOf(options);
   const file = safeFile(root, options.get("file"));
@@ -127,10 +233,73 @@ function inspect(options: Map<string, string>): void {
   const parsed = parse(file);
   console.log(JSON.stringify({ ...parsed.state, file: relative(root, file).split(sep).join("/") }, null, 2));
 }
-function advance(options: Map<string, string>): void { const root = rootOf(options); const file = safeFile(root, options.get("file")); const parsed = parse(file); if (parsed.state.state !== "captured" && parsed.state.state !== "triaged") fail("当前 Intake 状态不可 advance"); const target = nextStage[parsed.state.phase]; if (!target) fail("disposition 没有普通后继，请使用 promote、hold 或 close"); const required = target === "triage" ? ["Triage"] : target === "evidence" ? ["Triage", "Evidence"] : target === "options" ? ["Evidence", "Options"] : ["Options", "Disposition"]; for (const heading of required) if (!section(parsed.content, heading)) fail(`缺少 ${heading} 内容`); let content = replaceFrontmatter(parsed.content, "phase", target); content = replaceFrontmatter(content, "state", target === "triage" ? "triaged" : "triaged"); content = history(content, `advanced to ${target}`); atomic(file, content); console.log(JSON.stringify({ id: parsed.state.id, state: "triaged", phase: target }, null, 2)); }
-function terminal(options: Map<string, string>, kind: "hold" | "close"): void { const root = rootOf(options); const file = safeFile(root, options.get("file")); const parsed = parse(file); if (parsed.state.phase !== "disposition") fail("只有 disposition 阶段可以 hold 或 close"); const reason = text(options.get("reason"), "reason"); let content = replaceFrontmatter(parsed.content, "state", kind === "hold" ? "held" : "closed"); content = history(content, `${kind}: ${reason}`); atomic(file, content); console.log(JSON.stringify({ id: parsed.state.id, state: kind === "hold" ? "held" : "closed" }, null, 2)); }
-function reopen(options: Map<string, string>): void { const root = rootOf(options); const file = safeFile(root, options.get("file")); const parsed = parse(file); if (parsed.state.state !== "held" && parsed.state.state !== "closed") fail("只有 held 或 closed 可以 reopen"); const reason = text(options.get("reason"), "reason"); let content = replaceFrontmatter(parsed.content, "state", "triaged"); content = replaceFrontmatter(content, "phase", "triage"); content = history(content, `reopened: ${reason}`); atomic(file, content); console.log(JSON.stringify({ id: parsed.state.id, state: "triaged", phase: "triage" }, null, 2)); }
-function promote(options: Map<string, string>): void { const root = rootOf(options); const file = safeFile(root, options.get("file")); const parsed = parse(file); if (parsed.state.phase !== "disposition") fail("只有 disposition 阶段可以 promote"); const change = text(options.get("change"), "change"); const changeRoot = safeChangeRoot(root, options.get("change-root"), change); const changeFile = join(changeRoot, "01-原始需求", "原始需求索引.md"); if (!existsSync(changeFile)) fail("目标 Change 缺少原始需求索引"); let target = replaceFrontmatter(parsed.content, "state", "promoted"); target = replaceFrontmatter(target, "promotedTo", change); target = history(target, `promoted to ${change}`); const sourceLine = `- Intake 来源：${relative(root, file).split(sep).join("/")}`; const changeContent = readFileSync(changeFile, "utf8"); if (!changeContent.includes(sourceLine)) atomic(changeFile, `${changeContent.trimEnd()}\n${sourceLine}\n`); atomic(file, target); console.log(JSON.stringify({ id: parsed.state.id, state: "promoted", promotedTo: change }, null, 2)); }
+/** 处置前的一次性结构校验：一次返回全部缺失小节名，而不是让调用方一轮一轮试。 */
+function requireCompleteSections(content: string): void {
+  const missing = requiredSections.filter((heading) => !section(content, heading));
+  if (missing.length) fail(`Intake 处置前必须写全五个小节，当前缺少：${missing.join("、")}`);
+}
+/**
+ * 中间站已合并，advance 不再有合法用途：登记线只剩「已登记」与「已处置」两个节点。
+ * 保留命令名只为给旧调用一个明确的说法，任何调用都非零且不写盘。
+ */
+function advance(options: Map<string, string>): void {
+  const root = rootOf(options);
+  const file = safeFile(root, options.get("file"));
+  parse(file);
+  const target = options.get("to");
+  const suffix = target ? `请求的 ${target} 站` : "该命令";
+  fail(`${suffix}已随登记并站移除：登记线只有「已登记」与「已处置」两个节点，triage / evidence / options 三次中间推进不再存在。五个小节仍需写全，但改为在处置时一次性校验；请直接使用 promote、hold 或 close。`);
+}
+function terminal(options: Map<string, string>, kind: "hold" | "close"): void {
+  const root = rootOf(options);
+  const file = safeFile(root, options.get("file"));
+  const parsed = parse(file);
+  if ((terminalStates as readonly string[]).includes(parsed.state.state)) fail(`Intake 已处置（${parsed.state.state}），如需重新处理请先 reopen`);
+  const reason = text(options.get("reason"), "reason");
+  requireCompleteSections(parsed.content);
+  let content = replaceFrontmatter(parsed.content, "state", kind === "hold" ? "held" : "closed");
+  content = history(content, `${kind}: ${reason}`);
+  atomic(file, content);
+  console.log(JSON.stringify({ id: parsed.state.id, state: kind === "hold" ? "held" : "closed" }, null, 2));
+}
+function reopen(options: Map<string, string>): void {
+  const root = rootOf(options);
+  const file = safeFile(root, options.get("file"));
+  const parsed = parse(file);
+  if (parsed.state.state !== "held" && parsed.state.state !== "closed") fail("只有 held 或 closed 可以 reopen");
+  const reason = text(options.get("reason"), "reason");
+  const content = history(replaceFrontmatter(parsed.content, "state", "captured"), `reopened: ${reason}`);
+  atomic(file, content);
+  console.log(JSON.stringify({ id: parsed.state.id, state: "captured" }, null, 2));
+}
+function promote(options: Map<string, string>): void {
+  const root = rootOf(options);
+  // 立项门：在写入任何状态之前完成全部判定，任一不满足即非零退出且两侧文件逐字节不变。
+  rejectSelfDeclaredRouting(options);
+  const file = safeFile(root, options.get("file"));
+  const parsed = parse(file);
+  if ((terminalStates as readonly string[]).includes(parsed.state.state)) fail(`Intake 已处置（${parsed.state.state}），如需重新处理请先 reopen`);
+  requireCompleteSections(parsed.content);
+  const change = text(options.get("change"), "change");
+  const changeRoot = safeChangeRoot(root, options.get("change-root"), change);
+  const changeFile = join(changeRoot, "01-原始需求", "原始需求索引.md");
+  if (!existsSync(changeFile)) fail("目标 Change 缺少原始需求索引");
+  const routing = loadRouting(resolve(options.get("runtime-root") ?? root));
+  const decision = routeFor(routing, parsed.state.changeObject);
+  // 有的改动对象按其自身定义就不产生 Change（ledger-only 自述「不产生任何 Change 目录」），
+  // 与 promote 这一「恰恰产生 Change」的操作自相矛盾。这类条目只能 hold 或 close；
+  // 要立项就必须先改声明，并因此落入需要分析线的档位——而不是借着最轻档位溜进来。
+  if (!decision.promotable) fail(`立项门拒绝：改动对象 ${decision.changeObject} 在路由表中声明为不可立项（其定义即「不产生任何 Change 目录」）。该条目只能 hold 或 close；若确需立项，先修正条目的 changeObject 声明。`);
+  if (decision.requiresAnalysis) requireAnalysisLine(root, parsed.state.id, decision.analysisProfileId ?? fail("change-routing 合同非法：requiresAnalysis 为真却无 analysisProfileId"));
+  let target = replaceFrontmatter(parsed.content, "state", "promoted");
+  target = replaceFrontmatter(target, "promotedTo", change);
+  target = history(target, `promoted to ${change}（交付档位 ${decision.profileId}，改动对象 ${decision.changeObject ?? "未声明"}${decision.matched ? "" : "，未匹配取最重档"}）`);
+  const sourceLine = `- Intake 来源：${relative(root, file).split(sep).join("/")}`;
+  const changeContent = readFileSync(changeFile, "utf8");
+  if (!changeContent.includes(sourceLine)) atomic(changeFile, `${changeContent.trimEnd()}\n${sourceLine}\n`);
+  atomic(file, target);
+  console.log(JSON.stringify({ id: parsed.state.id, state: "promoted", promotedTo: change, routing: decision }, null, 2));
+}
 function main(): void {
   const { positional, options } = parseArgs(process.argv.slice(2));
   options.delete("asset-root");

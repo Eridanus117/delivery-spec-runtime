@@ -1,17 +1,10 @@
 # 验收
 
-## Change 模式
-
-- 模式：delivery / rehearsal
-- 模式来源：缺少 `change-mode.json` 时为 delivery；rehearsal 必须引用完整声明。
-- rehearsal 原因与批准：
-
 ## 前置门禁
 
-- [ ] delivery：`task-state.json` 全部 verified，07 投影一致。
-- [ ] delivery：`implementation-review.json` 为当前、PASS，且没有 OPEN finding。
-- [ ] delivery：实际 implementation commit、依赖版本和目标环境已锁定，06 必需场景可执行。
-- [ ] rehearsal：逐项列出未完成、跳过和阻塞，不伪造 run-id、输入、输出或清理结果。
+- [ ] `task-state.json` 全部 verified，07 投影一致。
+- [ ] `implementation-review.json` 为当前、PASS，且没有 OPEN finding。
+- [ ] 实际 implementation commit、依赖版本和目标环境已锁定，06 必需场景可执行。
 
 ## 验收对象
 
@@ -46,8 +39,7 @@
 
 - 结论：PASS / PARTIAL / FAIL / BLOCKED
 - 依据：
-- delivery 只有必需场景有证据、无 critical 且清理成功时才能填写 PASS。
-- rehearsal 只能填写 PARTIAL、FAIL 或 BLOCKED，禁止 PASS；它只验证流程和失败门禁。
+- 只有必需场景有证据、无 critical 且清理成功时才能填写 PASS。
 
 ## Acceptance State
 

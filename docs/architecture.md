@@ -73,7 +73,7 @@ Workflow profile 只描述阶段合同，不替代 `delivery-change` 的 artifac
 | `.omp/command-sources/` | Commands manifest、公共 preamble 和 body 真源 | 是 |
 | `.omp/commands/` | 九个确定性渲染物 | 否 |
 | `.claude/skills/delivery-pilot/` | Claude Code 载体的人机交互指引（skill） | 是 |
-| `openspec/schemas/delivery-change/` | 九层交付 schema 与模板 | 是 |
+| `openspec/schemas/delivery-change/` | 交付 schema（v6）与模板 | 是 |
 | `openspec/tools/runtime-entry.ts` | 消费仓统一 fail-closed 入口 | 是 |
 | `openspec/tools/runtime-link.ts` | 建立和修复 manifest 托管投影（复制+校验） | 是 |
 | `openspec/contracts/` | JSON 机器合同 | 是 |

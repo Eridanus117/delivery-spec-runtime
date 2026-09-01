@@ -22,11 +22,15 @@ description: 当用户表达一个需求、想法、问题或事项（如「我�
 
 | 站 | 机器接口 | 产物 | 门 |
 |---|---|---|---|
-| ①登记 | `runtime-entry.ts intake init/advance` | 台账条目 | 无 |
-| ②分析 | `runtime-entry.ts workflow bind/run`（requirement-analysis profile） | 一屏决策报告 | 门1：建/不建/缓 |
+| ①登记 | `runtime-entry.ts intake init`（已登记）→ `promote` / `hold` / `close`（已处置） | 台账条目（五小节写全后一次处置，无中间站） | 无 |
+| ②分析 | `runtime-entry.ts workflow bind/run --intake-id`（requirement-analysis profile） | 一屏决策报告；产物落 `openspec/intake/analysis/<条目 id>/` | 门1：建/不建/缓 |
 | ③规划 | opsx 踏板（new/propose/continue/update） | 方案文档 | 门2：批准方案 |
 | ④实施 | opsx 踏板（apply、verify 自查段） | 代码＋自验证据 | 无 |
-| ⑤验收·归档 | opsx 踏板（verify/sync/archive） | 验收报告 | 门3：验收；同意即授权归档 |
+| ⑤验收·归档 | opsx 踏板（verify/sync/archive） | 验收报告 | 门3：验收；**归档不是人工门**，验收的「同意」即为归档授权 |
+
+**登记只有两站**：已登记（`captured`）与已处置（`promoted` / `held` / `closed` 三出口）。原先的 triage / evidence / options 三次推进已合并移除——有价值的是台账文件的五个小节结构，不是把它们拆成分站；小节缺失会在处置时被一次性全部报出。
+
+**分析线是立项门的前置，不是可选步骤**：`intake promote` 会先按 `openspec/profiles/change-routing-v1.json` 查该条目的改动对象，判定它是否豁免；不豁免时必须已有该条目的分析线产物且结论为「建」，否则立项被拒。豁免只能来自路由表，你不能自述豁免，也不能因为重档位门禁失败就改判轻档——被拒时的正确动作是补齐分析线或提请维护者调表，不是绕过。
 
 各踏板的详细说明书在 `.omp/commands/opsx-*.md`（受管投影，随本 Runtime 分发）；底层 CLI 统一入口为 `openspec/tools/runtime-entry.ts`（在消费仓经 `.delivery-spec-runtime` 前缀访问）。
 
@@ -38,9 +42,12 @@ description: 当用户表达一个需求、想法、问题或事项（如「我�
 
 ## 门口停靠与摆盘
 
-到达人工判断门时停下，摆出的材料必须：
+到达人工判断门时停下。摆盘深度与决策分量匹配，分三档：**例行站位**从简甚至只写盘不摆；**两道真门（方案门、验收门）**一屏；**方向级与复盘级重裁决**展开说透，允许超一屏。
 
-- **一屏以内**，判断导向：裁什么、推荐什么及理由、别的路为什么不走、代价与可逆性。
+摆出的材料必须：
+
+- **一屏以内**（真门；重裁决可超），判断导向：裁什么、推荐什么及理由、别的路为什么不走、代价与可逆性。
+- **方案门另须附「落地后可感知的具体变化清单」**：哪些命令会消失、哪些操作以后会被拒绝、哪些文件不再产出、人自己的动作有何增减。只摆路线比较（「权威归代码 vs 归 profile」这类内部结构词）不算合格摆盘——人从中读不出自己将感知到什么。
 - 比较类决策给出**多个方案与各自优劣势**，供人阅读后自行表态，不用选择框逼选。
 - **机器细节（JSON、状态文件、站位名、临时路径）不进人审正文**——它们属于机器资产层，人想深究时才展开。
 

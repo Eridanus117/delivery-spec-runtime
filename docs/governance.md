@@ -37,7 +37,7 @@ flowchart LR
 
 需求分析不自动等于 Runtime Change。尚未决定实施时，先记录原始问题、来源、可核验观察、影响、边界和候选方向；可以调查仓库和比较方案，但不修改实现。只有维护者明确决定交付，才创建 `openspec/changes/<change>/` 并进入下表的 Proposal 阶段。
 
-一旦建立 Change，分析内容必须分散落到其语义工件，而不是另造一个统一的“需求分析.md”：`01` 保留原始需求与来源，`02` 归一化 Requirement 和 Scenario，`03/04` 记录业务与技术现状，`05` 记录方案提案、决策和计划，`06/07` 记录测试与实施任务。这样，需求结论才会被批准、实施、Review、验收和归档门禁实际消费。
+一旦建立 Change，分析内容必须分散落到其语义工件，而不是另造一个统一的“需求分析.md”：`01` 保留原始需求与来源，`02` 归一化 Requirement 和 Scenario，`03` 记录业务与技术现状（v6 起合并为一份 `03-现状/现状.md`），`05` 记录方案提案、决策和计划，`06/07` 记录测试与实施任务。这样，需求结论才会被批准、实施、Review、验收和归档门禁实际消费。
 
 Runtime 自治理只处理 Runtime 公共资产及自身 Change；消费仓业务需求和交付证据必须留在消费仓，不得写入 Runtime 仓。
 
@@ -55,7 +55,7 @@ node --experimental-strip-types openspec/tools/delivery-control.ts inspect \
   --change-root openspec/changes/<change>
 ```
 
-`delivery-control.ts init` 创建 `change-info.json` 和空的 `artifact-approvals.json`；原始需求还要同步维护 `change-sources.json`。每个 Artifact 写入前先读取对应 `openspec instructions`，写入后用摘要批准，并执行聚焦校验：
+`delivery-control.ts init` 创建 `change-info.json` 和空的 `artifact-approvals.json`。原始需求的来源全序由 `01-原始需求索引.md` 材料索引表的 RAW 编号顺序承载（RAW-001 权威最高），不再另建 `change-sources.json`。每个 Artifact 写入前先读取对应 `openspec instructions`，写入后用摘要批准，并执行聚焦校验：
 
 ```bash
 openspec validate <change> --strict
@@ -142,9 +142,9 @@ PR 反馈如果只要求措辞说明且不改变实现或规格，可在当前�
 
 ## Intake 与 Change
 
-需求在尚未承诺实施前，保存在项目仓 `openspec/intake/`，由 Intake workflow 管理 `capture → triage → evidence → options → disposition`。只有维护者明确选择 Promote 后，才进入正式 Change；Promote 不隐式创建 Change，Intake 保留来源索引，Change 成为后续交付真源。
+需求在尚未承诺实施前，保存在项目仓 `openspec/intake/`。登记线只有两个节点：已登记（`captured`）与已处置（`promoted` / `held` / `closed` 三出口）；五个小节（原始问题 / Triage / Evidence / Options / Disposition）在处置时被一次性校验并逐项报缺，不再有中间站。Promote 之前须先过立项门：按 `openspec/profiles/change-routing-v1.json` 判该条目的改动对象是否豁免分析线，不豁免时必须已有该条目的分析线产物且结论为 build。Promote 不隐式创建 Change，Intake 保留来源索引，Change 成为后续交付真源。
 
-Intake 的状态、阶段和 Promote/Close/Reopen 合同由 `intake-state.schema.json` 和 `intake-control.ts` 管理；它不替代 `delivery-change` 的九层 Artifact DAG。
+Intake 的状态与 Promote/Hold/Close/Reopen 合同由 `intake-state.schema.json` 和 `intake-control.ts` 管理；`phase` 降为只读兼容字段，不再由任何命令写入。它不替代 `delivery-change` 的 Artifact DAG。
 
 ## 最终验证
 

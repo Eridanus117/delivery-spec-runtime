@@ -146,6 +146,59 @@ test("profile 合同拒绝重复阶段和未知字段", () => {
   assert.throws(() => parseWorkflowProfile({ schemaVersion: 1, profileId: "demo", profileVersion: "v1.0.0", displayName: "Demo", stages: [{ id: "one", displayName: "One", requiredInputs: [""], humanJudgment: false }] }), /requiredInputs 不得为空/);
 });
 
+test("VC-015 分析线产物落在资产仓并可按 intake id 定位", () => {
+  const asset = mkdtempSync(join(tmpdir(), "workflow-analysis-"));
+  try {
+    const intakeId = "INT-20260901-021-analysis-locatable";
+    const analysisDir = join(asset, "openspec/intake/analysis", intakeId);
+    const requestFile = join(asset, "request.json");
+
+    // 缺产物时必须明确报告缺失，而不是静默返回空。
+    const missing = runTool("workflow-control.ts", ["inspect", "--runtime-root", runtimeRoot, "--asset-root", asset, "--intake-id", intakeId]);
+    assert.notEqual(missing.status, 0);
+    assert.match(missing.stderr, /缺少分析线产物/);
+    assert.deepEqual(JSON.parse(missing.stdout), { intakeId, found: false, missing: ["workflow-binding.json", "workflow-result.json"] });
+
+    // bind --intake-id 把 binding 写到 openspec/intake/analysis/<id>/，并带上 matterId。
+    const bind = runTool("workflow-control.ts", ["bind", "--runtime-root", runtimeRoot, "--asset-root", asset, "--intake-id", intakeId, "--profile-id", "requirement-analysis", "--profile-version", "v1.0.0"]);
+    assert.equal(bind.status, 0, bind.stderr);
+    assert.deepEqual(JSON.parse(readFileSync(join(analysisDir, "workflow-binding.json"), "utf8")), { schemaVersion: 1, profileId: "requirement-analysis", profileVersion: "v1.0.0", matterId: intakeId });
+
+    // run --intake-id 把 result 写到同一目录。
+    writeFileSync(requestFile, JSON.stringify({ schemaVersion: 1, matterId: intakeId, binding: { schemaVersion: 1, profileId: "requirement-analysis", profileVersion: "v1.0.0" }, inputs: { request: "captured" }, judgments: {} }));
+    const run = runTool("workflow-control.ts", ["run", "--runtime-root", runtimeRoot, "--asset-root", asset, "--intake-id", intakeId, "--request-file", requestFile]);
+    assert.equal(run.status, 0, run.stderr);
+    assert.equal(JSON.parse(readFileSync(join(analysisDir, "workflow-result.json"), "utf8")).matterId, intakeId);
+
+    // 产物齐备后按 intake id 查询可同时取回 binding 与 result。
+    const found = runTool("workflow-control.ts", ["inspect", "--runtime-root", runtimeRoot, "--asset-root", asset, "--intake-id", intakeId]);
+    assert.equal(found.status, 0, found.stderr);
+    const payload = JSON.parse(found.stdout);
+    assert.equal(payload.found, true);
+    assert.deepEqual(payload.missing, []);
+    assert.equal(payload.binding.matterId, intakeId);
+    assert.equal(payload.result.matterId, intakeId);
+
+    // 归属不符的 request 被拒绝：目录名、binding.matterId 与 request.matterId 必须三者一致。
+    writeFileSync(requestFile, JSON.stringify({ schemaVersion: 1, matterId: "INT-20260901-022-other-item", binding: { schemaVersion: 1, profileId: "requirement-analysis", profileVersion: "v1.0.0" }, inputs: { request: "captured" }, judgments: {} }));
+    const foreign = runTool("workflow-control.ts", ["run", "--runtime-root", runtimeRoot, "--asset-root", asset, "--intake-id", intakeId, "--request-file", requestFile]);
+    assert.notEqual(foreign.status, 0);
+    assert.match(readFileSync(join(analysisDir, "workflow-result.json"), "utf8"), /matterId .* 与 --intake-id .* 不一致/);
+
+    // 产物不得写入 Runtime submodule。
+    const submodule = join(asset, ".delivery-spec-runtime");
+    mkdirSync(submodule, { recursive: true });
+    const intoRuntime = runTool("workflow-control.ts", ["bind", "--runtime-root", runtimeRoot, "--asset-root", submodule, "--intake-id", intakeId, "--profile-id", "requirement-analysis", "--profile-version", "v1.0.0"]);
+    assert.notEqual(intoRuntime.status, 0);
+    assert.match(intoRuntime.stderr, /不得写入 Runtime submodule/);
+
+    // --intake-id 与 --change-root 互斥：分析线发生在立项之前，此时尚无 Change。
+    const both = runTool("workflow-control.ts", ["bind", "--runtime-root", runtimeRoot, "--asset-root", asset, "--intake-id", intakeId, "--change-root", asset, "--profile-id", "requirement-analysis", "--profile-version", "v1.0.0"]);
+    assert.notEqual(both.status, 0);
+    assert.match(both.stderr, /不能同时使用/);
+  } finally { rmSync(asset, { recursive: true, force: true }); }
+});
+
 test("workflow CLI 固定 Change binding 并拒绝静默切换", () => {
   const root = mkdtempSync(join(tmpdir(), "workflow-cli-"));
   try {
@@ -303,4 +356,20 @@ test("需求分析输入合同拒绝占位报告和空分析轮次", () => {
   });
   assert.equal(malformed.status, "rejected");
   assert.match(malformed.reason ?? "", /缺少字段 stage/);
+});
+
+test("VC-040 归档 establish-workflow-v01-contract 不连带移除 workflow-entry.ts", () => {
+  // 归档的是那份未完成的规划记录，不是它规划过的代码。
+  const entry = join(runtimeRoot, "openspec/tools/workflow-entry.ts");
+  assert.equal(existsSync(entry), true, "workflow-entry.ts 被误删");
+  // 仍在公开清单中。
+  const allowlist = JSON.parse(readFileSync(join(runtimeRoot, "public-allowlist.json"), "utf8"));
+  assert.equal(JSON.stringify(allowlist).includes("openspec/tools/workflow-entry.ts"), true, "workflow-entry.ts 不在 allowlist");
+  // 仍被本测试文件的断言引用。
+  const selfSource = readFileSync(join(runtimeRoot, "test/workflow.test.ts"), "utf8");
+  const references = selfSource.match(/workflow-entry/g) ?? [];
+  assert.ok(references.length >= 6, `workflow.test.ts 中的 workflow-entry 断言数异常: ${references.length}`);
+  // 仍被两份 docs 引用。
+  const docs = ["docs/architecture.md", "docs/workflow-guide.md"].filter((path) => readFileSync(join(runtimeRoot, path), "utf8").includes("workflow-entry"));
+  assert.deepEqual(docs, ["docs/architecture.md", "docs/workflow-guide.md"]);
 });

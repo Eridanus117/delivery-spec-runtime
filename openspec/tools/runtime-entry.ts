@@ -173,7 +173,10 @@ function main(): void {
   const intake = argv[0] === "intake";
   const tool = workflow ? "workflow-control.ts" : lifecycle ? "delivery-lifecycle.ts" : intake ? "intake-control.ts" : "delivery-control.ts";
   const forwarded = workflow || lifecycle || intake ? argv.slice(1) : argv;
-  const internalArgs = workflow ? ["--runtime-root", runtimeRoot] : [];
+  // intake 与 workflow 都需要 Runtime 侧路径：workflow 要读 profile registry，
+  // intake 的立项门要读路由表 openspec/profiles/change-routing-v1.json。
+  // 路由表放 Runtime 侧而非资产仓，避免每个消费仓各自维护一份使规则分叉。
+  const internalArgs = workflow || intake ? ["--runtime-root", runtimeRoot] : [];
   const result = spawnSync(process.execPath, ["--experimental-strip-types", join(runtimeRoot, `openspec/tools/${tool}`), ...forwarded, ...internalArgs, "--asset-root", assetRoot], { cwd: assetRoot, stdio: "inherit" });
   if (result.error) throw result.error;
   process.exitCode = result.status ?? 1;

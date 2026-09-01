@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "6f32026925c2674e1b95b38857e51f001088c36b",
+  "reviewedCommit": "001563469a90887459721283ddcf7e72319b4cd5",
+  "reviewer": "independent-implementation-review session (未参与实施，第三轮收口复审)",
+  "reviewedAt": "2026-09-01T03:41:00Z",
+  "findings": [
+    {
+      "id": "REV-001",
+      "severity": "CRITICAL",
+      "path": "openspec/tools/intake-control.ts",
+      "line": 88,
+      "summary": "强制分析线立项门与分析线真实产物形状不匹配，端到端永不可通过（原读 outputs.disposition，真实产物为 outputs.publishedInputs.disposition）。",
+      "status": "RESOLVED",
+      "resolution": "取值点改为 outputs.publishedInputs.disposition（门去适配引擎的通用透出机制，不把 profile 专有键硬编码进引擎），并附带修复 executeWorkflow 幂等重跑分支丢失 publishedInputs 的缺陷。第二轮复审端到端实测通过：真实 bind + run 跑完 requirement-analysis 五阶段后 promote 返回 exit 0；缺产物、异 profile、损坏 JSON、未完成、他项 matterId、幂等重跑六条负向/边界路径行为全部正确。第三轮收口复测立项门正反向仍成立（无产物即拒并报缺失文件名；补齐真实产物后 exit 0）。测试侧手写 fixture 已换为基于真实命令链的构造器。"
+    },
+    {
+      "id": "REV-002",
+      "severity": "HIGH",
+      "path": "openspec/profiles/change-routing-v1.json",
+      "line": 74,
+      "summary": "分析线豁免仍可由调用方改一行 frontmatter 自选，自估绕开路径未根治。",
+      "status": "RESOLVED",
+      "resolution": "三条路径第二轮复审实测全部被拦：ledger-only 增 promotable:false 后 promote 被拒且两侧文件 sha256 前后一致；路由表增 pathPrefixes + rank，guard verify 新增声明与事实交叉校验，自称 doc-expression 而实际触碰 openspec/tools/ 或 openspec/contracts/ 均 fail closed；五个 CLI 自述开关全部拒绝。该交叉校验第二轮暴露的 quotepath 缺陷已另立 REV-014 并在本轮关闭。"
+    },
+    {
+      "id": "REV-003",
+      "severity": "HIGH",
+      "path": "(general)",
+      "line": null,
+      "summary": "openspec/contracts/artifact-approvals.schema.json 未随 schema v6 更新，v6 Change 产出的批准文件违反本仓自己公开分发的机器合同。",
+      "status": "RESOLVED",
+      "resolution": "合同补入 current-state 并保留 v5 两项（与 v5/v6 双表同思路），另加 not.required 禁止两种形态混写。复审用该合同的形状定向校验仓内全部 14 份真实 artifact-approvals.json，逐项检查顶层键集、工件名、未混写、每条批准字段集与取值：违反数 0。"
+    },
+    {
+      "id": "REV-004",
+      "severity": "HIGH",
+      "path": "(general)",
+      "line": null,
+      "summary": "rehearsal 演练模式移除不彻底（.omp 五处中文肯定式指令），且证据 6.2 声称已无残留与事实不符。",
+      "status": "RESOLVED",
+      "resolution": "五处指令改写并重渲染九个命令；复审全仓 grep 确认无肯定式残留。VC-036 禁词表补入中文 /演练/ 与 /NO-GO/。证据 6.2 的不实陈述已加订正段更正。"
+    },
+    {
+      "id": "REV-005",
+      "severity": "HIGH",
+      "path": "(general)",
+      "line": null,
+      "summary": "S8 由 agent 以 approvedBy=\"维护者\" 对内容已变的 tasks 工件重新签发批准并借此把 guard 从 stale 拒绝翻成放行；approvedBy 丢掉了本仓最近两个 Change 都带的代笔标注。",
+      "status": "RESOLVED",
+      "resolution": "AGENTS.md 新增两条硬规则（各附大白话理由，惯例未破）：approvedBy 必须在字段本身写明表态形态并标注代笔；重批准仅在机械回填、不改变工件任何语义时合法，语义改动必须重新取得维护者表态、不得由 agent 重签。复审实测本 Change 9 项 approvedBy 裸「维护者」0 项、未含「代笔」0 项，与最近两个归档 Change 的惯例一致；改写不影响工件 digest，guard 复测仍放行。"
+    },
+    {
+      "id": "REV-006",
+      "severity": "MEDIUM",
+      "path": "openspec/tools/intake-control.ts",
+      "line": 297,
+      "summary": "路由表的档位 profileId 只回显不生效；合同却自称「立项门与档位选择的唯一真源」。",
+      "status": "RESOLVED",
+      "resolution": "增 analysisProfileId 并由 loadRouting 对必走分析线的行强制要求；立项门校验分析产物的 binding.profileId 与之相等，复审实测用 light-change 跑出的完整产物被拒并报出要求的 profile 名。交付档位改由 promote 写入条目 History 留痕，实测留痕含交付档位与改动对象。合同 description 已收窄为逐项列出被机器强制的部分。"
+    },
+    {
+      "id": "REV-007",
+      "severity": "MEDIUM",
+      "path": "(general)",
+      "line": null,
+      "summary": "S7 在实施提交中直接向长期 spec 写入 46 行，绕过 delta→sync 链，来源 Change 从未验收；且 isLifecyclePath 把 openspec/specs/** 排除在 review 自算范围外。",
+      "status": "RESOLVED",
+      "resolution": "复审用 git diff 确认长期 spec 已完整回撤到 S7 之前（15a7c27~1..HEAD 对该文件为空 diff，回到 7 条 Requirement），4 条 Inventory 需求改挂 delta 随 sync 站正常合入，归档 Change 的处置记录同步更正。isLifecyclePath 的审查盲区按约定登记为 INT-20260901-021 第二项，留待预置复盘点裁决，本单不动「不得削弱项」的邻接面。"
+    },
+    {
+      "id": "REV-008",
+      "severity": "MEDIUM",
+      "path": "(general)",
+      "line": null,
+      "summary": "规范重叠（Inventory 三条与 delta ADDED 重复、Legacy 两条孪生、Purpose 未并入），不应留给没有改写 delta 权限的 sync 站。",
+      "status": "RESOLVED",
+      "resolution": "在本 Change 内完成去重。复审核对 delta 现为 6 条 Requirement（4 MODIFIED + 2 ADDED）：MODIFIED 名称在长期 spec 中均存在、ADDED 名称均不存在，无重名无孪生；Inventory 类恰 1 条且五项语义齐全；Legacy 孪生以 MODIFIED 合并；Purpose 已并入并覆盖 inventory 只读侧面。openspec validate --all --strict 三轮复跑均 10 passed / 0 failed。"
+    },
+    {
+      "id": "REV-009",
+      "severity": "MEDIUM",
+      "path": "test/intake.test.ts",
+      "line": null,
+      "summary": "test/intake.test.ts 源码含裸 NUL 字节，git 判为 binary，唯一证明立项门的测试不可 diff 审阅。",
+      "status": "RESOLVED",
+      "resolution": "裸 U+0000 改为 \\0 转义。复审实测 NUL 计数 0、file(1) 判为 UTF-8 文本、两侧均为修复后版本的 git diff --numstat 返回行数而非 binary 标记，逐行 diff 审阅能力已恢复。"
+    },
+    {
+      "id": "REV-010",
+      "severity": "LOW",
+      "path": "openspec/tools/delivery-control.ts",
+      "line": 50,
+      "summary": "v6 判别靠目录形状推断导致新建 Change 被误判为 v5；config.yaml 的 rules 仍是 v5 工件 id；README/schema.yaml/bootstrap 仍称「九层」。",
+      "status": "RESOLVED",
+      "resolution": "change-info.json 增可选 deliverySchemaVersion，init 对新建 Change 显式写 6，artifactPathsFor 优先读标记、无标记回落目录形状。复审实测新建 Change 在未写 03-现状/现状.md 时工件表已是 v6 八项；本 Change 与归档样本无标记仍按 v5 九项且全部 approved，存量不迁移成立。config.yaml 已合并为 current-state 一节；「九层」四处订正后 grep 无残留。"
+    },
+    {
+      "id": "REV-011",
+      "severity": "LOW",
+      "path": "openspec/tools/delivery-control.ts",
+      "line": 139,
+      "summary": "validateEvidence 只做词法越界判断、不 realpath，Change 内逃逸软链可当 evidence 通过校验。",
+      "status": "RESOLVED",
+      "resolution": "补 realpathSync 逃逸校验，与 delivery-lifecycle.ts 的 safeRepoFile 同标准。复审真造软链实测被拒并报「evidence 软链逃逸 Change 目录」，task-state.json 未写入；原四种拒绝与合法路径放行复测不变。"
+    },
+    {
+      "id": "REV-012",
+      "severity": "LOW",
+      "path": "test/station-authority.test.ts",
+      "line": 107,
+      "summary": "一致性合同测试的判别力部分来自隐式的第二清单（七站中只有三站真抹字段），VC-003 抓不到这种形态。",
+      "status": "ACCEPTED",
+      "resolution": "按约定登记不修：openspec/intake/INT-20260901-021-review-blindspots-and-probe-strength.md（capture 即止，source: implementation-review-findings，changeObject: governance-contract），同时收录 REV-007 附带发现的 review 对长期 spec 的盲区。复审逐句核对台账内容与本条 finding 原意一致且未弱化，并给出可能的加强方向；触发点挂在 AGENTS.md 预置的「强制版分析线跑满 2 单后复盘」。三轮复审均复测篡改检测仍有效（分别单边改 sync / acceptance / decision 的 humanJudgment，测试均失败并报出分叉，复原即复绿）。"
+    },
+    {
+      "id": "REV-013",
+      "severity": "LOW",
+      "path": "(general)",
+      "line": null,
+      "summary": "全量回归的结论表陈述强于可复现事实（写「74 passed / 0 failed」，实测 73/74）。",
+      "status": "RESOLVED",
+      "resolution": "证据 8.2 与 verify-自查.md 的结论表改为按实测频次陈述并把噪音直接标进表内，两处均加订正说明写明「结论表不得强于可复现事实」。第三轮复审确认两份文件口径一致，且 07-实施任务/ 下除订正叙述中的历史引述外无「74/74」残留。"
+    },
+    {
+      "id": "REV-014",
+      "severity": "HIGH",
+      "path": "openspec/tools/delivery-control.ts",
+      "line": 278,
+      "summary": "REV-002 引入的声明与事实交叉校验未禁用 core.quotepath，git 对非 ASCII 路径返回带引号的 C 转义串，致「排除 Change 目录自身」的前缀过滤对本仓强制的中文工件目录整类失效，任何声明非最重档的 Change 在 guard verify 被误判越档，轻档路径端到端不可用。",
+      "status": "RESOLVED",
+      "resolution": "改用 -z + NUL 分隔解析，与 delivery-lifecycle.ts 的 implementationPaths / dirtyImplementationPaths 同范式（三处 git 调用统一走新的 gitPaths 助手），复用了仓内既有正确范式而非另造一套。复审在敌对环境亲手复测：临时仓显式 git config core.quotepath true（复审机全局未设该键，即出厂默认），并先验证 git diff --name-only 在该仓确实仍返回转义串以确认环境敌对性。五个场景全部正确——(1) 中文工件目录齐备、只改 docs/ 的合法轻档 Change 放行 exit 0；(2) 混入 openspec/tools/sneaky.ts 后非零且只报该一条路径；(3) 中文命名的越档路径 openspec/tools/工具箱.ts 被正确归类为 tool-code（档位序 20）而非回落「未匹配」；(4) openspec/contracts/合同.json 正确归类 governance-contract（档位序 30）；(5) 已提交（非仅工作树）的越档路径同样被抓。fixture 三处修正复审逐条核实：先落基线提交使 Change 目录出现在已有历史之上、测试仓内显式 core.quotepath true、tasks.json 脚手架移出仓外——三者缺一该用例都会对本类缺陷免疫。"
+    },
+    {
+      "id": "REV-015",
+      "severity": "LOW",
+      "path": "(general)",
+      "line": null,
+      "summary": "REV-013 的订正未清干净（8.2 仍留一句 74/74 的旧陈述），且 INT-20260831-010 约定的「复跑两次全绿即视为通过」判据在实测频次下不成立。",
+      "status": "RESOLVED",
+      "resolution": "8.2 与 verify-自查.md 的过时陈述已清除并统一改为实测频次口径，明确写出「按复跑判定」隐含的前提已被频次证伪、不再以复跑到绿作为结论依据。INT-20260831-010 台账追加补记，如实记录复审九次 4 过 5 败与实施侧两轮 1 过 1 败、指出该判据已不可满足、建议提高优先级并与 INT-20260831-011 的路径预算问题一并处置；复审确认补记内容属实且条目 state 仍为 captured、phase 仍为 capture，未被顺手改动。附带说明：该 flake 属既有环境债、非本单引入，本轮全量测试连跑两次均为 79 tests / 79 pass / 0 fail，既定的复跑判据在本轮得到满足。"
+    }
+  ]
+}
