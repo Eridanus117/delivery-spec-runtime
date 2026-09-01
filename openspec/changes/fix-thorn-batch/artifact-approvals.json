@@ -37,18 +37,18 @@
       "migrationSource": null
     },
     "change-plan": {
-      "digest": "sha256:08485087ef587dd440a06429269c0ce724100866cde401ec4d38181469c49d2e",
+      "digest": "sha256:d37f295bef54ae20baef4f81fdf72027cd7919f3efb67407a1c3dc6d36e8b9ab",
       "decision": "approved",
-      "approvedBy": "维护者（INT-024 爆炸半径订正被采纳后的裁定变更，门口表态由 Claude 代笔转录）",
-      "approvedAt": "2026-09-01T09:07:32.065Z",
-      "migrationSource": "按裁定变更把 delivery-lifecycle.ts 与 render-commands.ts 两处入口守卫提前到本批修：补决策日志 D-09、目标与切片各一条、风险表一行、场景 T-GUARD-3、任务 2.3 与 3.4 的交付物与验证，并订正断言计数与待决问题段"
+      "approvedBy": "维护者（归档前机械订正后的机械重批准，Claude 代笔）",
+      "approvedAt": "2026-09-01T13:36:09.754Z",
+      "migrationSource": "按终审 REV-011 把「七个切片」订正为八个并补上第 8 项；切片表本身未变，回滚粒度与任何机器判据均不受影响"
     },
     "test-plan": {
-      "digest": "sha256:56cf541f62efd8dd28b6ba52a5d42ffeb4b3859d83ea64423889eb0e96120557",
+      "digest": "sha256:d9a772e5abb3f660f010b45fce05da609000b3f229d9552183572173f0ff80af",
       "decision": "approved",
-      "approvedBy": "维护者（INT-024 爆炸半径订正被采纳后的裁定变更，门口表态由 Claude 代笔转录）",
-      "approvedAt": "2026-09-01T09:07:32.611Z",
-      "migrationSource": "按裁定变更把 delivery-lifecycle.ts 与 render-commands.ts 两处入口守卫提前到本批修：补决策日志 D-09、目标与切片各一条、风险表一行、场景 T-GUARD-3、任务 2.3 与 3.4 的交付物与验证，并订正断言计数与待决问题段"
+      "approvedBy": "维护者（归档前机械订正后的机械重批准，Claude 代笔）",
+      "approvedAt": "2026-09-01T13:36:10.306Z",
+      "migrationSource": "按终审 REV-011 把「七个切片」订正为八个并补上第 8 项；切片表本身未变，回滚粒度与任何机器判据均不受影响"
     },
     "tasks": {
       "digest": "sha256:83736bf77b0166f46c5ca47da835951184047addd100a0e5b004ab563d50938e",
