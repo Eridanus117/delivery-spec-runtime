@@ -30,7 +30,7 @@
    node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" guard \
      --change-root "<changeRoot>" --operation apply
    ```
-   非零结果具有权威性。处于 `rehearsal` 模式的变更必须在此停止，不得实现任务或将任务标记为完成。
+   非零结果具有权威性：批准状态未齐、任务投影漂移或方案决策内容不合规时必须在此停止，不得实现任务或将任务标记为完成。
 
 3. **获取应用说明**
 
@@ -95,7 +95,7 @@
 7. **完成或暂停时显示状态**
 
    显示本次完成任务、各状态计数、总体进度和阻塞原因。全部完成时提示 `/opsx-continue` 进入 08；
-   `rehearsal` 在 apply guard 已停止；外部门禁使用 `blocked_external`，不得伪装成完成。
+   外部门禁使用 `blocked_external`，不得伪装成完成。
 
 **实施期间的输出**
 

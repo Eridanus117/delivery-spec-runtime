@@ -81,7 +81,7 @@
 
 8. **PR 反馈与 Reopen**
 
-   如果 PR 反馈只修改标题、描述、标签，不影响 Change。若要求改变代码、合同、主 specs 或可观察行为：停止合并，通过 `runtime-entry.ts lifecycle reopen` 恢复 active Change；旧 08/09 和 lifecycle state 必须保存在 `lifecycle-history`，随后重新 Review→Acceptance→Sync→Archive。
+   如果 PR 反馈只修改标题、描述、标签，不影响 Change。若要求改变代码、合同、主 specs 或可观察行为：停止合并，通过 `runtime-entry.ts lifecycle reopen` 恢复 active Change；旧 08/09 与三份生命周期状态由 reopen 清除，其历史版本以 git 历史为准（不再复制 lifecycle-history 快照），随后重新 Review→Acceptance→Sync→Archive。
 
 **成功输出**
 
@@ -98,7 +98,7 @@
 
 **保护规则**
 
-- rehearsal 永远禁止 Sync、Archive 和 PR。
+- 归档不是人工门：验收的「同意」即为归档授权，`archive-readiness.json` 的 `attestedBy` 由 `acceptance-state.json` 的 `acceptedBy` 派生，不得再索取第二次人工表态。
 - 不允许未完成 artifact、任务或 OPEN finding 带警告归档。
 - 不允许跳过 delta spec 同步。
 - Archive Readiness 必须绑定当前 Acceptance、发布计划、spec 摘要和 cleanup 证据。

@@ -15,7 +15,7 @@
 
 Runtime 自身的需求也遵循“先分析、后立项”的边界。尚未承诺实施时，先在维护者使用的 Intake、Issue 或提案记录中澄清问题、影响、范围和候选方向；确认要修改 Runtime 后，再在 `openspec/changes/<change>/` 建立正式 Change。
 
-Runtime Change 的 `01`～`07` 工件分别承载原始需求索引、正式 Requirement、业务/技术现状、方案与决策、测试方案和实施任务，不需要另造一个游离的需求分析文件。`/opsx-explore` 可以调查和形成工件，但不能修改 Runtime 源码；只有通过规划批准并进入 `/opsx-apply` 后，才允许实施。
+Runtime Change 的 `01`～`07` 工件分别承载原始需求索引、正式 Requirement、现状（v6 起合并为一份）、方案与决策、测试方案和实施任务，不需要另造一个游离的需求分析文件。`/opsx-explore` 可以调查和形成工件，但不能修改 Runtime 源码；只有通过规划批准并进入 `/opsx-apply` 后，才允许实施。
 
 消费仓的真实业务需求、账号、凭据、请求响应和交付证据不得写入 Runtime 仓。Runtime Change 只描述公共工作流和 Runtime 自身演进，消费仓通过 submodule gitlink 独立管理自己的 Change。
 
@@ -28,7 +28,7 @@ Runtime Change 的 `01`～`07` 工件分别承载原始需求索引、正式 Req
 | `.omp/command-sources/runtime-preamble.md` | 公共 Runtime 前置说明 | 直接修改 |
 | `.omp/command-sources/bodies/` | 各 Command body | 直接修改 |
 | `.omp/commands/` | 确定性渲染结果 | 只由 renderer 写入 |
-| `openspec/schemas/delivery-change/` | 九层 schema 和模板 | 与生命周期合同同步修改 |
+| `openspec/schemas/delivery-change/` | 交付 schema（v6）和模板 | 与生命周期合同同步修改 |
 | `openspec/contracts/` | JSON 机器合同 | 与解析、测试同步修改 |
 | `openspec/profiles/` | profile registry 和版本化阶段合同 | 与 binding、request、result 合同同步修改 |
 | `openspec/tools/` | Runtime 工具 | 保持 fail-closed 和确定性 |

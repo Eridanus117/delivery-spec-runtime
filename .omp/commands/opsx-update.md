@@ -56,13 +56,6 @@ node --experimental-strip-types "<runtime入口路径>" runtime-check --change-r
 
    要编辑的文件是 `artifactPaths.<id>.existingOutputPaths`——磁盘上实际存在的具体文件；对于通配产物，这些路径已经展开为具体文件（例如 `specs/**/*.md`）。不要写入 `resolvedOutputPath`：对于通配产物，它仍然是通配模式，而不是实际文件。
 
-   将所有待修改的 `existingOutputPaths` 写成 Change 根相对路径 JSON 数组，再在写入前冻结摘要：
-   ```bash
-   node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" update snapshot \
-     --change-root "<changeRoot>" --paths-file "<changeRoot>/.delivery-update-paths.json"
-   ```
-   路径越界、缺失或合同失败时停止。
-
 3. **理解请求**
    - 如果用户要求进行特定修订（“设计现在使用 X”），则以此作为开始编辑的内容。
    - 如果用户只说“更新”或“使其一致”，则将其视为一致性审查：阅读现有产物，并相互检查是否存在矛盾、缺漏和重复。
@@ -82,13 +75,9 @@ node --experimental-strip-types "<runtime入口路径>" runtime-check --change-r
      openspec instructions "<artifact-id>" --change "<name>" --json
      ```
 
-   每项已确认编辑完成后运行文件级 delta 诊断：
-   ```bash
-   node --experimental-strip-types "<planningHome.root>/openspec/tools/runtime-entry.ts" update diagnose \
-     --change-root "<changeRoot>"
-   ```
-   输出必须只包含用户确认的路径；任何额外 delta 立即回滚本轮编辑。需求理解、改造方案或测试方案内容变化后，
-   其摘要批准会自动转为 `pending`；重新批准前不得 apply。
+   每项已确认编辑完成后，用 `runtime-entry.ts approval inspect --change-root "<changeRoot>"` 复核批准状态：
+   被编辑工件的摘要批准会因内容变化自动转为 `stale`，重新批准前不得 apply。
+   出现用户未确认的工件转为 `stale` 时，立即回滚本轮编辑。
 
 6. **指向下一步（仅提供指导——绝不执行）**
    - 仍有缺失的产物 -> 建议使用 `/opsx-continue` 来创建它们。
@@ -108,5 +97,5 @@ node --experimental-strip-types "<runtime入口路径>" runtime-check --change-r
 - 仅编辑 `existingOutputPaths` 中的具体文件；绝不写入通配模式的 `resolvedOutputPath`。
 - 不要推进构建前沿：不得创建新产物，也不得在通配产物下创建新文件——这是 `/opsx-continue` 的工作。
 - 每次编辑都必须先获得用户确认，然后才能写入。
-- 写入前必须 snapshot，写入后必须 diagnose；不得以 Git 整仓 diff 代替 Change 内文件级诊断
+- 写入后必须用 approval inspect 复核批准状态；不得以 Git 整仓 diff 代替 Change 内的工件级批准诊断
 - 如果请求改变的是变更的*意图*而不是对其进行细化，请先确认可选的 `/opsx-new` 工作流是否可用。如果可用，建议使用 `/opsx-new` 重新开始（“更新还是重新开始”启发式）。如果不可用，请要求用户提供一个独立且未使用的变更名称，并建议改为运行 `openspec new change "<new-change-name>"`。

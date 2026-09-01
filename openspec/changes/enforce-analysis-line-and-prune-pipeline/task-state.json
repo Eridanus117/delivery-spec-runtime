@@ -316,7 +316,7 @@
     },
     {
       "id": "6.1",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
         "AGENTS.md 校准条款改写为摆盘三档规则并附大白话理由、新增复盘触发点『强制版分析线跑满 2 单后复盘 A1 的留/修/杀』与『方案门摆盘须附落地后可感知的具体变化清单』（信号8）",
         ".claude/skills/delivery-pilot/SKILL.md 站位表同步为登记两站、分析线为立项门前置、归档非人工门"
@@ -324,12 +324,14 @@
       "verification": [
         "VC-034 与 VC-035：新旧措辞断言全部命中，既有八项交互合同要素断言不减"
       ],
-      "evidence": [],
+      "evidence": [
+        "07-实施任务/证据/6.1.md"
+      ],
       "blocker": null
     },
     {
       "id": "6.2",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
         ".omp/command-sources/bodies/opsx-archive.md 去 lifecycle-history、opsx-new.md 去 change-mode、opsx-update.md 删 snapshot 与 diagnose 两段",
         "重渲染 .omp/commands 九个命令",
@@ -339,7 +341,9 @@
         "VC-036：渲染产物与源逐字节一致，产物中不含已删除命令段",
         "grep 确认 docs 不再出现已移除的命令与文件名"
       ],
-      "evidence": [],
+      "evidence": [
+        "07-实施任务/证据/6.2.md"
+      ],
       "blocker": null
     },
     {

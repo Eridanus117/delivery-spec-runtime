@@ -46,10 +46,10 @@ flowchart LR
 需求尚未决定是否投入时，先进入项目仓的 `openspec/intake/`，而不是直接创建正式 Change。Runtime 的 Intake DAG 为：
 
 ```text
-capture → triage → evidence → options → disposition
+captured（已登记） → promoted / held / closed（已处置）
 ```
 
-`disposition` 由维护者选择 `promote`、`hold` 或 `close`。Promote 只关联已存在的 Change；Hold 和 Close 保留理由，Reopen 后重新从 `triage` 开始。Intake 记录事实、未知、证据和候选处置；正式 Requirement、方案、任务、实现和验收只进入 Change。
+处置由维护者选择 `promote`、`hold` 或 `close`，五个小节写全后一次完成，不需要任何前置 advance。Promote 只关联已存在的 Change，且须先过立项门（查路由表判豁免，不豁免则校验分析线产物）；Hold 和 Close 保留理由，Reopen 回到 `captured`。Intake 记录事实、未知、证据和候选处置；正式 Requirement、方案、任务、实现和验收只进入 Change。
 
 处理多个 Intake 前，先生成只读 inventory：
 
@@ -68,12 +68,12 @@ node --experimental-strip-types \
 | 阶段 | 主要载体 | 应记录什么 | 是否修改项目实现 |
 |---|---|---|---|
 | 尚未承诺实施 | 项目仓的 `openspec/intake/`、Issue 或团队自己的分析记录 | 原始问题、来源、可核验观察、影响、边界、候选方向和当前处置 | 否 |
-| 已决定实施，正在规划 | `openspec/changes/<change>/` | 原始需求索引、正式 Requirement、业务/技术现状、方案提案与决策、测试方案、实施任务 | 否 |
+| 已决定实施，正在规划 | `openspec/changes/<change>/` | 原始需求索引、正式 Requirement、现状、方案提案与决策、测试方案、实施任务 | 否 |
 | 已批准规划，进入交付 | 同一个 Change 加项目源码、配置和测试 | 任务状态、验证证据、Review、Acceptance、Spec Sync 和归档证据 | 是；仅 `/opsx-apply` 修改项目实现 |
 
 `/opsx-explore` 适合第一阶段：帮助澄清问题、调查现状和比较方向，默认不建立 Change。确定要做之后使用 `/opsx-new` 或 `/opsx-propose` 建立 Change；不要把聊天记录、Issue 或 Intake 当作正式 Requirement 的唯一载体。
 
-Change 内不需要另造一个统一的“需求分析.md”。按分析性质填写既有工件：`01` 保留原始需求及来源，`02` 归一化 WHAT/WHY、范围、术语和可验收 Scenario，`03/04` 分别记录业务和技术现状，`05` 记录候选方案和维护者决策。这样既保留原意，也让后续实现、Review 和归档可以逐项追溯。
+Change 内不需要另造一个统一的“需求分析.md”。按分析性质填写既有工件：`01` 保留原始需求及来源（材料索引表的 RAW 编号顺序即权威顺序），`02` 归一化 WHAT/WHY、范围、术语和可验收 Scenario，`03` 记录业务与技术现状（v6 起合并为一份），`05` 记录候选方案和维护者决策。这样既保留原意，也让后续实现、Review 和归档可以逐项追溯。
 
 Runtime 不会只生成一份静态方案。它把“为什么改、决定怎么改、实际改了什么、如何证明正确”保存在同一条可审计链中。
 
@@ -182,8 +182,7 @@ openspec/changes/add-order-export/
 |---|---|---|
 | 01 原始需求 | `原始需求索引.md`、来源合同 | 用户原本说了什么，证据来自哪里？ |
 | 02 需求理解 | delta specs、术语和边界 | 系统必须表现出什么可观察行为？ |
-| 03 业务现状 | 角色、对象、当前流程 | 改造前业务如何运作？ |
-| 04 技术现状 | 入口、依赖、数据和失败语义 | 当前代码实际上如何实现？ |
+| 03 现状 | 角色、对象、当前流程、入口、依赖、数据和失败语义 | 改造前业务如何运作，当前代码实际上如何实现？ |
 | 05 改造方案 | 方案提案、方案决策、改造计划 | 有哪些候选，维护者选择了什么？ |
 | 06 测试方案 | 场景、断言、fixture 和清理 | 怎样证明改造正确？ |
 | 07 实施任务 | `task-state.json` 和人工视图 | 具体修改什么，如何验证每项任务？ |
