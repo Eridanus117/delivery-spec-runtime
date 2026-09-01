@@ -15,10 +15,16 @@ changeObject: tool-code
 
 复审 REV-008 在处置过程中发现：openspec-upgrade.ts、render-commands.ts、delivery-lifecycle.ts 三处于基线即存在同一形态的模块入口守卫（按 process.argv[1] 与 import.meta.filename / import.meta.url 的路径比较决定是否执行 main），该判据在路径含软链或 junction 时必然为假，此时 main 不执行、进程以退出码 0 零输出结束。本批不修，登记备查。
 
-> **登记备查（capture 即止）。** 维护者 2026-09-01 裁定：本批不修——这三处于基线即存在
-> （`cd6d2f0` 已有），不是 `fix-thorn-batch` 引入的，且与本批次的九类刺不同源。
-> 留待工作流重设计（`INT-20260901-023`）或下一批次处置。下面各节按登记时已核实的事实写全，
-> 不作处置结论。
+> **裁定已于同日变更，三处拆成两段处置。** 首次登记时的裁定是「三处全部本批不修」；
+> 本条目在登记过程中实跑得出的爆炸半径订正（见影响节）被维护者采纳后，裁定变更为：
+>
+> - **`delivery-lifecycle.ts` 与 `render-commands.ts` 提前到本批修**——消费仓治理链与 CI 检查
+>   不容许已知的静默哑炮。两处已在 `fix-thorn-batch` 完成修复，见下方「已处置」节。
+> - **`openspec-upgrade.ts` 维持登记不修**——它是三处里唯一确属维护者侧内部工具的，
+>   仅由维护者手动发起，留待工作流重设计（`INT-20260901-023`）或后续批次。
+>
+> 本条目因此从「登记备查」转为「部分已处置、余一处待办」，但仍保持 `captured`：
+> 剩余的那一处尚未处置完，不满足任何终态出口的条件。
 
 ## Triage
 
@@ -39,8 +45,9 @@ changeObject: tool-code
   会静默通过而实际没有做任何比对。
 - `openspec-upgrade.ts` 只由维护者手动发起，是三处里唯一确实属于「内部工具」的。
 
-判断：机理与 REV-008 完全同源，只是爆炸半径不同。**不是本批次的刺，但也不是无害的旧账**；
-按登记备查处理，并在重设计时与 `INT-20260901-023` 的输入材料一并消费。
+判断：机理与 REV-008 完全同源，只是爆炸半径不同。**不是本批次的刺，但也不是无害的旧账**。
+爆炸半径订正被采纳后裁定变更：前两处按「消费仓治理链与 CI 检查不容许已知静默哑炮」提前到本批修，
+第三处（纯内部工具）维持登记，随 `INT-20260901-023` 的重设计或后续批次消费。
 
 ## Evidence
 
@@ -59,9 +66,11 @@ changeObject: tool-code
 
 - 是否已在真实环境造成过误判：无历史证据，未做回溯排查。本仓 CI 跑在 `ubuntu-latest` 的
   runner 工作目录下，该路径通常不含软链，故 CI 上大概率一直是正常执行的。
-- `samePath` 修法（先 realpath 再比较）是否对所有调用形态都成立：登记时未逐一验证；
-  尤其 `delivery-lifecycle.ts` 用的是 「把 argv[1] 直接拼进 file 协议 URL」的写法，在含空格或非 ASCII
-  的路径上本身还有第二层脆弱性（未编码），需要一并核。
+- ~~`samePath` 修法是否对所有调用形态都成立~~：**已在本批次的两处上取证**——真实路径与 junction
+  路径下 `delivery-lifecycle.ts` 与 `render-commands.ts` 的退出码与输出逐项一致（见「已处置」节）。
+  尚未在 `openspec-upgrade.ts` 上验证，但它与 `render-commands.ts` 判据同形，风险很低。
+- ~~`delivery-lifecycle.ts` 拼 file 协议 URL 时未做百分号编码的第二层脆弱性~~：**已随本批修复消失**
+  （该写法整条被 `samePath(argv[1], import.meta.filename)` 取代）。`openspec-upgrade.ts` 不用这种写法。
 
 ### 证据
 
@@ -77,33 +86,63 @@ changeObject: tool-code
 
 ### 开放问题
 
-- 这三处守卫当初是为「让测试能 import 模块而不触发 main」而加的。修法若只是把判据改成先
-  realpath 再比较，脆弱性降低但形态不变；是否应当换成「把纯判据抽到不执行任何副作用的模块里、
-  入口一律无条件执行」这一更彻底的取向（`fix-thorn-batch` 对 `runtime-entry.ts` 走的正是这条），
-  属重设计范围的取舍，本条目不预判。
+- 这些守卫当初是为「让测试能 import 模块而不触发 main」而加的。本批次已在两处按候选甲落地
+  （判据换成 `samePath`，形态不变）。剩下的取向问题仍开着：是否应当整体换成「把纯判据抽到不执行
+  任何副作用的模块里、入口一律无条件执行」（`fix-thorn-batch` 对 `runtime-entry.ts` 走的正是这条，
+  因为那个文件没有任何 import 方）。属重设计范围的取舍，本条目不预判。
+- 更一般的问题：本仓是否应当立一条「入口模块不得把是否执行 `main()` 系在路径比较上」的硬规则，
+  而不是逐个文件打补丁。留给重设计。
+
+## 已处置（2026-09-01，Change fix-thorn-batch）
+
+裁定变更后，三处里的两处已在本批修完，修法为候选甲（`samePath` 比较），理由与被拒方案见
+`openspec/changes/fix-thorn-batch/05-改造方案/改造方案.md` 的决策日志 D-09。要点：
+
+- 两处的守卫**不能删**——`render-commands.ts` 的 `renderCommands` 被 `openspec-upgrade.ts` 与
+  `test/command-renderer.test.ts` import，`delivery-lifecycle.ts` 的 `requireAcceptance` /
+  `requireReadiness` / `requireReview` 被 `delivery-control.ts` import；无条件执行 `main()`
+  会在每次 import 时跑一遍命令解析。这与 `runtime-entry.ts` 的情形不同：那个文件没有任何
+  import 方，所以那里能够、也必须走「无条件执行」这条更彻底的路。
+- 判据统一改为仓内既有的 `samePath()`（resolve → realpath → 小写比较）。该函数的权威定义
+  已随本批次落在 `openspec/tools/runtime-lib.ts`，两个文件从那里 import。
+- `delivery-lifecycle.ts` 顺带甩掉了「把 argv[1] 直接拼进 file 协议 URL」的旧写法，
+  未知节里记的那条百分号编码脆弱性随之消失。
+- 回归断言 `T-GUARD-3`（`test/contracts.test.ts`）：经软链路径调用两者，行为必须与真实路径
+  逐项一致——lifecycle 缺参数须报错非零、render check 须真执行并输出 `files: 9`，
+  且两者都不得以「退出码 0 且零输出」这一守卫失配的特征形状结束。
+- A/B 先红后绿：把旧判据临时装回后 `T-GUARD-3` 报
+  「经软链调用时 main() 未执行：status=0 stdout="" stderr=""」，恢复后转绿。
+
+相关提交：`3b8b19a`（`runtime-entry.ts` 删守卫、判据权威定义移入 `runtime-lib.ts`）之后的
+本批修复提交，见 `fix-thorn-batch` 的 `07-实施任务/evidence/rework3.log`。
 
 ## Options
 
 ### 候选处置
 
-- **甲｜最小修**：三处判据统一改为先对两侧做 realpath 再比较（复审建议的 `samePath` 修法）。
-  投入最小，形态不变；仍依赖路径比较，只是把已知的一类失配堵上。
-- **乙｜换取向**：把需要被测试引用的纯判据移出入口模块（放进不执行任何副作用的库文件），
-  入口一律无条件执行 `main()`。与 `fix-thorn-batch` 对 `runtime-entry.ts` 的处置一致，
-  根除「入口是否执行取决于路径写法」这一整类问题，但要动三个文件的模块结构与对应测试。
-- **丙｜先补断言再修**：先加一条覆盖三处的断言（经 junction 调用必须与真实路径同结果），
-  让问题可复现、可回归，再择期按甲或乙落地。
+范围已收窄到**只剩 `openspec-upgrade.ts` 一处**（判据 `resolve(argv[1]) === resolve(import.meta.filename)`）。
+它的 `renderCommands` 调用方向是单向的（它 import 别人，没有别人 import 它的导出），
+故两条路都开着：
 
-三条不互斥；丙可作为甲或乙的前置。留待重设计或下一批次统一裁定。
+- **甲｜最小修**：判据改为 `samePath()`，与本批已修的两处一致。投入最小，形态不变；
+  仍把「入口是否执行」系在路径比较上，只是把已知的一类失配堵上。
+- **乙｜换取向**：确认无 import 方后删除守卫、`main()` 无条件执行，与 `runtime-entry.ts`
+  的处置同原则，根除这一整类问题。需先核实确无 import 方（登记时的检索显示没有）。
+
+丙（先补断言再修）已随本批次的 `T-GUARD-3` 提前落地，可直接扩一条覆盖 `openspec-upgrade.ts`。
+留待重设计或下一批次裁定。
 
 ## Disposition
 
-决定：（未处置，登记备查）
-理由：维护者 2026-09-01 裁定本批不修——基线即存在、与本批次九类刺不同源，
-且 `fix-thorn-batch` 已进入收口复审阶段，此时扩范围会让本单再多一轮评审。
-下一步：随 `INT-20260901-023-repo-suited-workflow` 的重设计一并消费，或在下一批次单独处置。
+决定：（部分已处置，条目保持 captured）
+理由：三处中的两处（`delivery-lifecycle.ts`、`render-commands.ts`）已在 `fix-thorn-batch` 修完并有
+回归断言守住——维护者采纳爆炸半径订正后裁定，消费仓治理链与 CI 检查不容许已知的静默哑炮。
+第三处 `openspec-upgrade.ts` 是纯内部工具，维持不修。条目不进终态，因为剩余那一处尚未处置完。
+下一步：`openspec-upgrade.ts` 一处随 `INT-20260901-023-repo-suited-workflow` 的重设计一并消费，
+或在下一批次单独处置；处置时可直接把 `T-GUARD-3` 扩一条覆盖它。
 处置时应先读本条目影响节——复审最初「三处都是维护者侧内部工具」的判断经实跑已被推翻其中两处。
 
 ## History
 
 - 2026-09-01T08:44:01.238Z captured
+- 2026-09-01 裁定变更（维护者采纳本条目的爆炸半径订正）：`delivery-lifecycle.ts` 与 `render-commands.ts` 两处提前到 `fix-thorn-batch` 本批修复，`openspec-upgrade.ts` 维持登记不修。条目保持 captured。
