@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { renderCommands } from "../openspec/tools/render-commands.ts";
-import { runtimeRoot } from "./helpers.ts";
+import { runtimeRoot, removeOptions } from "./helpers.ts";
 
 function fixture(): string {
   const root = mkdtempSync(join(tmpdir(), "command-renderer-"));
@@ -28,7 +28,7 @@ test("Commands结构化真源与现有九个渲染物逐字节一致", () => {
     assert.deepEqual(renderCommands(root, "write"), { files: 9, changed: [] });
     assert.deepEqual(digests(root), before);
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    rmSync(root, removeOptions);
   }
 });
 
@@ -42,7 +42,7 @@ test("renderer check报告漂移且write只修复受管Commands", () => {
     assert.deepEqual(result.changed, ["opsx-apply.md", "opsx-extra.md"]);
     assert.deepEqual(renderCommands(root, "check"), { files: 9, changed: [] });
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    rmSync(root, removeOptions);
   }
 });
 
@@ -57,7 +57,7 @@ test("renderer在恶意manifest下fail closed且不改渲染物", () => {
     assert.throws(() => renderCommands(root, "write"), /command body必须为/);
     assert.deepEqual(digests(root), before);
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    rmSync(root, removeOptions);
   }
 });
 

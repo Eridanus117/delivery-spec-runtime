@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { runTool, runtimeRoot } from "./helpers.ts";
+import { runTool, runtimeRoot, removeOptions } from "./helpers.ts";
 
 test("公开候选只复制允许清单且不产生外部副作用", () => {
   const root = mkdtempSync(join(tmpdir(), "delivery-candidate-"));
@@ -26,7 +26,7 @@ test("公开候选只复制允许清单且不产生外部副作用", () => {
       "docs/workflow-guide.md",
     ]) assert.equal(existsSync(join(output, path)), true, `公开候选缺少README导航目标: ${path}`);
     assert.ok(report.files.length > 20);
-  } finally { rmSync(root, { recursive: true, force: true }); }
+  } finally { rmSync(root, removeOptions); }
 });
 
 test("公开候选拒绝秘密与禁用路径", () => {
@@ -42,7 +42,7 @@ test("公开候选拒绝秘密与禁用路径", () => {
     result = runTool("public-candidate.ts", ["generate", "--runtime-root", runtime, "--output-root", join(root, "candidate")]);
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /非法路径/);
-  } finally { rmSync(root, { recursive: true, force: true }); }
+  } finally { rmSync(root, removeOptions); }
 });
 
 test("公开候选示例必须有合规provenance", () => {
@@ -58,7 +58,7 @@ test("公开候选示例必须有合规provenance", () => {
     result = runTool("public-candidate.ts", ["generate", "--runtime-root", runtime, "--output-root", join(root, "candidate")]);
     assert.equal(result.status, 0, result.stderr);
     assert.equal(JSON.parse(readFileSync(join(root, "candidate/candidate-report.json"), "utf8")).checks.examples, "provenance_pass");
-  } finally { rmSync(root, { recursive: true, force: true }); }
+  } finally { rmSync(root, removeOptions); }
 });
 
 test("VC-037 allowlist 与实际文件集合一致", () => {

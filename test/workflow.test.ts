@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { executeWorkflow, loadWorkflowProfile, parseWorkflowProfile, parseWorkflowRequest } from "../openspec/tools/workflow-core.ts";
-import { runTool, runtimeRoot } from "./helpers.ts";
+import { runTool, runtimeRoot, removeOptions } from "./helpers.ts";
 
 test("registry 提供三个 profile 且 profile 版本必须精确匹配", () => {
   const result = runTool("workflow-control.ts", ["list-profiles", "--runtime-root", runtimeRoot]);
@@ -196,7 +196,7 @@ test("VC-015 分析线产物落在资产仓并可按 intake id 定位", () => {
     const both = runTool("workflow-control.ts", ["bind", "--runtime-root", runtimeRoot, "--asset-root", asset, "--intake-id", intakeId, "--change-root", asset, "--profile-id", "requirement-analysis", "--profile-version", "v1.0.0"]);
     assert.notEqual(both.status, 0);
     assert.match(both.stderr, /不能同时使用/);
-  } finally { rmSync(asset, { recursive: true, force: true }); }
+  } finally { rmSync(asset, removeOptions); }
 });
 
 test("workflow CLI 固定 Change binding 并拒绝静默切换", () => {
@@ -228,7 +228,7 @@ test("workflow CLI 固定 Change binding 并拒绝静默切换", () => {
     assert.notEqual(malformed.status, 0);
     assert.equal(JSON.parse(malformed.stdout).status, "rejected");
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    rmSync(root, removeOptions);
   }
 });
 
@@ -295,7 +295,7 @@ test("standalone workflow entry 自推进到人工门并返回可恢复结果", 
     assert.match(missing.stderr, /缺少 --input/);
     assert.equal(readFileSync(outputFile, "utf8"), previous);
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    rmSync(root, removeOptions);
   }
 });
 

@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { mkdtempSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { createArtifactTree, runTool } from "./helpers.ts";
+import { createArtifactTree, runTool, removeOptions } from "./helpers.ts";
 
 function git(root: string, args: string[]): string {
   const result = spawnSync("git", args, { cwd: root, encoding: "utf8" });
@@ -53,7 +53,7 @@ test("Review绑定完整实现范围并在实现漂移时失效", () => {
     git(repo, ["checkout", "--", "src/app.ts"]);
     const openInput = join(change, "review-open.json"); write(openInput, `${JSON.stringify({ schemaVersion: 1, baselineCommit: baseline, reviewedCommit: reviewed, reviewer: "reviewer", reviewedAt: "2026-08-30T12:00:00Z", findings: [{ id: "REV-001", severity: "HIGH", path: "src/app.ts", line: 1, summary: "风险", status: "OPEN", resolution: null }] }, null, 2)}\n`);
     result = runTool("delivery-lifecycle.ts", ["review", "write", "--change-root", change, "--file", openInput], { cwd: repo }); assert.equal(result.status, 0, result.stderr); assert.equal(JSON.parse(readFileSync(join(change, "implementation-review.json"), "utf8")).result, "FAIL");
-  } finally { rmSync(repo, { recursive: true, force: true }); }
+  } finally { rmSync(repo, removeOptions); }
 });
 
 test("Acceptance与Archive Readiness取代Markdown关键词并支持受控reopen", () => {
@@ -109,7 +109,7 @@ test("Acceptance与Archive Readiness取代Markdown关键词并支持受控reopen
     const task = JSON.parse(readFileSync(join(target, "task-state.json"), "utf8")).tasks[0]; assert.equal(task.state, "implemented_unverified"); // VC-006：reopen 后既不写 reopen-state.json，也不再复制 lifecycle-history 快照目录。
     assert.equal(existsSync(join(target, "reopen-state.json")), false);
     assert.equal(existsSync(join(target, "lifecycle-history")), false);
-  } finally { rmSync(repo, { recursive: true, force: true }); }
+  } finally { rmSync(repo, removeOptions); }
 });
 
 test("VC-031/VC-032 不得削弱项：Review 自算与 Acceptance 四 digest 新鲜度", () => {
@@ -179,5 +179,5 @@ test("VC-031/VC-032 不得削弱项：Review 自算与 Acceptance 四 digest 新
     git(repo, ["add", "."]); git(repo, ["commit", "-qm", "post-acceptance drift"]);
     const drifted = runTool("delivery-lifecycle.ts", ["acceptance", "inspect", "--change-root", change], { cwd: repo });
     assert.notEqual(drifted.status, 0); assert.match(drifted.stderr, /stale/);
-  } finally { rmSync(repo, { recursive: true, force: true }); }
+  } finally { rmSync(repo, removeOptions); }
 });

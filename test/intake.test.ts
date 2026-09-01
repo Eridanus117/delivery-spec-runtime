@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { runTool, runtimeRoot } from "./helpers.ts";
+import { runTool, runtimeRoot, removeOptions } from "./helpers.ts";
 
 function root(): string { return mkdtempSync(join(tmpdir(), "delivery-intake-")); }
 function file(rootPath: string): string { return join(rootPath, "openspec/intake/INT-20260830-001-test.md"); }
@@ -65,7 +65,7 @@ function runAnalysis(rootPath: string, options: { id?: string; disposition?: str
   const id = options.id ?? intakeId;
   // 每个场景都从干净的分析目录起跑：bind 对已存在的 binding 是幂等复用，
   // 不清理会让上一场景的 binding（含其 matterId）泄漏到下一场景。
-  rmSync(analysisDir(rootPath, id), { recursive: true, force: true });
+  rmSync(analysisDir(rootPath, id), removeOptions);
   const bind = runTool("workflow-control.ts", ["bind", "--runtime-root", runtimeRoot, "--asset-root", rootPath, "--intake-id", id, "--profile-id", "requirement-analysis", "--profile-version", "v1.0.0"]);
   assert.equal(bind.status, 0, bind.stderr);
   const completed = options.stopBeforeDecision ? analysisStages.slice(0, 3) : analysisStages.slice(0, 4);
@@ -80,7 +80,7 @@ function runAnalysis(rootPath: string, options: { id?: string; disposition?: str
 function plantForeignAnalysis(rootPath: string, foreignId: string): void {
   runAnalysis(rootPath, { id: foreignId });
   const dir = analysisDir(rootPath);
-  rmSync(dir, { recursive: true, force: true });
+  rmSync(dir, removeOptions);
   mkdirSync(dir, { recursive: true });
   for (const name of ["workflow-binding.json", "workflow-result.json"]) {
     writeFileSync(join(dir, name), readFileSync(join(analysisDir(rootPath, foreignId), name), "utf8"), "utf8");
@@ -170,7 +170,7 @@ test("VC-007/008/009/010 立项门按分析线产物 fail closed", () => {
     assert.match(readFileSync(file(rootPath), "utf8"), /state: promoted/);
     assert.match(readFileSync(file(rootPath), "utf8"), /promotedTo: target/);
     assert.match(readFileSync(join(changeRoot, "01-原始需求/原始需求索引.md"), "utf8"), /Intake 来源：openspec\/intake\//);
-  } finally { rmSync(rootPath, { recursive: true, force: true }); rmSync(runtimePath, { recursive: true, force: true }); }
+  } finally { rmSync(rootPath, removeOptions); rmSync(runtimePath, removeOptions); }
 });
 
 test("VC-011/012/013/014 豁免与档位只能来自路由表", () => {
@@ -185,7 +185,7 @@ test("VC-011/012/013/014 豁免与档位只能来自路由表", () => {
     assert.equal(exemptRouting.matched, true);
     assert.equal(exemptRouting.requiresAnalysis, false);
     assert.equal(exemptRouting.profileId, "light-change");
-  } finally { rmSync(rootPath, { recursive: true, force: true }); rmSync(runtimePath, { recursive: true, force: true }); }
+  } finally { rmSync(rootPath, removeOptions); rmSync(runtimePath, removeOptions); }
 
   const unmatchedRoot = root();
   const unmatchedRuntime = makeRuntimeRoot();
@@ -203,8 +203,8 @@ test("VC-011/012/013/014 豁免与档位只能来自路由表", () => {
       const bareResult = promote(bare, bareRuntime, bareChange);
       assert.notEqual(bareResult.status, 0);
       assert.match(bareResult.stderr, /缺少分析线产物/);
-    } finally { rmSync(bare, { recursive: true, force: true }); }
-  } finally { rmSync(unmatchedRoot, { recursive: true, force: true }); rmSync(unmatchedRuntime, { recursive: true, force: true }); }
+    } finally { rmSync(bare, removeOptions); }
+  } finally { rmSync(unmatchedRoot, removeOptions); rmSync(unmatchedRuntime, removeOptions); }
 
   const ledgerRoot = root();
   const ledgerRuntime = makeRuntimeRoot();
@@ -218,7 +218,7 @@ test("VC-011/012/013/014 豁免与档位只能来自路由表", () => {
     assert.match(result.stderr, /声明为不可立项/);
     assert.match(result.stderr, /只能 hold 或 close/);
     assert.equal(snapshot(ledgerRoot, changeRoot), before);
-  } finally { rmSync(ledgerRoot, { recursive: true, force: true }); rmSync(ledgerRuntime, { recursive: true, force: true }); }
+  } finally { rmSync(ledgerRoot, removeOptions); rmSync(ledgerRuntime, removeOptions); }
 
   const selfRoot = root();
   const selfRuntime = makeRuntimeRoot();
@@ -239,7 +239,7 @@ test("VC-011/012/013/014 豁免与档位只能来自路由表", () => {
       assert.match(result.stderr, /不得自述豁免或为绕过门禁失败而降档/);
       assert.equal(snapshot(selfRoot, changeRoot), before);
     }
-  } finally { rmSync(selfRoot, { recursive: true, force: true }); rmSync(selfRuntime, { recursive: true, force: true }); }
+  } finally { rmSync(selfRoot, removeOptions); rmSync(selfRuntime, removeOptions); }
 });
 
 test("VC-021 存量 intake 清单确定且不受并站影响", () => {
@@ -307,7 +307,7 @@ test("Intake init and inspect create the contract", () => {
     assert.equal(inspected.status, 0, inspected.stderr);
     assert.deepEqual(JSON.parse(inspected.stdout).state, "captured");
     assert.equal(JSON.parse(inspected.stdout).phase, "capture");
-  } finally { rmSync(rootPath, { recursive: true, force: true }); }
+  } finally { rmSync(rootPath, removeOptions); }
 });
 
 test("VC-017 中间站已合并，advance 一律非零且不写盘", () => {
@@ -328,7 +328,7 @@ test("VC-017 中间站已合并，advance 一律非零且不写盘", () => {
     assert.notEqual(bare.status, 0);
     assert.match(bare.stderr, /promote、hold 或 close/);
     assert.equal(readFileSync(file(rootPath), "utf8"), before);
-  } finally { rmSync(rootPath, { recursive: true, force: true }); }
+  } finally { rmSync(rootPath, removeOptions); }
 });
 
 test("VC-016/019 一次处置即从 captured 到终态，reopen 回到 captured", () => {
@@ -360,7 +360,7 @@ test("VC-016/019 一次处置即从 captured 到终态，reopen 回到 captured"
     const closed = invoke(rootPath, ["close", "--file", intakeRelative, "--reason", "not needed"]);
     assert.equal(closed.status, 0, closed.stderr);
     assert.equal(JSON.parse(closed.stdout).state, "closed");
-  } finally { rmSync(rootPath, { recursive: true, force: true }); }
+  } finally { rmSync(rootPath, removeOptions); }
 });
 
 test("VC-020 处置时一次性校验五小节并逐项报缺", () => {
@@ -380,7 +380,7 @@ test("VC-020 处置时一次性校验五小节并逐项报缺", () => {
     assert.match(result.stderr, /Disposition/);
     assert.doesNotMatch(result.stderr, /Triage/);
     assert.equal(readFileSync(file(rootPath), "utf8"), before);
-  } finally { rmSync(rootPath, { recursive: true, force: true }); }
+  } finally { rmSync(rootPath, removeOptions); }
 });
 
 test("VC-018 新写入只产生四元枚举，存量 triaged 仍可读", () => {
@@ -408,7 +408,7 @@ test("VC-018 新写入只产生四元枚举，存量 triaged 仍可读", () => {
       const states = [...readFileSync(path, "utf8").matchAll(/^state: (\w+)$/gm)].map((match) => match[1]);
       assert.equal(states.every((state) => ["captured", "promoted", "held", "closed"].includes(state)), true, `新写入产生了四元枚举之外的 state: ${states.join(",")}`);
     }
-  } finally { rmSync(rootPath, { recursive: true, force: true }); }
+  } finally { rmSync(rootPath, removeOptions); }
 });
 
 test("Intake rejects sensitive content and unsafe promote target", () => {
@@ -420,7 +420,7 @@ test("Intake rejects sensitive content and unsafe promote target", () => {
     const result = invoke(rootPath, ["promote", "--file", "openspec/intake/INT-20260830-001-test.md", "--change", "target", "--change-root", join(tmpdir(), "target")]);
     assert.notEqual(result.status, 0);
     assert.equal(existsSync(join(tmpdir(), "target", "01-原始需求", "原始需求索引.md")), false);
-  } finally { rmSync(rootPath, { recursive: true, force: true }); }
+  } finally { rmSync(rootPath, removeOptions); }
 });
 
 test("Intake inventory 稳定列出 current、legacy、invalid 并报告重复 ID", () => {
@@ -455,7 +455,7 @@ test("Intake inventory 稳定列出 current、legacy、invalid 并报告重复 I
       files: ["openspec/intake/INT-20260830-003-a.md", "openspec/intake/INT-20260830-003-b.md"],
     }]);
   } finally {
-    rmSync(rootPath, { recursive: true, force: true });
+    rmSync(rootPath, removeOptions);
   }
 });
 
@@ -474,7 +474,7 @@ test("legacy Intake inspect 返回迁移缺口且保持文件不变", () => {
     assert.match(report.migration, /不自动修改/);
     assert.equal(readFileSync(legacyFile, "utf8"), before);
   } finally {
-    rmSync(rootPath, { recursive: true, force: true });
+    rmSync(rootPath, removeOptions);
   }
 });
 
@@ -486,7 +486,7 @@ test("REV-006 路由表的 analysisProfileId 真正生效", () => {
     const before = snapshot(rootPath, changeRoot);
     // 用另一个 profile 跑出的分析线产物不算数：路由表声明该改动对象的分析须由
     // requirement-analysis 产出，绑 light-change 跑出来的 result 必须被拒。
-    rmSync(analysisDir(rootPath), { recursive: true, force: true });
+    rmSync(analysisDir(rootPath), removeOptions);
     assert.equal(runTool("workflow-control.ts", ["bind", "--runtime-root", runtimeRoot, "--asset-root", rootPath, "--intake-id", intakeId, "--profile-id", "light-change", "--profile-version", "v1.0.0"]).status, 0);
     const wrongRequest = join(rootPath, "wrong-profile-request.json");
     writeFileSync(wrongRequest, JSON.stringify({ schemaVersion: 1, matterId: intakeId, binding: { schemaVersion: 1, profileId: "light-change", profileVersion: "v1.0.0" }, inputs: { intake: "x", implementation: "y", verification: "z" }, judgments: { verification: "accept" }, completedStages: ["intake", "implementation"] }), "utf8");
@@ -502,5 +502,5 @@ test("REV-006 路由表的 analysisProfileId 真正生效", () => {
     assert.equal(ok.status, 0, ok.stderr);
     assert.equal(JSON.parse(ok.stdout).routing.analysisProfileId, "requirement-analysis");
     assert.match(readFileSync(file(rootPath), "utf8"), /promoted to target（交付档位 delivery-change，改动对象 tool-code）/);
-  } finally { rmSync(rootPath, { recursive: true, force: true }); rmSync(runtimePath, { recursive: true, force: true }); }
+  } finally { rmSync(rootPath, removeOptions); rmSync(runtimePath, removeOptions); }
 });

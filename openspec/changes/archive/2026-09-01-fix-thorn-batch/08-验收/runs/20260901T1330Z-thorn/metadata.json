@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "runId": "20260901T1330Z-thorn",
+  "implementationCommit": "108d9cc41356ad3cd91905be41a738722a6726f5",
+  "baselineCommit": "cd6d2f0c3e127913144e3d2e72b751fb52b14704",
+  "environment": {
+    "os": "Windows 11 Pro 10.0.26200",
+    "node": "25.2.1 (--experimental-strip-types)",
+    "openspec": "1.11.0",
+    "executionContext": "工作树原地执行。与上一单不同，本单无需临时 LF 克隆——受管投影校验的行尾归一化早已是 spec 显式要求且有断言守住，本轮实测 core.autocrlf=true 的工作树上全量绿。"
+  },
+  "startedAt": "2026-09-01T13:30:00.000Z",
+  "endedAt": "2026-09-01T13:45:00.000Z",
+  "commands": [
+    "node --experimental-strip-types --test test/*.test.ts  (连跑三次)",
+    "node --experimental-strip-types openspec/tools/render-commands.ts check --runtime-root .",
+    "node --experimental-strip-types openspec/tools/runtime-entry.ts runtime-check --change-root .",
+    "node --experimental-strip-types openspec/tools/runtime-entry.ts guard --change-root openspec/changes/fix-thorn-batch --operation verify",
+    "openspec validate --all --strict"
+  ]
+}

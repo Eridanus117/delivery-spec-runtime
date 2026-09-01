@@ -1,0 +1,63 @@
+收口复审的返工记录（2026-09-01，评审工件 bdc771f）
+首轮 7 条全关；新增 REV-008（CRITICAL）与 REV-009（MEDIUM）。
+
+【REV-008 CRITICAL｜入口守卫在软链/junction 下让唯一闸门静默跳过】
+问题：为让断言能 import checkIgnoreIncomplete，给 runtime-entry.ts 加了
+      `if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename))` 守卫，
+      并在注释里断言「不改变任何既有行为」。该断言不成立：Node 的 ESM 加载器对主模块解析
+      软链与 junction，import.meta.filename 是 realpath，process.argv[1] 保留调用写法，
+      路径上任意一段是软链时两者必然不等 —— main() 根本不执行，进程退出码 0、零输出。
+      这是全体消费仓唯一的 fail-closed 闸门，且 runtime-entry.ts 本身是受管投影，
+      会随 gitlink 进入每个消费仓；触发条件（路径含软链）是寻常情形。
+
+处置（按裁定的方案①，并按实际约束调整了一处，见下）：
+  1. 删除守卫，main() 恢复无条件执行；入口不再 export 任何符号
+     （一旦导出就会有人 import 它，而 import 会连带执行 main）。
+  2. 纯判据 abnormalExit / checkIgnoreIncomplete 的权威定义移进 openspec/tools/runtime-lib.ts，
+     测试改为从 runtime-lib import。
+  3. **与裁定的偏差（已核实为必要）**：裁定原文是「runtime-entry.ts 从 runtime-lib import 判据」，
+     但这条不可行 —— runtime-entry.ts 是四条受管投影之一，消费仓的 openspec/tools/ 下
+     **只有它一个文件**（实测 agent-system：`git ls-files openspec/tools` 只返回 runtime-entry.ts）。
+     一旦 import 同级模块，投影副本加载即失败，裁定 #1「投影副本算可执行入口」当场作废，
+     T-ENTRY-1 也会立刻转红。故入口保留一份逐字副本，并按本仓「允许复制、禁止无校验的复制」
+     的一贯立场，用 VC-042 逐字比对两份函数源码兜底，任一侧单边修改即非零拒绝。
+
+新增断言：
+  - T-GUARD-1（contracts，VC-042）：两份判据源码逐字相同；入口无同级 import、
+    无 import.meta.filename / argv[1] 守卫、无任何 export、main() 无条件执行。
+  - T-GUARD-2（submodule，REV-008 回归）：把复审的实测场景原样固化 ——
+    弄坏一条受管投影后，真实路径与经 junction 的路径都必须非零退出并报「受管投影漂移」，
+    且入口不得以零输出退出（那正是守卫存在时的特征形状）；投影副本经同一条 junction 调用同样必须被拒。
+
+A/B 对照（先红后绿，逐条留证）：
+  [守卫装回] test/submodule.test.ts → ✖ REV-008 入口经 junction/软链路径调用时，受管投影坏账仍被拒
+             AssertionError: 经 junction 调用时坏账被静默放行：status=0 stdout="" stderr=""
+             ℹ pass 10 / fail 1
+  [守卫装回] test/contracts.test.ts → ✖ VC-042 …
+             AssertionError: 入口不得出现 import.meta.filename 守卫
+             ℹ pass 15 / fail 1
+  [守卫删除] 两条均转绿：submodule 11/11、contracts 16/16。
+
+【三处基线同源旧账｜本单不修，已登记】
+openspec-upgrade.ts:427、render-commands.ts:85、delivery-lifecycle.ts:327 三处于基线 cd6d2f0
+即存在同形态守卫。按裁定本单不修，登记
+openspec/intake/INT-20260901-024-entry-guard-symlink-fragility.md（capture 即止）。
+登记时逐条实跑，发现其中两处的爆炸半径高于复审最初的评估：
+  - delivery-lifecycle.ts：不带参数时，真实路径 → 退出码 1 并输出「缺少 --change-root」；
+    经 junction → 退出码 0、零输出。它在消费仓路径上（runtime-entry 的 lifecycle 子命令
+    以 join(runtimeRoot, …) spawn 它，而 runtimeRoot 未经 realpath）。
+  - render-commands.ts check：真实路径 → 退出码 0 并输出 {"files":9,"changed":[]}；
+    经 junction → 退出码 0、零输出，即 CI 的「Check rendered Commands」步骤会静默通过而未做比对。
+  - openspec-upgrade.ts：同形判据，仅维护者手动发起，是三处里唯一确属内部工具的。
+事实与三条候选修法（realpath 比较 / 换取向 / 先补断言）均写进该条目，留待重设计或下一批次。
+
+【REV-009 MEDIUM｜tasks 重批准的分类披露不准确】
+问题：本轮 tasks 的改动不只是机械回填 —— 任务 2.6 增加了交付物、验证口径也被扩展，
+      属改变语义；却按「机械重批准」披露，与同批 change-plan / test-plan 的口径不一致。
+处置：approvedBy 改为「维护者（独立评审 FAIL 后的逐条返工裁定，门口表态由 Claude 代笔转录）」，
+      与另两份完全一致；migrationSource 明写「增加交付物与扩展验证判据都改变了工件语义，
+      故不按机械回填披露（REV-009）」。
+
+【返工后终态】
+全量测试连跑三次：见 full-tests.log 末段。
+validate / render / runtime-check / guard verify：见 checks.log。

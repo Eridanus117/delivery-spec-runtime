@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { createArtifactTree, runTool, runtimeRoot } from "./helpers.ts";
+import { createArtifactTree, runTool, runtimeRoot, removeOptions } from "./helpers.ts";
 
 // 交付 7 站的权威定义是真门禁代码（delivery-control.ts guard + delivery-lifecycle.ts）。
 // 本文件逐站构造「仅缺该站维护者表态字段」的 fixture，只经由真门禁的进程退出码判定
@@ -163,7 +163,7 @@ function observeStations(): Record<string, boolean> {
     try {
       observed[station] = probe(prepare(repo)) !== 0;
     } finally {
-      rmSync(repo, { recursive: true, force: true });
+      rmSync(repo, removeOptions);
     }
   }
   return observed;

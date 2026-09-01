@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "artifacts": {
+    "raw-requirements": {
+      "digest": "sha256:df15f6432641db48eca4b92e962e4c75a4ba3b46340cf384a429195a8d1c12cd",
+      "decision": "approved",
+      "approvedBy": "维护者（2026-09-01 方案门口头表态「同意」，Claude 代笔转录）",
+      "approvedAt": "2026-09-01T07:25:30.197Z",
+      "migrationSource": null
+    },
+    "specs": {
+      "digest": "sha256:7e9b336c180ca9e68c7a5f7474a586acffea9c7b602b37de9e14a949c2b5caf1",
+      "decision": "approved",
+      "approvedBy": "维护者（2026-09-01 方案门口头表态「同意」，Claude 代笔转录）",
+      "approvedAt": "2026-09-01T07:25:30.690Z",
+      "migrationSource": null
+    },
+    "current-state": {
+      "digest": "sha256:9a5cd4efcfab9d88e632ab664119477c65b95abfd340469f1ed96fa87e7895b1",
+      "decision": "approved",
+      "approvedBy": "维护者（2026-09-01 方案门口头表态「同意」，Claude 代笔转录）",
+      "approvedAt": "2026-09-01T07:25:31.211Z",
+      "migrationSource": null
+    },
+    "solution-proposal": {
+      "digest": "sha256:8c396063f54b2e0aad64c0ad8e6aaafaf1075e77fecde5944237865b7b712826",
+      "decision": "approved",
+      "approvedBy": "维护者（2026-09-01 方案门口头表态「同意」，Claude 代笔转录）",
+      "approvedAt": "2026-09-01T07:25:31.723Z",
+      "migrationSource": null
+    },
+    "solution-decision": {
+      "digest": "sha256:d6f7709bf39d56a2f119e8da528884e7aa7aae85f71385ad97e138cda0c883c7",
+      "decision": "approved",
+      "approvedBy": "维护者（2026-09-01 方案门口头表态「同意」，Claude 代笔转录）",
+      "approvedAt": "2026-09-01T07:25:32.256Z",
+      "migrationSource": null
+    },
+    "change-plan": {
+      "digest": "sha256:d37f295bef54ae20baef4f81fdf72027cd7919f3efb67407a1c3dc6d36e8b9ab",
+      "decision": "approved",
+      "approvedBy": "维护者（归档前机械订正后的机械重批准，Claude 代笔）",
+      "approvedAt": "2026-09-01T13:36:09.754Z",
+      "migrationSource": "按终审 REV-011 把「七个切片」订正为八个并补上第 8 项；切片表本身未变，回滚粒度与任何机器判据均不受影响"
+    },
+    "test-plan": {
+      "digest": "sha256:d9a772e5abb3f660f010b45fce05da609000b3f229d9552183572173f0ff80af",
+      "decision": "approved",
+      "approvedBy": "维护者（归档前机械订正后的机械重批准，Claude 代笔）",
+      "approvedAt": "2026-09-01T13:36:10.306Z",
+      "migrationSource": "按终审 REV-011 把「七个切片」订正为八个并补上第 8 项；切片表本身未变，回滚粒度与任何机器判据均不受影响"
+    },
+    "tasks": {
+      "digest": "sha256:83736bf77b0166f46c5ca47da835951184047addd100a0e5b004ab563d50938e",
+      "decision": "approved",
+      "approvedBy": "维护者（INT-024 爆炸半径订正被采纳后的裁定变更，门口表态由 Claude 代笔转录）",
+      "approvedAt": "2026-09-01T09:07:33.158Z",
+      "migrationSource": "按裁定变更把 delivery-lifecycle.ts 与 render-commands.ts 两处入口守卫提前到本批修：补决策日志 D-09、目标与切片各一条、风险表一行、场景 T-GUARD-3、任务 2.3 与 3.4 的交付物与验证，并订正断言计数与待决问题段"
+    }
+  }
+}

@@ -37,3 +37,26 @@ Runtime 入口 MUST 拒绝从资产仓或项目仓执行 `runtime-update`，且 
 
 - **WHEN** 维护者查看 `.omp/commands/opsx-update.md`
 - **THEN** 文档不会声称软链恢复可以回滚官方 update，也不会给出可修改实时仓的 wrapper 命令
+
+### Requirement: 消费仓冒烟失败 SHALL 在报告中留下可归因的原因
+
+升级评估报告在任一消费仓冒烟环节失败时，SHALL 记录该环节的失败原因文本，而不仅是退出码。SHALL NOT 只保留 `runtimeStatus` 这类无语义的数字（理由：只记退出码的报告无法区分「合同被正确拒绝」与「环境问题误判」，本仓已因此把一个可定位的路径越限缺陷当作偶发噪音挂了整整一天）。
+
+#### Scenario: 冒烟失败时报告含原因
+
+- **WHEN** 某消费仓的 `runtime-check` 在冒烟中以非零状态退出
+- **THEN** 升级报告中该消费仓条目除退出码外，还包含其失败输出文本
+
+#### Scenario: 冒烟通过时不引入噪音
+
+- **WHEN** 全部消费仓冒烟通过
+- **THEN** 报告结论仍为 PASS，且不因新增字段破坏既有报告合同校验
+
+### Requirement: Runtime CLI 的输出 SHALL 不含运行时弃用告警
+
+Runtime 入口及其转发的子命令 SHALL NOT 在正常执行路径上产生 Node 运行时弃用告警。外部命令的调用方式 SHALL 选择不触发此类告警的形态（理由：告警混进本应干净的 JSON 输出，既污染人的阅读面，也让下游按输出取值的自动化多一层清洗）。
+
+#### Scenario: 入口调用输出干净
+
+- **WHEN** 执行任一 Runtime 入口命令并捕获其标准输出与标准错误
+- **THEN** 输出中不含任何 Node 运行时弃用告警行

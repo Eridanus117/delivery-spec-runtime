@@ -1,0 +1,15 @@
+=== 修复前（HEAD 41a1a14）：任一入口命令都会打出 DEP0190 ===
+169:  const openspecVersion = execFileSync(process.platform === "win32" ? "openspec.cmd" : "openspec", ["--version"], { encoding: "utf8", shell: process.platform === "win32" }).trim().replace(/^v/, "");
+
+实测记录（本轮 intake init / workflow bind / intake promote 三次调用均复现）：
+(node:39432) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+
+=== 修复后：同一命令的合并输出 ===
+{
+  "allowed": true,
+  "runtime": "delivery-spec-runtime",
+  "schema": "delivery-change"
+}
+
+=== 断言 ===
+test/submodule.test.ts::Runtime 入口的输出不含 Node 运行时弃用告警 —— 断言 stdout 可直接 JSON.parse，且合并输出不含 DeprecationWarning / DEP0nnn

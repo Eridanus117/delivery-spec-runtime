@@ -1,8 +1,9 @@
 import test from "node:test";
+import { removeOptions } from "./helpers.ts";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { tmpdir } from "node:os";
 import { sha256File } from "../openspec/tools/runtime-lib.ts";
@@ -68,7 +69,7 @@ test("bootstrap stage必须外部批准，activation可恢复且保持受保护�
     assert.equal(tree(join(f.work, "openspec/specs")).digest, specsBefore); assert.equal(tree(join(f.work, "openspec/changes/archive")).digest, archivesBefore);
     assert.equal(existsSync(join(f.consumer, ".specify")), false); assert.doesNotMatch(readFileSync(f.links, "utf8"), /\.specify/); assert.doesNotMatch(readFileSync(f.exclude, "utf8"), /\.specify/);
     result = bootstrap(f, "rollback"); assert.equal(result.status, 0, result.stderr); assert.equal(existsSync(join(active, "change-info.json")), false); assert.equal(existsSync(join(active, "07-implementation-tasks/tasks.md")), true); for (const name of removed) assert.equal(existsSync(join(f.work, "openspec/changes", name)), true); assert.equal(tree(join(f.work, "openspec/changes/archive")).digest, archivesBefore);
-  } finally { rmSync(f.root, { recursive: true, force: true }); }
+  } finally { rmSync(f.root, removeOptions); }
 });
 
 test("bootstrap拒绝脏工作树和受保护目录漂移", () => {
@@ -77,5 +78,5 @@ test("bootstrap拒绝脏工作树和受保护目录漂移", () => {
     put(join(f.work, "dirty")); let result = bootstrap(f, "dry-run"); assert.notEqual(result.status, 0); assert.match(result.stderr, /未提交修改/);
     rmSync(join(f.work, "dirty")); put(join(f.work, "openspec/specs/long/new.md")); git(f.work, ["add", "."]); git(f.work, ["commit", "-qm", "drift"]);
     result = bootstrap(f, "dry-run"); assert.notEqual(result.status, 0); assert.match(result.stderr, /受保护目录漂移/);
-  } finally { rmSync(f.root, { recursive: true, force: true }); }
+  } finally { rmSync(f.root, removeOptions); }
 });

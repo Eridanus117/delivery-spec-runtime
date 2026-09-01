@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, 
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
-import { createArtifactTree, runTool, runtimeRoot } from "./helpers.ts";
+import { createArtifactTree, runTool, runtimeRoot, removeOptions } from "./helpers.ts";
 
 const artifactFiles: Record<string, string> = {
   "01-原始需求/原始需求索引.md": "raw\n", "02-需求理解/需求理解.md": "requirements\n", "03-现状/现状.md": "current\n",
@@ -79,7 +79,7 @@ test("严格来源、批准失效、任务状态和投影合同", () => {
     // 批准新鲜度不依赖 snapshot：工件事后改动仍然直接使批准 stale。
     writeFileSync(join(change, "05-改造方案/改造方案.md"), "changed plan\n"); result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]); assert.notEqual(result.status, 0); assert.match(result.stderr, /change-plan 批准状态为 stale/);
     const infoPath = join(change, "change-info.json"); const info = JSON.parse(readFileSync(infoPath, "utf8")); info.unknown = true; writeFileSync(infoPath, JSON.stringify(info)); result = runTool("delivery-control.ts", ["inspect", "--change-root", change]); assert.notEqual(result.status, 0); assert.match(result.stderr, /未知字段 unknown/);
-  } finally { rmSync(root, { recursive: true, force: true }); }
+  } finally { rmSync(root, removeOptions); }
 });
 
 test("VC-024 change-mode 概念移除后 guard 行为与不存在时一致", () => {
@@ -116,7 +116,7 @@ test("VC-024 change-mode 概念移除后 guard 行为与不存在时一致", () 
     const broken = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
     assert.equal(broken.status, before.status);
     assert.equal(broken.stdout, before.stdout);
-  } finally { rmSync(root, { recursive: true, force: true }); }
+  } finally { rmSync(root, removeOptions); }
 });
 
 test("REV-002 声明与事实交叉校验：声明低档而实际触碰高档路径即 fail-closed", () => {
@@ -171,5 +171,5 @@ test("REV-002 声明与事实交叉校验：声明低档而实际触碰高档路
     result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "verify", "--runtime-root", runtimeRoot], { cwd: repo });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /governance-contract/);
-  } finally { rmSync(repo, { recursive: true, force: true }); }
+  } finally { rmSync(repo, removeOptions); }
 });

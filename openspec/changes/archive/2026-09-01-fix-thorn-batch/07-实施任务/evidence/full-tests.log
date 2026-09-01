@@ -1,0 +1,61 @@
+=== 全量测试 第 1 次 ===
+ℹ tests 85
+ℹ pass 85
+ℹ fail 0
+ℹ duration_ms 52506.0014
+=== 全量测试 第 2 次 ===
+ℹ tests 85
+ℹ pass 85
+ℹ fail 0
+ℹ duration_ms 52610.5086
+=== 全量测试 第 3 次 ===
+ℹ tests 85
+ℹ pass 85
+ℹ fail 0
+ℹ duration_ms 55847.093
+
+=== 全量测试 第 1 次（返工后）===
+ℹ tests 87
+ℹ pass 87
+ℹ fail 0
+ℹ duration_ms 54515.3723
+=== 全量测试 第 2 次（返工后）===
+ℹ tests 87
+ℹ pass 87
+ℹ fail 0
+ℹ duration_ms 54248.8788
+=== 全量测试 第 3 次（返工后）===
+ℹ tests 87
+ℹ pass 87
+ℹ fail 0
+ℹ duration_ms 54587.0638
+=== 全量测试 第 1 次（收口返工后）===
+ℹ tests 89
+ℹ pass 89
+ℹ fail 0
+ℹ duration_ms 63200.3077
+=== 全量测试 第 2 次（收口返工后）===
+ℹ tests 89
+ℹ pass 89
+ℹ fail 0
+ℹ duration_ms 60370.806
+=== 全量测试 第 3 次（收口返工后）===
+ℹ tests 89
+ℹ pass 89
+ℹ fail 0
+ℹ duration_ms 60573.7225
+=== 全量测试 第 1 次（INT-024 两处提前修复后）===
+ℹ tests 90
+ℹ pass 90
+ℹ fail 0
+ℹ duration_ms 61177.0073
+=== 全量测试 第 2 次（INT-024 两处提前修复后）===
+ℹ tests 90
+ℹ pass 90
+ℹ fail 0
+ℹ duration_ms 61289.7255
+=== 全量测试 第 3 次（INT-024 两处提前修复后）===
+ℹ tests 90
+ℹ pass 90
+ℹ fail 0
+ℹ duration_ms 61092.7527

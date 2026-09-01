@@ -1,9 +1,9 @@
 #!/usr/bin/env -S node --experimental-strip-types
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
-import { basename, join, relative, sep } from "node:path";
-import { atomicWriteJson, fail, now, object, parseArgs, readJson, requiredOption, sha256Buffer, sha256File, text, withFileLock } from "./runtime-lib.ts";
+import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { join, relative, sep } from "node:path";
+import { atomicWriteJson, fail, now, object, parseArgs, readJson, requiredOption, sha256File, text, withFileLock } from "./runtime-lib.ts";
 
 const changeSlug = "optimize-logistics-change-review-workflow";
 const removeSlugs = ["official-return-cp-quality-sort", "cross-border-template-and-agg"];

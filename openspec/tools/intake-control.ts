@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, openSync, closeSync, fsyncSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
-import { fail, parseArgs, readJson, requiredOption, now } from "./runtime-lib.ts";
+import { fail, parseArgs, readJson, now } from "./runtime-lib.ts";
 
 type Route = { changeObject: string; profileId: string; requiresAnalysis: boolean; rank: number; analysisProfileId: string | null; pathPrefixes: string[]; promotable: boolean; reason: string };
 type Routing = { unmatched: Omit<Route, "changeObject" | "pathPrefixes" | "promotable">; routes: Route[] };

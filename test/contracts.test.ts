@@ -1,9 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { checkIgnoreIncomplete } from "../openspec/tools/runtime-lib.ts";
+import { validateReport } from "../openspec/tools/openspec-upgrade.ts";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
-import { resolveChangeDir, runTool, runtimeRoot } from "./helpers.ts";
+import { resolveChangeDir, runTool, runtimeRoot, removeOptions } from "./helpers.ts";
 
 
 test("runtime manifest、八层schema与九个Commands一致", () => {
@@ -178,7 +181,15 @@ test("VC-027/VC-029 归档目录与旧结构 Change 不受 v6 与 evidence 新�
     const inspected = runTool("delivery-control.ts", ["inspect", "--change-root", change]);
     assert.equal(inspected.status, 0, `${name} 旧结构解析失败: ${inspected.stderr}`);
     const payload = JSON.parse(inspected.stdout);
-    assert.deepEqual(Object.keys(payload.effective), ["raw-requirements", "specs", "business-current", "technical-current", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"], `${name} 未按 v5 结构解析`);
+    // 期望的工件集由该 Change 自己声明的 schema 版本决定，不能钉死成 v5——
+    // 2026-09-01 归档 fix-thorn-batch 时，归档目录里第一次出现 v6 结构的 Change。
+    // 判据仍然是硬的：版本从 change-info.json 读，缺省即 v5（存量与旧归档不迁移），
+    // 两套键名各自逐字比对，不接受混写。
+    const declared = JSON.parse(readFileSync(join(change, "change-info.json"), "utf8")).deliverySchemaVersion;
+    const expectedKeys = typeof declared === "number" && declared >= 6
+      ? ["raw-requirements", "specs", "current-state", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"]
+      : ["raw-requirements", "specs", "business-current", "technical-current", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"];
+    assert.deepEqual(Object.keys(payload.effective), expectedKeys, `${name} 未按其声明的 v${typeof declared === "number" ? declared : 5} 结构解析`);
     // VC-027：归档目录里的自然语言 evidence 不被新的路径校验触及——只读解析不报错。
     const tasks = payload.tasks;
     if (tasks) {
@@ -227,7 +238,7 @@ test("VC-028 现状合并后门禁条目逐项可对应且一项不减", () => {
     // 旧工件名在 v6 结构下不再被接受，避免两套命名并存。
     const stale = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", "business-current", "--decision", "approved", "--approved-by", "tester"]);
     assert.notEqual(stale.status, 0); assert.match(stale.stderr, /批准参数非法/);
-  } finally { rmSync(root, { recursive: true, force: true }); }
+  } finally { rmSync(root, removeOptions); }
 });
 
 test("VC-030 发布模板删三节且保留 Spec Sync 表与门禁勾选", () => {
@@ -254,6 +265,11 @@ test("VC-039 早期目录归档后 active Change 只剩两个", () => {
     .map((entry) => entry.name)
     .sort();
   // 本 Change 归档后，active 只余按裁定 C3 暂不处置的 metrics 目录。
+  // 注意：这是一份**点时快照**断言，不是不变量——每新建一个 Change 都必须在此登记、
+  // 每归档一个又必须在此注销，否则测试立刻转红。fix-thorn-batch 于 2026-09-01 建立时
+  // 曾在此登记，当日归档后再次移除：一建一归两次改动，都只是这条快照的记账。
+  // 该断言形态是否改为真正的不变量（两个早期目录不在 active），已记录在
+  // INT-20260831-014 信号9 与 INT-20260901-023，随工作流重设计裁定。
   assert.deepEqual(active, ["establish-runtime-metrics-baseline"]);
   // 两个早期目录确实落到了 archive 且带处置记录。
   for (const name of ["2026-09-01-establish-intake-inventory", "2026-09-01-establish-workflow-v01-contract"]) {
@@ -330,4 +346,178 @@ test("REV-003 artifact-approvals 合同覆盖 v5/v6 两种工件集且校验真�
   };
   walk(join(runtimeRoot, "openspec/changes"));
   assert.ok(checked >= 12, `被校验的批准文件数异常: ${checked}`);
+});
+
+/**
+ * VC-041 路径长度预算。Windows 的路径上限是 260，超过它 git 会把一份未改动的文件报成 `M`
+ * （受控探针：259 干净 / 260 起报 M）。升级冒烟把整个仓复制进临时根、再以 `consumer-<name>`
+ * 为名克隆消费仓，前缀本身就要吃掉约 104 字符，因此仓内相对路径的可用余量只有一百五十余字符。
+ * 预算取当前实测最大值（裁定 #3：冻结而非缩名存量），作用是挡住继续恶化：
+ * 新增的验收与归档证据一旦超限，这里当场点名，而不是等某次冒烟以「偶发 dirty」的面目失败。
+ */
+const repositoryPathBudget = 155;
+function overBudget(paths: string[], budget: number): Array<{ path: string; length: number }> {
+  return paths.filter((path) => path.length > budget).map((path) => ({ path, length: path.length })).sort((left, right) => right.length - left.length);
+}
+test("VC-041 仓内路径长度不得超出预算，超限项被点名", () => {
+  const listed = (args: string[]): string[] => {
+    const result = spawnSync("git", args, { cwd: runtimeRoot, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+    assert.equal(result.status, 0, `git ${args.join(" ")}\n${result.stderr}`);
+    return (result.stdout ?? "").split("\0").filter(Boolean);
+  };
+  const paths = [...new Set([...listed(["ls-files", "-z"]), ...listed(["ls-files", "--others", "--exclude-standard", "-z"])])];
+  assert.ok(paths.length > 0, "未能列出任何仓内路径");
+  const violations = overBudget(paths, repositoryPathBudget);
+  assert.deepEqual(violations, [], `以下路径超出预算 ${repositoryPathBudget}：\n${violations.map((item) => `${item.length} ${item.path}`).join("\n")}`);
+  // 预算必须**等于**实测最长值，不是「不小于」。只断言「没有超限」的话，把预算从 155 调到 500
+  // 同样能过——那正是这条预算最可能的退化方式：为了让某个长路径通过而顺手放宽，然后再没人调回来。
+  // 取等号意味着预算与现实绑死：想加长路径，就必须显式地把这个数字改大，改动会出现在 diff 里被看见。
+  const longest = Math.max(...paths.map((path) => path.length));
+  assert.equal(repositoryPathBudget, longest, `预算已漂离现实：常量为 ${repositoryPathBudget}，仓内实测最长路径为 ${longest}。预算只能与实测最长值同步升降，不得单方面放宽。`);
+  // 超限项必须被点名而不是只给一个布尔：证据文件名要能被直接改。
+  const synthetic = overBudget([`${"a".repeat(repositoryPathBudget)}/evidence.json`], repositoryPathBudget);
+  assert.equal(synthetic.length, 1);
+  assert.ok(synthetic[0].path.endsWith("evidence.json"));
+  assert.ok(synthetic[0].length > repositoryPathBudget);
+});
+
+/**
+ * REV-004 负向断言：check-ignore 的判据不得把「校验没跑完」读成「校验通过」。
+ * 0 与 1 都是正常答案（有命中 / 无命中），其余一律拒绝。最危险的是 status 为 null 的
+ * 信号终止：1 恰好是「没有任何路径被忽略」，若把 null 归一成 1，一个被杀掉的 git
+ * 就会让整条受管投影校验静默放行——这是入口里唯一可能出现的 fail-open。
+ * 判据函数直接从实现导入，不在测试里另抄一份。
+ */
+test("REV-004 check-ignore 的异常终止一律 fail-closed，null 不得被读成「无命中」", () => {
+  assert.equal(checkIgnoreIncomplete({ status: 0, signal: null }), null, "0 是正常答案（有命中）");
+  assert.equal(checkIgnoreIncomplete({ status: 1, signal: null }), null, "1 是正常答案（无命中）");
+  const killed = checkIgnoreIncomplete({ status: null, signal: "SIGKILL" });
+  assert.ok(killed, "进程被信号终止必须拒绝，不得等同于「无命中」");
+  assert.match(killed as string, /进程被信号终止\(SIGKILL\)/);
+  assert.match(killed as string, /拒绝执行/);
+  const noSignalName = checkIgnoreIncomplete({ status: null, signal: null });
+  assert.ok(noSignalName, "status 为 null 一律拒绝，即使信号名缺失");
+  assert.match(noSignalName as string, /未知信号/);
+  const failed = checkIgnoreIncomplete({ status: 128, signal: null });
+  assert.ok(failed, "128 这类故障码必须拒绝");
+  assert.match(failed as string, /退出状态 128/);
+  // 保险起见把 null 与 1 的取值明确区分开：两者若产生相同判据，本条断言即失效。
+  assert.notEqual(checkIgnoreIncomplete({ status: null, signal: "SIGTERM" }), checkIgnoreIncomplete({ status: 1, signal: null }));
+});
+
+/**
+ * REV-002 负向/正向断言：升级报告合同必须同时容纳新旧两种消费仓条目形状。
+ * 存量归档证据没有 failureReason 键且明文不回溯改写；把它设为必填，等于让本仓公开分发的
+ * 机器合同拒绝本仓自己的归档证据。断言直接喂入真实归档文件，并调用唯一的校验实现。
+ */
+test("REV-002 升级报告合同接受真实归档证据，同时钉住新形状的取值约束", () => {
+  const archived = join(runtimeRoot, "openspec/changes/archive/2026-08-30-establish-controlled-openspec-upgrades/08-验收/runs/20260830T1151Z-upgrade-final/upgrade-evaluation/upgrade-report.json");
+  assert.equal(existsSync(archived), true, "归档的升级报告必须存在，否则本断言失去被验对象");
+  const report = JSON.parse(readFileSync(archived, "utf8"));
+  assert.equal(report.schemaVersion, 1);
+  assert.equal(report.consumers.every((consumer: Record<string, unknown>) => !("failureReason" in consumer)), true, "该归档证据正是无 failureReason 的旧形状");
+  validateReport(report); // 不抛即通过
+  // 新形状的取值约束仍是硬的：键一旦出现，FAIL 必须带非空原因、PASS 必须为 null。
+  const withKey = (result: string, failureReason: string | null) => {
+    const clone = JSON.parse(readFileSync(archived, "utf8"));
+    clone.consumers = [{ ...clone.consumers[0], result, failureReason }];
+    clone.result = "FAIL";
+    return clone;
+  };
+  assert.throws(() => validateReport(withKey("FAIL", null)), /没有失败原因/);
+  assert.throws(() => validateReport(withKey("FAIL", "")), /没有失败原因/);
+  assert.throws(() => validateReport(withKey("PASS", "不该有的原因")), /不得携带失败原因/);
+  validateReport(withKey("FAIL", "runtime-check 失败(status=1)：某条投影被忽略"));
+});
+
+/**
+ * VC-042 受管投影里的入口必须自给自足，且它内嵌的判据副本不得与权威定义分叉。
+ *
+ * 背景：消费仓的 `openspec/tools/` 下**只有** `runtime-entry.ts` 一个文件（四条受管投影之一），
+ * 所以它不能 import 任何同级模块——一 import，投影副本就加载不起来，
+ * 裁定 #1「投影副本算可执行入口」当场作废。于是它只能内嵌一份纯判据的副本。
+ * 本仓对副本的一贯立场是「允许复制，禁止无校验的复制」，这条断言就是那个校验：
+ * 逐字比对两份函数源码，任一侧单边修改即非零拒绝。
+ *
+ * 同时钉死 REV-008 的教训：入口文件不得再出现「仅直接执行时才跑 main」这类路径比较守卫。
+ */
+function functionSource(source: string, name: string): string {
+  const signature = source.indexOf(`function ${name}(`);
+  assert.notEqual(signature, -1, `未找到函数 ${name}`);
+  const open = source.indexOf("{", signature);
+  assert.notEqual(open, -1, `函数 ${name} 缺少函数体`);
+  let depth = 0;
+  for (let index = open; index < source.length; index += 1) {
+    if (source[index] === "{") depth += 1;
+    else if (source[index] === "}") {
+      depth -= 1;
+      if (depth === 0) return source.slice(signature, index + 1);
+    }
+  }
+  throw new Error(`函数 ${name} 的花括号不闭合`);
+}
+test("VC-042 入口的判据副本与 runtime-lib 权威定义逐字一致，且入口不得自带执行守卫", () => {
+  const entry = readFileSync(join(runtimeRoot, "openspec/tools/runtime-entry.ts"), "utf8");
+  const lib = readFileSync(join(runtimeRoot, "openspec/tools/runtime-lib.ts"), "utf8");
+  for (const name of ["samePath", "abnormalExit", "checkIgnoreIncomplete"]) {
+    // 权威侧带 export 关键字，副本侧不带；除此之外必须一个字符都不差。
+    assert.equal(functionSource(entry, name), functionSource(lib, name), `${name} 的入口副本与 runtime-lib 权威定义已分叉，请两边一起改`);
+  }
+  // 入口必须自给自足：不得 import 任何同级模块，否则消费仓里的投影副本加载即失败。
+  const siblingImports = entry.split(/\r?\n/).filter((line) => /^import .*from "\.\//.test(line.trim()));
+  assert.deepEqual(siblingImports, [], "受管投影入口不得 import 同级模块——消费仓的 openspec/tools/ 下只有它自己");
+  // REV-008：入口是全体消费仓唯一的 fail-closed 闸门，main() 必须无条件执行。
+  // 路径比较守卫在软链/junction 下必然为假（ESM 主模块走 realpath，argv[1] 保留调用写法），
+  // 会让整个闸门以退出码 0、零输出静默跳过。
+  assert.doesNotMatch(entry.replace(/^\s*\/\/.*$/gm, ""), /import\.meta\.filename/, "入口不得出现 import.meta.filename 守卫");
+  assert.doesNotMatch(entry.replace(/^\s*\/\/.*$/gm, ""), /process\.argv\[1\]/, "入口不得按 argv[1] 决定是否执行 main");
+  assert.match(entry, /^try \{ main\(\); \}/m, "main\(\) 必须无条件执行");
+  // 判据不得从入口导出：一旦导出就会有人去 import 它，而 import 会连带执行 main()。
+  assert.doesNotMatch(entry, /^export /m, "入口不得导出任何符号");
+});
+
+/**
+ * T-GUARD-3（INT-20260901-024，两处基线旧账提前到本批修）
+ *
+ * `delivery-lifecycle.ts` 与 `render-commands.ts` 的 `renderCommands` / `requireXxx` 被别的模块
+ * import，无条件执行 `main()` 会在每次 import 时跑一遍命令解析，故这两处守卫不能删——
+ * 但判据必须能吸收软链。旧写法直接比字符串（一处还把 argv[1] 拼进 file 协议 URL），
+ * 在软链/junction 下必然为假，`main()` 整个跳过，进程以退出码 0、零输出结束：
+ *   - `delivery-lifecycle.ts` 在消费仓治理链上（入口的 lifecycle 子命令用未经 realpath 的
+ *     runtimeRoot 拼路径 spawn 它），review / acceptance / readiness 全族会静默跳过；
+ *   - `render-commands.ts` 是 CI 的「Check rendered Commands」步骤，会静默通过而不做任何比对。
+ * 本断言按 T-GUARD-2 的形状固化：经软链路径调用，行为必须与真实路径逐项一致。
+ */
+test("T-GUARD-3 两个工具经软链路径调用时行为与真实路径一致", () => {
+  const root = mkdtempSync(join(tmpdir(), "delivery-guard-"));
+  try {
+    const linked = join(root, "rt");
+    symlinkSync(runtimeRoot, linked, "junction");
+    const run = (base: string, script: string, args: string[]) =>
+      spawnSync(process.execPath, ["--experimental-strip-types", join(base, "openspec/tools", script), ...args], { encoding: "utf8" });
+
+    // delivery-lifecycle：不带参数应报缺参并非零退出，两条路径必须给出同一结果。
+    const realLifecycle = run(runtimeRoot, "delivery-lifecycle.ts", []);
+    const linkLifecycle = run(linked, "delivery-lifecycle.ts", []);
+    assert.notEqual(realLifecycle.status, 0, "真实路径下缺参数就该报错");
+    assert.match(realLifecycle.stderr, /缺少 --change-root/);
+    assert.equal(linkLifecycle.status, realLifecycle.status, `经软链调用时 main() 未执行：status=${linkLifecycle.status} stdout=${JSON.stringify(linkLifecycle.stdout)} stderr=${JSON.stringify(linkLifecycle.stderr)}`);
+    assert.match(linkLifecycle.stderr, /缺少 --change-root/);
+
+    // render-commands check：必须真的执行比对并输出结果，而不是静默通过。
+    const realRender = run(runtimeRoot, "render-commands.ts", ["check", "--runtime-root", runtimeRoot]);
+    const linkRender = run(linked, "render-commands.ts", ["check", "--runtime-root", runtimeRoot]);
+    assert.equal(realRender.status, 0, realRender.stderr);
+    assert.equal(linkRender.status, realRender.status, `经软链调用时 main() 未执行：status=${linkRender.status} stdout=${JSON.stringify(linkRender.stdout)} stderr=${JSON.stringify(linkRender.stderr)}`);
+    assert.deepEqual(JSON.parse(linkRender.stdout), JSON.parse(realRender.stdout));
+    assert.equal(JSON.parse(linkRender.stdout).files, 9, "check 必须真的数过九个 Commands");
+
+    // 「退出码 0 且零输出」正是守卫失配时的特征形状，单独钉住它。
+    for (const [label, result] of [["delivery-lifecycle.ts", linkLifecycle], ["render-commands.ts", linkRender]] as const) {
+      assert.notEqual(`${result.stdout}${result.stderr}`.trim(), "", `${label} 经软链调用时零输出退出——说明 main() 根本没跑`);
+    }
+  } finally {
+    // rmSync 对 junction 走 unlink 而不递归进目标，实测不会波及被链接的仓库。
+    rmSync(root, removeOptions);
+  }
 });

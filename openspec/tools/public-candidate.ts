@@ -1,5 +1,5 @@
 #!/usr/bin/env -S node --experimental-strip-types
-import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, readdirSync, rmSync } from "node:fs";
+import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { atomicWriteJson, exactKeys, fail, now, object, parseArgs, readJson, requiredOption, sha256File, text } from "./runtime-lib.ts";
 
