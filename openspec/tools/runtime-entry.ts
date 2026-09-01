@@ -3,7 +3,7 @@ import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync } from "
 import { createHash } from "node:crypto";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, execSync, spawnSync } from "node:child_process";
 
 type LinkContract = { link: string; source: string };
 
@@ -17,14 +17,34 @@ type Manifest = {
 };
 
 function fail(message: string): never { throw new Error(message); }
+/**
+ * Windows 的默认路径上限是 260；超过它的路径 lstat 会失败，git 于是把一份未改动的文件报成 `M`。
+ * 受控探针（2026-09-01）：同一条干净路径，全长 259 时报干净、260 起报 `M`，加上本参数后恒为干净。
+ * 写入侧的 openspec-upgrade.ts 早就固定带着它，读侧不带，就会把「写得进去的文件」读成内容漂移，
+ * 把一个环境能力问题伪装成一次正确的 fail-closed（INT-20260831-010 因此被误归因为 git 竞态）。
+ */
+function withGitCapability(args: string[]): string[] {
+  return process.platform === "win32" ? ["-c", "core.longpaths=true", ...args] : args;
+}
 function git(root: string, args: string[]): string {
-  try { return execFileSync("git", args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim(); }
+  try { return execFileSync("git", withGitCapability(args), { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim(); }
   catch (error) { fail(`Git检查失败: ${error instanceof Error ? error.message : String(error)}`); }
 }
-function sourceRootFromScript(): string {
+/** 非零退出是合法答案的 git 调用（check-ignore 用 1 表示「没有命中」），故不能走上面那个抛错的封装。 */
+function gitResult(root: string, args: string[], input?: string): { status: number; stdout: string } {
+  const result = spawnSync("git", withGitCapability(args), { cwd: root, encoding: "utf8", ...(input === undefined ? {} : { input }) });
+  if (result.error) fail(`Git执行失败: ${result.error.message}`);
+  return { status: result.status ?? 1, stdout: result.stdout ?? "" };
+}
+/**
+ * 脚本自身位置向上两级即 Runtime 源仓根——但只有当本脚本确实躺在源仓里时才成立。
+ * 本文件同时是四条受管投影之一，在消费仓里存在一份真实副本；对那份副本而言向上两级是消费仓根，
+ * 那里没有 manifest。此时返回 null 交由调用方按消费仓形态定位，而不是当场报「源仓缺少 manifest」——
+ * 后者会让消费仓侧照抄命令文档的入口调用稳定失败（INT-20260831-018）。
+ */
+function sourceRootFromScript(): string | null {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-  if (!existsSync(join(root, "runtime-manifest.json"))) fail("Runtime 源仓缺少 runtime-manifest.json");
-  return root;
+  return existsSync(join(root, "runtime-manifest.json")) ? root : null;
 }
 function samePath(left: string, right: string): boolean {
   let leftResolved = resolve(left).toLowerCase();
@@ -45,7 +65,10 @@ function findConsumerRoot(start: string): string {
 function resolveBinding(start: string, explicitAssetRoot: string | null): RuntimeBinding {
   const sourceRoot = sourceRootFromScript();
   const candidate = resolve(explicitAssetRoot ?? start);
-  if (samePath(candidate, sourceRoot)) return { assetRoot: sourceRoot, runtimeRoot: sourceRoot, sourceRoot: true };
+  if (sourceRoot !== null && samePath(candidate, sourceRoot)) return { assetRoot: sourceRoot, runtimeRoot: sourceRoot, sourceRoot: true };
+  // 回落到消费仓形态。真正未初始化的目录仍会在 findConsumerRoot 里 fail-closed，
+  // 且文案指向 submodule 初始化——这条边界由 test/submodule.test.ts 的断言钉死，
+  // 不允许被本回落分支掩盖成另一种错误。
   const assetRoot = findConsumerRoot(candidate);
   return { assetRoot, runtimeRoot: join(assetRoot, ".delivery-spec-runtime"), sourceRoot: false };
 }
@@ -122,6 +145,51 @@ function verifyLinks(assetRoot: string, runtimeRoot: string, links: LinkContract
     if (projectionDigest !== treeDigest(source)) fail(`受管投影漂移: ${contract.link}`);
   }
 }
+/** 列出一条受管投影下的全部文件，路径相对资产仓根、统一正斜杠，供 git 子命令逐条比对。 */
+function projectionFiles(assetRoot: string, link: string): string[] {
+  const collected: string[] = [];
+  const walk = (path: string): void => {
+    const stat = lstatSync(path);
+    if (stat.isFile()) { collected.push(relative(assetRoot, path).split(sep).join("/")); return; }
+    if (stat.isDirectory()) for (const name of readdirSync(path).sort()) walk(join(path, name));
+  };
+  walk(inside(assetRoot, link, "link"));
+  return collected;
+}
+/**
+ * 工作树摘要一致，不等于投影能进库。两类坏账在本机一律表现为「摘要相同、校验通过」，
+ * 只有别人 clone 之后才炸，因此必须在提交之前拦下来：
+ *  - 父仓 `.gitignore` 或本机排除规则吞掉未跟踪的投影文件（INT-20260831-016 实测命中两条）；
+ *  - Windows `core.symlinks=false` 下 git 沿用 index 里的旧 `120000` 模式，把整份文件内容当成
+ *    「软链目标字符串」入库，任何软链可用的机器 clone 出来只会得到一个废软链（INT-20260831-017）。
+ * 只对**未跟踪**的文件跑 check-ignore：已在 index 中的文件不受忽略规则影响，全量断言会误伤。
+ */
+function verifyProjectionIndex(assetRoot: string, links: LinkContract[]): void {
+  const files = links.flatMap((contract) => projectionFiles(assetRoot, contract.link));
+  if (files.length === 0) return;
+  const listed = gitResult(assetRoot, ["ls-files", "-s", "-z", "--", ...files]);
+  if (listed.status !== 0) fail("无法读取受管投影在 git index 中的条目，拒绝执行");
+  const modes = new Map<string, string>();
+  for (const entry of listed.stdout.split("\0").filter(Boolean)) {
+    const match = /^([0-7]{6}) [0-9a-f]+ [0-9]+\t([\s\S]+)$/.exec(entry);
+    if (match) modes.set(match[2], match[1]);
+  }
+  const symlinkEntries = [...modes].filter(([, mode]) => mode === "120000").map(([path]) => path).sort();
+  if (symlinkEntries.length) {
+    fail(`受管投影在 git index 中仍是软链模式 120000，clone 出来会得到废软链: ${symlinkEntries.join("、")}；请对这些路径执行 git rm --cached 后重新 git add`);
+  }
+  const untracked = files.filter((path) => !modes.has(path));
+  if (untracked.length === 0) return;
+  // check-ignore 的 -z 只在配 --stdin 时合法，故路径走标准输入而非命令行参数；
+  // 这同时避免了投影文件数量增长后命令行长度受限的问题。
+  const ignored = gitResult(assetRoot, ["check-ignore", "--stdin", "-z"], `${untracked.join("\0")}\0`);
+  // check-ignore 用 0 表示「有命中」、1 表示「无命中」，两者都是正常答案；其余（典型是 128）才是故障。
+  if (ignored.status !== 0 && ignored.status !== 1) fail("无法对受管投影执行 git check-ignore，拒绝执行");
+  const swallowed = ignored.stdout.split("\0").filter(Boolean).sort();
+  if (swallowed.length) {
+    fail(`受管投影被父仓 .gitignore 或本机排除规则忽略，将无法进入提交: ${swallowed.join("、")}；请移除命中它们的忽略规则`);
+  }
+}
 function verifySourceLinks(runtimeRoot: string, links: LinkContract[]): void {
   for (const contract of links) {
     const source = inside(runtimeRoot, contract.source, "source");
@@ -137,6 +205,18 @@ function verifyBootstrapState(assetRoot: string): void {
   for (const key of allowed.slice(0, 6)) if (!(key in state)) fail(`bootstrap-state 缺少字段 ${key}`);
   if (state.schemaVersion !== 1 || !["idle", "in_progress", "committed", "rolled_back"].includes(String(state.status))) fail("bootstrap-state合同非法");
   if (state.status === "in_progress") fail(`bootstrap正在进行，所有生命周期Command停止: ${state.stageId}`);
+}
+/**
+ * 版本探测。旧写法是 `execFileSync(..., ["--version"], { shell: true })`，Node 会为「args 数组 + shell」
+ * 这一组合打出 DEP0190 弃用告警，把两行噪音混进本应干净的 JSON 输出（INT-20260831-007 的遗留缺陷）。
+ * Windows 上 `openspec` 是 .cmd 包装器，不经 shell 无法直接 spawn，故改用单一常量命令串——
+ * 命令串里没有任何外部输入拼接，不存在注入面；类 Unix 上直接 execFile，完全不经 shell。
+ */
+function detectOpenSpecVersion(): string {
+  const raw = process.platform === "win32"
+    ? execSync("openspec.cmd --version", { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })
+    : execFileSync("openspec", ["--version"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  return raw.trim().replace(/^v/, "");
 }
 function main(): void {
   const argv = process.argv.slice(2);
@@ -160,13 +240,14 @@ function main(): void {
     if (runtimeStatus) fail(`运行时 submodule 包含未提交修改，拒绝执行: ${runtimeStatus}`);
     if (git(assetRoot, ["status", "--porcelain", "--", manifest.submodule.path])) fail("父仓记录的 runtime submodule 状态漂移，拒绝执行");
     verifyLinks(assetRoot, runtimeRoot, manifest.submodule.links);
+    verifyProjectionIndex(assetRoot, manifest.submodule.links);
   }
   verifyBootstrapState(assetRoot);
   if (!atLeast(process.versions.node, manifest.node.minimum)) fail(`Node版本不满足运行时合同: ${process.versions.node}`);
   if (argv[0] === "runtime-update") {
     fail("实时资产仓禁止执行 runtime-update；请在 delivery-spec-runtime 仓内建立受控升级 Change，隔离生成并验证后再交付");
   }
-  const openspecVersion = execFileSync(process.platform === "win32" ? "openspec.cmd" : "openspec", ["--version"], { encoding: "utf8", shell: process.platform === "win32" }).trim().replace(/^v/, "");
+  const openspecVersion = detectOpenSpecVersion();
   if (openspecVersion !== manifest.openspec.required) fail(`OpenSpec版本不满足运行时合同: ${openspecVersion}`);
   const lifecycle = argv[0] === "lifecycle";
   const workflow = argv[0] === "workflow";

@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
-import { closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
-import { execFileSync } from "node:child_process";
 
 export type JsonObject = Record<string, unknown>;
 
@@ -138,32 +137,8 @@ export function withFileLock<T>(path: string, action: () => T): T {
   }
 }
 
-export function findUp(start: string, marker: string): string {
-  let current = resolve(start);
-  for (;;) {
-    if (existsSync(join(current, marker))) return current;
-    const parent = dirname(current);
-    if (parent === current) fail(`从 ${start} 向上未找到 ${marker}`);
-    current = parent;
-  }
-}
-
-export function gitCommit(root: string): string {
-  try {
-    return execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
-  } catch {
-    fail(`无法读取 Git commit: ${root}`);
-  }
-}
-
-export function ensureInside(root: string, path: string, label: string): string {
-  const rootReal = realpathSync(root);
-  const candidate = isAbsolute(path) ? resolve(path) : resolve(rootReal, path);
-  const parentReal = realpathSync(dirname(candidate));
-  const rel = relative(rootReal, join(parentReal, candidate.slice(dirname(candidate).length + 1)));
-  if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) fail(`${label} 越出根目录: ${path}`);
-  return candidate;
-}
+// 2026-09-01 删除 findUp、gitCommit、ensureInside 三个导出：`openspec/tools/` 与 `test/` 两处
+// 全文检索均无第二处引用，属零调用的公开面。裁定 #5：删除，git 历史即存档，不在代码里留预留 API。
 
 export function now(): string {
   return new Date().toISOString();

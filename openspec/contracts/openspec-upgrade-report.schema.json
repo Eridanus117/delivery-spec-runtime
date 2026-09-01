@@ -124,7 +124,7 @@
     "consumer": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "head", "beforeDigest", "afterDigest", "runtimeStatus", "probeStatus", "result"],
+      "required": ["name", "head", "beforeDigest", "afterDigest", "runtimeStatus", "probeStatus", "failureReason", "result"],
       "properties": {
         "name": { "type": "string" },
         "head": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
@@ -132,6 +132,11 @@
         "afterDigest": { "type": "string" },
         "runtimeStatus": { "type": "integer" },
         "probeStatus": { "type": "integer" },
+        "failureReason": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "description": "冒烟失败的原因文本，按行截断。FAIL 时必须为非空字符串，PASS 时必须为 null（理由：只记退出码的报告分不清「合同被正确拒绝」与「环境问题误判」）。"
+        },
         "result": { "enum": ["PASS", "FAIL"] }
       }
     }

@@ -286,7 +286,19 @@ function submoduleName(asset: string): string {
   fail("消费仓.gitmodules未登记.delivery-spec-runtime");
 }
 
-function consumerSmoke(request: UpgradeRequest, consumer: ConsumerRequest, tempRoot: string, candidateRuntime: string, candidateCommit: string): { name: string; head: string; beforeDigest: string; afterDigest: string; runtimeStatus: number; probeStatus: number; result: "PASS" | "FAIL" } {
+/**
+ * 冒烟失败原因的取值。只记退出码的报告无法区分「合同被正确拒绝」与「环境问题误判」——
+ * 本仓正因为报告里只有一个 `runtimeStatus: 1`，把一个可定位的路径越限缺陷当成偶发噪音挂了整整一天
+ * （INT-20260831-010）。原因文本按行截断，避免把整段堆栈灌进归档证据。
+ */
+function failureText(...parts: Array<string | null>): string | null {
+  const merged = parts.filter((part): part is string => Boolean(part && part.trim())).map((part) => part.trim()).join("\n");
+  if (!merged) return null;
+  const lines = merged.split(/\r?\n/).filter(Boolean);
+  const kept = lines.slice(0, 12).join("\n");
+  return lines.length > 12 ? `${kept}\n…（另有 ${lines.length - 12} 行）` : kept;
+}
+function consumerSmoke(request: UpgradeRequest, consumer: ConsumerRequest, tempRoot: string, candidateRuntime: string, candidateCommit: string): { name: string; head: string; beforeDigest: string; afterDigest: string; runtimeStatus: number; probeStatus: number; failureReason: string | null; result: "PASS" | "FAIL" } {
   const before = fingerprint(consumer.path); const clone = join(tempRoot, `consumer-${consumer.name}`);
   runRequired("git", ["-c", "core.symlinks=true", "-c", "core.autocrlf=false", "clone", "-q", "--no-hardlinks", "--no-checkout", consumer.path, clone], tempRoot, `clone ${consumer.name}`); git(clone, ["checkout", "-q", "--force", "HEAD"]); configureGit(clone);
   const name = submoduleName(clone);
@@ -300,7 +312,7 @@ function consumerSmoke(request: UpgradeRequest, consumer: ConsumerRequest, tempR
   git(join(clone, ".delivery-spec-runtime"), ["reset", "--hard", "HEAD"]);
   git(join(clone, ".delivery-spec-runtime"), ["checkout", "--force", "HEAD"]);
   const link = run(process.execPath, ["--experimental-strip-types", join(clone, ".delivery-spec-runtime/openspec/tools/runtime-link.ts"), "apply", "--asset-root", clone], clone);
-  if (link.status !== 0) return { name: consumer.name, head: before.head, beforeDigest: fingerprintDigest(before), afterDigest: fingerprintDigest(fingerprint(consumer.path)), runtimeStatus: link.status, probeStatus: 1, result: "FAIL" };
+  if (link.status !== 0) return { name: consumer.name, head: before.head, beforeDigest: fingerprintDigest(before), afterDigest: fingerprintDigest(fingerprint(consumer.path)), runtimeStatus: link.status, probeStatus: 1, failureReason: failureText(`runtime-link apply 失败(status=${link.status})`, link.stderr, link.stdout), result: "FAIL" };
   const afterLinkStatus = git(join(clone, ".delivery-spec-runtime"), ["status", "--porcelain"]);
   const shim = candidatePath(join(tempRoot, `shim-${consumer.name}`), request.candidateVersion);
   const runtimeCheck = run(process.execPath, ["--experimental-strip-types", join(clone, ".delivery-spec-runtime/openspec/tools/runtime-entry.ts"), "runtime-check", "--change-root", clone], clone, shim.env);
@@ -308,7 +320,13 @@ function consumerSmoke(request: UpgradeRequest, consumer: ConsumerRequest, tempR
   try { JSON.parse(probe.stdout); } catch { probeValid = false; }
   const after = fingerprint(consumer.path); const beforeDigest = fingerprintDigest(before); const afterDigest = fingerprintDigest(after);
   const result = runtimeCheck.status === 0 && probeValid && beforeDigest === afterDigest ? "PASS" : "FAIL";
-  return { name: consumer.name, head: before.head, beforeDigest, afterDigest, runtimeStatus: runtimeCheck.status, probeStatus: probe.status, result };
+  const failureReason = result === "PASS" ? null : failureText(
+    runtimeCheck.status === 0 ? null : `runtime-check 失败(status=${runtimeCheck.status})：${runtimeCheck.stderr || runtimeCheck.stdout}`,
+    probeValid ? null : `OpenSpec 探针失败(status=${probe.status})：${probe.stderr || probe.stdout}`,
+    beforeDigest === afterDigest ? null : "真实消费仓指纹在评估过程中发生变化",
+    afterLinkStatus ? `apply 后 submodule 非空状态：${afterLinkStatus}` : null,
+  );
+  return { name: consumer.name, head: before.head, beforeDigest, afterDigest, runtimeStatus: runtimeCheck.status, probeStatus: probe.status, failureReason, result };
 }
 
 function reportGeneration(value: Generation): { requestedVersion: string; actualVersion: string; commands: Array<{ path: string; sha256: string }> } {
@@ -344,8 +362,11 @@ function validateReport(report: Record<string, unknown>): void {
   if (!Array.isArray(report.consumers) || report.consumers.length === 0) fail("report.consumers合同非法");
   for (const [index, value] of report.consumers.entries()) {
     const consumer = object(value, `report.consumers[${index}]`);
-    exactKeys(consumer, ["name", "head", "beforeDigest", "afterDigest", "runtimeStatus", "probeStatus", "result"], ["name", "head", "beforeDigest", "afterDigest", "runtimeStatus", "probeStatus", "result"], `report.consumers[${index}]`);
+    exactKeys(consumer, ["name", "head", "beforeDigest", "afterDigest", "runtimeStatus", "probeStatus", "failureReason", "result"], ["name", "head", "beforeDigest", "afterDigest", "runtimeStatus", "probeStatus", "failureReason", "result"], `report.consumers[${index}]`);
     text(consumer.name, "consumer.name"); integer(consumer.runtimeStatus, "consumer.runtimeStatus"); integer(consumer.probeStatus, "consumer.probeStatus");
+    // FAIL 必须带原因，PASS 必须不带：否则「有字段」就能过合同，而字段可以永远是 null。
+    if (consumer.result === "FAIL" && !(typeof consumer.failureReason === "string" && consumer.failureReason.length > 0)) fail(`report.consumers[${index}] 结论为 FAIL 却没有失败原因`);
+    if (consumer.result === "PASS" && consumer.failureReason !== null) fail(`report.consumers[${index}] 结论为 PASS 不得携带失败原因`);
   }
   if (typeof report.realRepositoriesUnchanged !== "boolean" || typeof report.temporaryRootsCleaned !== "boolean" || (report.result !== "PASS" && report.result !== "FAIL")) fail("upgrade report结论合同非法");
 }
@@ -374,7 +395,9 @@ function evaluate(request: UpgradeRequest): Record<string, unknown> {
     const result = probesPass && generationSetPass && blank.result === "PASS" && consumers.every((consumer) => consumer.result === "PASS") && realRepositoriesUnchanged ? "PASS" : "FAIL";
     report = { schemaVersion: 1, currentVersion: request.currentVersion, candidateVersion: request.candidateVersion, runtimeBaselineCommit: baseline, startedAt, endedAt: now(), generations: { current: reportGeneration(current), candidate: reportGeneration(candidate) }, deltas: { upstream, currentLocal, candidateLocal }, probes: { current: current.probes, candidate: candidate.probes }, blankFixture: blank, consumers, realRepositoriesUnchanged, temporaryRootsCleaned: true, result };
   } finally {
-    rmSync(temporaryRoot, { recursive: true, force: true });
+    // Windows 上反病毒或索引器会短暂持锁，直删可能抛 EPERM 让一次成功的评估在收尾翻车
+    // （INT-20260831-012）。有限退避有上限，删不掉仍会抛错，不静默吞掉真实的清理失败。
+    rmSync(temporaryRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
   }
   validateReport(report);
   mkdirSync(request.evidenceRoot, { recursive: true }); atomicWriteJson(join(request.evidenceRoot, "upgrade-report.json"), report);
