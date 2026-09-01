@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "cd6d2f0c3e127913144e3d2e72b751fb52b14704",
+  "reviewedCommit": "e6c538a416b0509b55065d4ff4e97f7b0324997b",
+  "reviewer": "independent-implementation-review session（未参与实施，逐刺亲手复测，不采信实施侧报告）",
+  "reviewedAt": "2026-09-01T08:05:23Z",
+  "findings": [
+    {
+      "id": "REV-001",
+      "severity": "MEDIUM",
+      "path": "openspec/intake/INT-20260831-014-calibration-signals.md",
+      "line": 37,
+      "summary": "信号9「缺口两条」写明路由表缺前缀一事「处置按其自述走（补前缀行）」，与最终裁定 #4「不修路由表、记录在案随重设计处置」直接矛盾；复审核对 openspec/profiles/change-routing-v1.json 在 cd6d2f0..e6c538a 内一字未改，该处置从未发生。同段又称缺口「三处」，实为四处——openspec/specs/ 同样不命中任何 pathPrefixes（INT-023 自己列的是四处），两份新台账互相打架。信号台账是 AGENTS.md 明文规定要在复盘统一消费的资产，且 INT-023 明确把信号9 列为启动输入，读者会据此认为路由表已补。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-002",
+      "severity": "MEDIUM",
+      "path": "openspec/contracts/openspec-upgrade-report.schema.json",
+      "line": 127,
+      "summary": "consumer 条目把 failureReason 加进 required，但 schemaVersion 仍是 1，而本仓已归档的 openspec/changes/archive/2026-08-30-establish-controlled-openspec-upgrades/08-验收/runs/20260830T1151Z-upgrade-final/upgrade-evaluation/upgrade-report.json 也自称 schemaVersion 1 且三个 consumer 条目均无该键——复审逐条实测确认。结果是本仓公开分发的机器合同现在拒绝本仓自己归档的证据，而改造方案已明写归档报告不回溯改写。上一轮复审的 REV-003（artifact-approvals 合同未覆盖 v5）是同一形态的问题，当时按 HIGH 处理并以「合同同时容纳新旧两种形状」收口，此处未沿用该范式，也未升版本号。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-003",
+      "severity": "LOW",
+      "path": "test/contracts.test.ts",
+      "line": 362,
+      "summary": "VC-041 中「预算必须是紧的：如果实际最长值远低于预算，说明预算没有跟上现实，形同虚设」这句注释所承诺的判据并不存在：紧随其后的 assert.ok(longest <= repositoryPathBudget) 与上一条 assert.deepEqual(violations, []) 逻辑等价，是一条恒真的重复断言，对「预算被调高到远离实测最大值」这一退化毫无判别力。注释因此强于事实，与本仓「结论不得强于可复现事实」的既有订正口径相悖。附带：repositoryPathBudget 以 export 暴露却无任何跨文件消费者，与本单「删除零调用导出」的取向不一致。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-004",
+      "severity": "LOW",
+      "path": "openspec/tools/runtime-entry.ts",
+      "line": 37,
+      "summary": "gitResult 把 spawnSync 的 status 为 null（进程被信号终止、非 result.error 路径）归一成 1。对 ls-files 这是安全的（非 0 即 fail-closed），但对 check-ignore 恰好相反：1 正是「没有任何路径被忽略」的正常答案，于是 git 被杀掉时 verifyProjectionIndex 会静默放行。这是本单新增的六组断言里唯一一处 fail-open，与同文件其余全部判据的取向相反；区分 null 与 1 即可修复。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-005",
+      "severity": "LOW",
+      "path": "(general)",
+      "line": null,
+      "summary": "三处已批准工件/证据的陈述与事实不符，复审逐条实测：(1) 07-实施任务/实施任务.md 任务 3.5 仍写 T-QUIET-1 落在 test/control.test.ts，而全仓 grep 显示 DeprecationWarning 断言只存在于 test/submodule.test.ts:414——test-plan 已为同一处更正做过机械重批准，tasks 工件在 07:43 的证据回填重批准中未同步；(2) 改造方案「影响面」与测试方案均写「新增五组断言」，实测新增六个 test 块（VC-041、投影 index 坏账、入口回落、超长路径、输出洁净、冒烟失败原因），基线 79 → 现 85；(3) evidence/deadcode.log 声称「未用导入回扫为空」，复审对 openspec/tools/ 与 test/ 全量回扫仍得到一条 test/bootstrap.test.ts 的未用 statSync（基线即存在，非本单引入），该证据的结论强于其实际覆盖面。",
+      "status": "OPEN",
+      "resolution": null
+    },
+    {
+      "id": "REV-006",
+      "severity": "LOW",
+      "path": "openspec/tools/runtime-entry.ts",
+      "line": 72,
+      "summary": "入口回落使受管投影副本成为可执行入口，副作用是「校验者本身可能是一份未经校验的副本」——修复前投影副本根本跑不起来，唯一入口是受 gitlink 钉死的 submodule 原件。方案决策「接受的后果」只写了「回落可能掩盖未初始化」这一面，未写这一面。",
+      "status": "ACCEPTED",
+      "resolution": "按裁定 #1（投影副本算可执行入口）的直接后果接受，不要求本单返工。复审用独立探针在真实形状夹具上实测：干净投影副本作入口 exit 0；把该副本自身追加一行后再用它自己作入口，仍报「受管投影漂移: openspec/tools/runtime-entry.ts」并非零退出，与用 submodule 原件调用的结果一致——verifyLinks 兜住了自校验场景。残余面仅限「副本旧到不含 verifyLinks」，属跨版本历史问题而非本单引入。建议随 INT-20260901-023 工作流重设计时把这一面补进风险表。"
+    },
+    {
+      "id": "REV-007",
+      "severity": "LOW",
+      "path": "openspec/tools/openspec-upgrade.ts",
+      "line": 323,
+      "summary": "failureReason 是 upgrade-report.json 里第一个逐字文本字段——此前全报告一律只出 sha256 摘要、行数与退出码，指纹也只出 digest。它转载的是消费仓克隆里跑出来的 stdout/stderr，而本仓是公开共享运行时，AGENTS.md 明文禁止保存请求响应与 trace。既有的 PRIVATE-<name>-SENTINEL 断言只覆盖一个特定字符串，对这一新增面基本没有判别力。",
+      "status": "ACCEPTED",
+      "resolution": "复审实跑 T-SMOKE-1 并打印真实取值，得到单行「runtime-check 失败(status=1)：受管投影被父仓 .gitignore 或本机排除规则忽略，将无法进入提交: .claude/skills/delivery-pilot/SKILL.md；请移除命中它们的忽略规则」——无堆栈、无绝对路径、无消费仓私有内容；核对 runtime-entry.ts 末行的 catch 只打印 error.message，故当前不存在实际泄漏，不要求本单返工。但脱敏是「被引用的命令恰好只吐 Runtime 自有信息」的巧合，不是机器约束；建议在 INT-20260901-023 或下一次真实升级评估前，给 failureReason 补一条形状约束或裁剪规则。"
+    }
+  ]
+}
