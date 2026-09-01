@@ -23,7 +23,7 @@ const artifactPaths: Record<string, string[]> = {
   "solution-proposal": ["05-改造方案/方案提案.md"],
   "solution-decision": ["05-改造方案/方案决策.md"],
   "change-plan": ["05-改造方案/改造方案.md"],
-  "test-plan": ["06-测试方案/测试方案.md"],
+  "test-plan": ["06-测试方案/000-测试方案索引.md"],
   tasks: ["07-实施任务/实施任务.md"],
 };
 const requiredBeforeAcceptance = Object.keys(artifactPaths);

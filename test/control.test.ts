@@ -10,8 +10,9 @@ const artifactFiles: Record<string, string> = {
   "04-技术现状/技术现状.md": "technical\n",
   "05-改造方案/方案提案.md": "# 方案提案\n## 候选 A：简单\n## 候选 B：严格\n## Trade-off 矩阵\n## 推荐\n## 未决问题\n",
   "05-改造方案/方案决策.md": "# 方案决策\n- 状态：APPROVED\n- 选择：B\n- 决策人：tester\n- 决策时间：2026-08-30\n## 接受的后果\n## 拒绝方案\n",
-  "05-改造方案/改造方案.md": "plan\n", "06-测试方案/测试方案.md": "tests\n",
+  "05-改造方案/改造方案.md": "plan\n", "06-测试方案/000-测试方案索引.md": "tests\n",
   "07-实施任务/实施任务.md": "# 实施任务\n- [ ] 1.1 [planned] 完成演示\n- [ ] 9.9 [planned] 已删除任务\n  - 交付物：obsolete\n",
+  "specs/example/spec.md": "## ADDED Requirements\n",
 };
 const artifacts = ["raw-requirements", "specs", "business-current", "technical-current", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"];
 test("严格来源、批准失效、任务状态和投影合同", () => {

@@ -83,7 +83,7 @@ artifacts:
       - solution-decision
 
   - id: test-plan
-    generates: 06-测试方案/测试方案.md
+    generates: 06-测试方案/000-测试方案索引.md
     description: 实现前的测试策略、场景、fixture、断言、运行配置和清理计划
     template: test-plan.md
     instruction: |

@@ -161,7 +161,7 @@ function buildCandidate(workRoot: string, candidate: string): void {
     ["03-业务现状/business-current.md", "03-业务现状/业务现状.md"],
     ["04-技术现状/technical-current.md", "04-技术现状/技术现状.md"],
     ["05-改造方案/change-plan.md", "05-改造方案/改造方案.md"],
-    ["06-测试方案/test-plan.md", "06-测试方案/测试方案.md"],
+    ["06-测试方案/test-plan.md", "06-测试方案/000-测试方案索引.md"],
     ["07-实施任务/tasks.md", "07-实施任务/实施任务.md"],
   ];
   for (const [from, to] of primaryFiles) renameSync(join(candidate, from), join(candidate, to));
