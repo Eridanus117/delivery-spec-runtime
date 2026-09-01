@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { checkIgnoreIncomplete } from "../openspec/tools/runtime-lib.ts";
 import { validateReport } from "../openspec/tools/upgrade-report.ts";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { resolveChangeDir, runTool, runtimeRoot, removeOptions } from "./helpers.ts";
@@ -320,25 +320,41 @@ test("VC-030 发布模板删三节且保留 Spec Sync 表与门禁勾选", () =>
   }
 });
 
-test("VC-039 早期目录归档后 active Change 只剩两个", () => {
+/**
+ * VC-039 / T-09（记录型断言的处置示范）。
+ *
+ * 这条断言原先用一份写死的目录清单来表达「早期目录已经归档」。它在 `fix-thorn-batch` 一单里
+ * 撞红两次（建立时登记、归档时注销），在本单建立时又撞红第三次——**三次都没有暴露任何真问题，
+ * 只是在为一份点时快照缴费**。
+ *
+ * 判据是维护者定的：**看这条断言背后有没有真不变量，不看它像不像快照**。
+ * 这里背后的真不变量有两条，跟「此刻在途的是哪几个 Change」无关：
+ *   一、那两个早期目录必须已经归档且带处置记录；
+ *   二、在途目录必须都是合法 Change（有 change-info.json）——半截目录不该赖在 active 里。
+ * 于是改成直接断言这两条。新建或归档一个 Change 之后，这条断言不需要任何改动。
+ *
+ * 同族的反例见 VC-041：那条形态上也像快照，但它背后有真不变量，所以保留原强度。
+ */
+test("VC-039/T-09 早期目录已归档，在途目录都是合法 Change（不再锁死清单）", () => {
   const active = readdirSync(join(runtimeRoot, "openspec/changes"), { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && entry.name !== "archive")
     .map((entry) => entry.name)
     .sort();
-  // 本 Change 归档后，active 只余按裁定 C3 暂不处置的 metrics 目录。
-  // 注意：这是一份**点时快照**断言，不是不变量——每新建一个 Change 都必须在此登记、
-  // 每归档一个又必须在此注销，否则测试立刻转红。fix-thorn-batch 于 2026-09-01 建立时
-  // 曾在此登记，当日归档后再次移除：一建一归两次改动，都只是这条快照的记账。
-  // 该断言形态是否改为真正的不变量（两个早期目录不在 active），已记录在
-  // INT-20260831-014 信号9 与 INT-20260901-023，随工作流重设计裁定。
-  // **第三次记账（2026-09-01）**：slim-workflow-and-plain-language 建立时在此登记。
-  // 这次撞红没有暴露任何真问题，只是又一次为快照缴费——正是它自己要处置的那条缺陷的现场。
-  assert.deepEqual(active, ["establish-runtime-metrics-baseline", "slim-workflow-and-plain-language"]);
-  // 两个早期目录确实落到了 archive 且带处置记录。
+  // 不变量一：两个早期目录不在 active，且确实落到了 archive 且带处置记录。
   for (const name of ["2026-09-01-establish-intake-inventory", "2026-09-01-establish-workflow-v01-contract"]) {
+    const slug = name.replace(/^\d{4}-\d{2}-\d{2}-/, "");
+    assert.equal(active.includes(slug), false, `早期目录仍在 active: ${slug}`);
     const archived = join(runtimeRoot, "openspec/changes/archive", name);
     assert.equal(existsSync(archived), true, `未归档: ${name}`);
     assert.equal(existsSync(join(archived, "处置记录.md")), true, `缺处置记录: ${name}`);
+  }
+  // 不变量二：在途目录都是合法 Change。半截目录赖在 active 里同样是账没记清，
+  // 但这条不需要知道「此刻在途的是哪几个」，所以新建、归档都不必回来改它。
+  for (const name of active) {
+    const info = join(runtimeRoot, "openspec/changes", name, "change-info.json");
+    assert.equal(existsSync(info), true, `在途目录不是合法 Change（缺 change-info.json）: ${name}`);
+    const parsed = JSON.parse(readFileSync(info, "utf8")) as { displayName?: string };
+    assert.ok(parsed.displayName && parsed.displayName.length > 0, `在途 Change 缺显示名: ${name}`);
   }
   // superseded 目录的处置记录必须写明取代关系。
   const superseded = readFileSync(join(runtimeRoot, "openspec/changes/archive/2026-09-01-establish-workflow-v01-contract/处置记录.md"), "utf8");
@@ -437,6 +453,13 @@ test("REV-003/T-07.4 批准合同同时容纳两种口径，并校验仓内全�
  * 为名克隆消费仓，前缀本身就要吃掉约 104 字符，因此仓内相对路径的可用余量只有一百五十余字符。
  * 预算取当前实测最大值（裁定 #3：冻结而非缩名存量），作用是挡住继续恶化：
  * 新增的验收与归档证据一旦超限，这里当场点名，而不是等某次冒烟以「偶发 dirty」的面目失败。
+ *
+ * **T-09.3：这条断言形态上像快照，但它保留原强度，不按记录型断言处置。**
+ * 判据是「背后有没有真不变量」，不是「像不像快照」。这里背后的不变量是硬的：Windows 上路径
+ * 超过 260 会把一份干净文件误报成已修改，症状与真实漂移无法区分，人也没有办法在起文件名时
+ * 心算它。常量取等于实测最大值是刻意的棘轮——一旦允许「为了让某条长路径通过顺手把预算调宽」，
+ * 就没人会再把它调回来，而这道防线的全部作用正是挡住继续恶化。
+ * 对照 VC-039：那一条背后没有任何不变量，三次撞红都只是为快照缴费，所以已改写。
  */
 const repositoryPathBudget = 155;
 function overBudget(paths: string[], budget: number): Array<{ path: string; length: number }> {
@@ -705,5 +728,39 @@ test("T-06.5 任务清单渲染保留人写的实施切片一节", () => {
     assert.match(rendered, /这一段是人写的，渲染不得动它。/, "渲染把人写的一节冲掉了");
     assert.doesNotMatch(rendered, /旧的渲染结果/, "界线以下没有被重新生成");
     assert.match(rendered, /- \[ \] 1\.1 \[planned\]/);
+  } finally { rmSync(root, removeOptions); }
+});
+
+/**
+ * T-09.2：记录型断言处置到位的验收方式——新建或归档一个 Change 之后，
+ * 上面那条断言不需要任何改动就仍然成立。这里用一个临时仓做同构验证：
+ * 造两个在途目录，断言的两条不变量照样成立；把其中一个变成半截目录，立刻被抓。
+ */
+test("T-09.2 新建或归档 Change 后，在途目录断言无需改动仍然成立", () => {
+  const root = mkdtempSync(join(tmpdir(), "delivery-active-"));
+  try {
+    const changes = join(root, "openspec/changes");
+    mkdirSync(join(changes, "archive"), { recursive: true });
+    const legal = (name: string) => {
+      mkdirSync(join(changes, name), { recursive: true });
+      writeFileSync(join(changes, name, "change-info.json"), JSON.stringify({ schemaVersion: 1, displayName: name, deliverySchemaVersion: 7 }));
+    };
+    /** 与被测断言同构的判定：只看两条不变量，不看「此刻在途的是哪几个」。 */
+    const violations = () => readdirSync(changes, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && entry.name !== "archive")
+      .map((entry) => entry.name)
+      .filter((name) => !existsSync(join(changes, name, "change-info.json")));
+
+    legal("alpha");
+    assert.deepEqual(violations(), []);
+    // 再建一个：断言不需要任何改动。这正是它与点时快照的差别。
+    legal("beta");
+    assert.deepEqual(violations(), []);
+    // 归档一个：同样不需要改动。
+    renameSync(join(changes, "alpha"), join(changes, "archive", "2026-09-01-alpha"));
+    assert.deepEqual(violations(), []);
+    // 但半截目录会被抓住——不变量确实还在管事，不是放空。
+    mkdirSync(join(changes, "gamma"), { recursive: true });
+    assert.deepEqual(violations(), ["gamma"]);
   } finally { rmSync(root, removeOptions); }
 });

@@ -150,7 +150,7 @@
     },
     {
       "id": "9.1",
-      "state": "planned",
+      "state": "implemented_unverified",
       "deliverables": [
         "在途 Change 目录断言改写为不变量形态",
         "路径长度预算断言保持原强度并写明判断依据"
