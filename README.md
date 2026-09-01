@@ -9,7 +9,7 @@
 接入后，项目仓获得：
 
 - `/opsx-new` 到 `/opsx-archive` 的统一工作流；
-- 八层 `delivery-change` schema（v6：原 03/04 两份现状已合并为一份）；
+- 六层 `delivery-change` schema（v7：现状并进方案提案，改造方案并进实施任务）；
 - 执行前的 gitlink、受管投影、版本和工作树完整性检查；
 - 由项目仓 commit 精确锁定的 Runtime 版本。
 
@@ -104,5 +104,6 @@ Workflow System 支持同一仓库的多套 profile。先执行 `runtime-entry.t
 | 修改 Commands、schema、contracts 或 Runtime 源码 | [Runtime 维护指南](docs/maintainer-guide.md) |
 | 评估并提升 OpenSpec 版本 | [受控 OpenSpec 升级](docs/openspec-upgrade.md) |
 | 创建、审查、验收和归档 Runtime 自身 Change | [Runtime 自治理](docs/governance.md) |
+| 把这套流程装到第二个仓库时该搬什么、该改什么 | [通用核心与本仓特有](docs/portable-core.md) |
 
 当前操作方法以 `docs/` 为入口；规范性行为以 `openspec/specs/` 和机器合同为准；`openspec/changes/archive/` 只保存历史证据；`AGENTS.md` 只约束 Agent 会话。

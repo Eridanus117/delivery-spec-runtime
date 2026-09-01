@@ -10,7 +10,7 @@
 | 长期行为要求 | `openspec/specs/` | 规范性 MUST/SHOULD 和 Scenario |
 | active Change | `openspec/changes/<change>/` | 当前需求、决策、任务和证据 |
 | 历史 Change | `openspec/changes/archive/` | 审计证据，不作为当前 runbook |
-| Artifact 批准 | `artifact-approvals.json` | 内容摘要和批准状态真源 |
+| Artifact 批准 | `artifact-approvals.json` | 批准状态真源。第 2 版按「人真实表态一次记一条」记：一条门批准覆盖那一刻的全部工件，但每份工件的内容哈希仍逐一记录，改了哪一份就失效并点名。门的清单由站位定义里 `humanJudgment` 为真的站推导，不另立第二份清单。 |
 | 实现任务 | `task-state.json` | 任务状态真源；07 Markdown 仅是投影 |
 | Review/Acceptance/Readiness | `implementation-review.json`、`acceptance-state.json`、`archive-readiness.json` | 生命周期门禁真源 |
 | Runtime 执行合同 | manifest、schema、contracts、tools | 程序校验权威 |
@@ -37,7 +37,7 @@ flowchart LR
 
 需求分析不自动等于 Runtime Change。尚未决定实施时，先记录原始问题、来源、可核验观察、影响、边界和候选方向；可以调查仓库和比较方案，但不修改实现。只有维护者明确决定交付，才创建 `openspec/changes/<change>/` 并进入下表的 Proposal 阶段。
 
-一旦建立 Change，分析内容必须分散落到其语义工件，而不是另造一个统一的“需求分析.md”：`01` 保留原始需求与来源，`02` 归一化 Requirement 和 Scenario，`03` 记录业务与技术现状（v6 起合并为一份 `03-现状/现状.md`），`05` 记录方案提案、决策和计划，`06/07` 记录测试与实施任务。这样，需求结论才会被批准、实施、Review、验收和归档门禁实际消费。
+一旦建立 Change，分析内容必须分散落到其语义工件，而不是另造一个统一的“需求分析.md”：`01` 保留原始需求与来源，`specs/` 归一化 Requirement 和 Scenario，`05-改造方案/方案提案.md` 记录现状与候选方案（v7 起现状并入这里），`05-改造方案/方案决策.md` 记录维护者的选择，`06` 记录测试方案，`07-实施任务/实施任务.md` 记录实施切片与任务清单（v7 起改造方案并入这里）。这样，需求结论才会被批准、实施、Review、验收和归档门禁实际消费。
 
 Runtime 自治理只处理 Runtime 公共资产及自身 Change；消费仓业务需求和交付证据必须留在消费仓，不得写入 Runtime 仓。
 
@@ -55,7 +55,7 @@ node --experimental-strip-types openspec/tools/delivery-control.ts inspect \
   --change-root openspec/changes/<change>
 ```
 
-`delivery-control.ts init` 创建 `change-info.json` 和空的 `artifact-approvals.json`。原始需求的来源全序由 `01-原始需求索引.md` 材料索引表的 RAW 编号顺序承载（RAW-001 权威最高），不再另建 `change-sources.json`。每个 Artifact 写入前先读取对应 `openspec instructions`，写入后用摘要批准，并执行聚焦校验：
+`delivery-control.ts init` 创建 `change-info.json`（显式声明当前工件结构版本）和空的 `artifact-approvals.json`。批准用 `approval set --gate <站位id> --decision approved --approved-by <表态形态>` 一次写入，覆盖当时的全部工件；缺任何一份即拒绝并点名缺哪一份。原始需求的来源全序由 `01-原始需求索引.md` 材料索引表的 RAW 编号顺序承载（RAW-001 权威最高），不再另建 `change-sources.json`。每个 Artifact 写入前先读取对应 `openspec instructions`，写入后用摘要批准，并执行聚焦校验：
 
 ```bash
 openspec validate <change> --strict
@@ -67,7 +67,7 @@ openspec validate <change> --strict
 
 1. `方案提案.md`：至少两个真实候选、约束、成本、风险、可逆性和 Trade-off，并明确填写 `## 推荐`、`## 未决问题`；
 2. `方案决策.md`：必须记录 `状态：APPROVED`、选择、决策人、决策时间、权威来源、选择依据、拒绝方案、接受后果和重新决策触发条件；
-3. `改造方案.md`：只把已批准候选转成实施切片、迁移和回滚计划。
+3. `07-实施任务/实施任务.md` 的「实施切片、迁移与回滚」一节：只把已批准候选转成实施切片、迁移和回滚计划。该文件以 `## 任务清单` 这一行为界，界线以上人写、渲染不动，界线以下由机器状态渲染。
 
 提案作者不能代替维护者作出 Decision。任一已批准 Artifact 内容变化后，其摘要批准失效，下游门禁必须停止。
 

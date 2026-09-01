@@ -131,6 +131,30 @@ capture → clarify ↺ → discover ↺ → evaluate ↺ → decision
 
 `analysisRounds` 是调用方累积的轮次数组；每项至少记录 `round`、`stage`、`known`、`unknown`、`evidence`、`confidence`、`judgment` 和 `decision`。Runtime 检查结构并在 `outputs.publishedInputs` 回显，不替调用方判断事实是否真实，也不替调用方持久化历史。
 
+### 事项还没立项时，分析线怎么跑
+
+立项之前还没有 Change，所以不能用 `--change-root`，要用 `--intake-id`。两个参数互斥，同时给会被拒绝。
+绑定与推进各一条命令，可以直接照抄：
+
+```bash
+# 一次性绑定：把 profile 钉到这条事项记录上
+node --experimental-strip-types \
+  openspec/tools/workflow-control.ts bind \
+  --intake-id INT-20260901-023-repo-suited-workflow \
+  --profile-id requirement-analysis --profile-version v1.0.0 \
+  --runtime-root .
+
+# 每补齐一站的输入就推进一次
+node --experimental-strip-types \
+  openspec/tools/workflow-control.ts run \
+  --intake-id INT-20260901-023-repo-suited-workflow \
+  --request-file openspec/intake/analysis/INT-20260901-023-repo-suited-workflow/workflow-request.json \
+  --runtime-root .
+```
+
+三份产物都落在 `openspec/intake/analysis/<事项记录 id>/`：`workflow-binding.json`（绑定）、
+`workflow-request.json`（各站输入）、`workflow-result.json`（运行结果）。目录名、绑定里的事项 id、
+请求里的事项 id 三者必须一致，否则会被拒——不然立项门可能拿另一条事项的分析结果给这条放行。
 `clarify`、`discover` 和 `evaluate` 都可在人工判断 `continue-analysis` 时保持当前阶段；判断 `sufficient` 才能进入下一阶段。决策处置只能是 `build`、`use-existing`、`defer` 或 `reject`。`build` 只表示“可以由调用方创建后续 Change”，不会自动创建 Change、读取 Desk 或写回 Desk。Desk 负责个人分析策略和事项归属；Runtime 负责阶段合同和结果状态。
 
 ## 一个完整例子

@@ -26,6 +26,7 @@
     "docs/architecture.md",
     "docs/consumer-guide.md",
     "docs/governance.md",
+    "docs/portable-core.md",
     "docs/maintainer-guide.md",
     "docs/openspec-upgrade.md",
     "docs/workflow-guide.md",

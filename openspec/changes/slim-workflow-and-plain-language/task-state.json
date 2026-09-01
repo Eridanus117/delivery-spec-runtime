@@ -166,7 +166,7 @@
     },
     {
       "id": "10.1",
-      "state": "planned",
+      "state": "implemented_unverified",
       "deliverables": [
         "docs/portable-core.md 通用核心与本仓特有清单",
         "交互指引补摆材料附路径",

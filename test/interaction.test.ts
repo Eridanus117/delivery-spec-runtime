@@ -106,3 +106,50 @@ test("REV-005 本 Change 的批准记录在 approvedBy 中如实披露代笔", (
     assert.match(approval.approvedBy, /代笔/, `${artifact} 的 approvedBy 未标注代笔`);
   }
 });
+
+/** T-10.1 通用核心与本仓特有的清单必须成文，且把证据那条差异写清楚。 */
+test("T-10.1 通用核心与本仓特有清单成文，含证据那条关键差异", () => {
+  const doc = readFileSync(join(runtimeRoot, "docs/portable-core.md"), "utf8");
+  for (const fragment of ["通用核心", "本仓特有", "能不能再跑一遍", "replayable"]) {
+    assert.match(doc, new RegExp(fragment), `通用核心清单缺少: ${fragment}`);
+  }
+  // 关键差异必须写成「同一条规则、两个仓库落在两侧」，而不是只说本仓怎么做。
+  assert.match(doc, /不可重跑/);
+  assert.match(doc, /恒为关闭/, "没有写明这个能力在本仓关闭但必须留在底盘上");
+  // 它是推断不是结论，这一点必须明说——只有一个接入方，写死等于把猜测当结论。
+  assert.match(doc, /当前推断/);
+  // README 要给出入口，否则这份文档没人找得到。
+  assert.match(readFileSync(join(runtimeRoot, "README.md"), "utf8"), /docs\/portable-core\.md/);
+});
+
+/** T-10.2/T-10.3 交互指引与说明文档同步：摆材料附路径、说人话关、新工件结构。 */
+test("T-10.2/T-10.3 交互指引与说明文档同步到新形状", () => {
+  const skill = readFileSync(join(runtimeRoot, ".claude/skills/delivery-pilot/SKILL.md"), "utf8");
+  assert.match(skill, /底层文件的存放位置/, "交互指引没有要求摆材料时附上文件位置");
+  assert.match(skill, /陌生读者关|没读过本仓任何东西的会话/, "交互指引没有写说人话关");
+  assert.match(skill, /readability-review\.json/, "交互指引没有说审读记录落在哪");
+  assert.match(skill, /plain-language/, "交互指引没有指向禁词名单");
+
+  // 说明文档不得再提已经取消的两层工件。
+  const readme = readFileSync(join(runtimeRoot, "README.md"), "utf8");
+  const governance = readFileSync(join(runtimeRoot, "docs/governance.md"), "utf8");
+  assert.match(readme, /六层/);
+  assert.doesNotMatch(readme, /八层/);
+  assert.doesNotMatch(governance, /03-现状\/现状\.md/);
+  assert.match(governance, /人真实表态一次记一条/, "说明文档没有讲清批准新口径");
+});
+
+/** T-10.4 说明文档给出的分析线调用示例，参数名必须与工具实际接受的一致。 */
+test("T-10.4 分析线调用示例的参数名与工具实际接受的一致", () => {
+  const guide = readFileSync(join(runtimeRoot, "docs/workflow-guide.md"), "utf8");
+  const source = readFileSync(join(runtimeRoot, "openspec/tools/workflow-control.ts"), "utf8");
+  // 文档里出现的每个长参数，工具源码里都必须真的读它——否则照抄的人会撞一次拒绝。
+  const documented = [...new Set((guide.match(/--[a-z][a-z-]+/g) ?? []))];
+  const analysisFlags = ["--intake-id", "--request-file", "--profile-id", "--profile-version", "--runtime-root"];
+  for (const flag of analysisFlags) {
+    assert.ok(documented.includes(flag), `说明文档没有给出参数名: ${flag}`);
+    assert.ok(source.includes(`"${flag.slice(2)}"`), `工具并不接受这个参数: ${flag}`);
+  }
+  // 互斥关系也要写明，否则照抄的人会两个都给。
+  assert.match(guide, /两个参数互斥/);
+});
