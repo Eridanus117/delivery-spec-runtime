@@ -49,6 +49,20 @@
       "approvedBy": "维护者",
       "approvedAt": "2026-08-31T23:25:17.311Z",
       "migrationSource": "主会话门口表态，由实施代理转录：2026-08-31 方案门「我觉得走 A 就行」"
+    },
+    "test-plan": {
+      "digest": "sha256:59304589c854ecebd12fbc4b8153df4a8e141b00ad943e1c6c0c5c8a2d41ebee",
+      "decision": "approved",
+      "approvedBy": "维护者",
+      "approvedAt": "2026-09-01T01:15:08.518Z",
+      "migrationSource": "主会话门口表态，由实施代理转录：同意（对测试方案与任务拆分一屏摆盘的表态）"
+    },
+    "tasks": {
+      "digest": "sha256:dd00ed5f8638262f6ab02d7d53cd046294d822379341c4ba4c491ac0d3d00971",
+      "decision": "approved",
+      "approvedBy": "维护者",
+      "approvedAt": "2026-09-01T01:15:08.636Z",
+      "migrationSource": "主会话门口表态，由实施代理转录：同意（对测试方案与任务拆分一屏摆盘的表态）"
     }
   }
 }
