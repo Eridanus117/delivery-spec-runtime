@@ -1,4 +1,5 @@
 import test from "node:test";
+import { removeOptions } from "./helpers.ts";
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -16,7 +17,7 @@ test("glob摘要按POSIX路径确定且真实文件去重", () => {
     assert.equal(sha256Paths(root, ["spec-link", "specs"]), first);
     writeFileSync(join(root, "specs/capability/a.md"), "changed\n");
     assert.notEqual(sha256Paths(root, ["specs"]), first);
-  } finally { rmSync(root, { recursive: true, force: true }); }
+  } finally { rmSync(root, removeOptions); }
 });
 
 test("摘要拒绝绝对越界和逃逸软链", () => {
@@ -27,5 +28,5 @@ test("摘要拒绝绝对越界和逃逸软链", () => {
     symlinkSync(outsideFile, join(root, "escape"));
     assert.throws(() => sha256Paths(root, ["escape"]), /越出Change根/);
     assert.throws(() => sha256Paths(root, [outsideFile]), /越出Change根/);
-  } finally { rmSync(root, { recursive: true, force: true }); rmSync(outside, { recursive: true, force: true }); }
+  } finally { rmSync(root, removeOptions); rmSync(outside, removeOptions); }
 });

@@ -4,6 +4,14 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const runtimeRoot = fileURLToPath(new URL("..", import.meta.url));
+
+/**
+ * 临时目录清理选项。Windows 上反病毒或索引器会短暂持锁，`rmSync` 因此抛 EPERM，
+ * 让一次已经完全成功的测试在收尾阶段翻红（INT-20260831-012）。用 Node 自带的
+ * `maxRetries` / `retryDelay` 做有限退避：退避有上限，删不掉仍会抛错，
+ * 不会把一次真实的清理失败静默吞掉——「清理失败必须让验收 FAIL」这条约束保持有效。
+ */
+export const removeOptions = { recursive: true, force: true, maxRetries: 10, retryDelay: 100 } as const;
 export function runTool(tool: string, args: string[], options: { cwd?: string; env?: NodeJS.ProcessEnv } = {}): SpawnSyncReturns<string> {
   return spawnSync(process.execPath, ["--experimental-strip-types", join(runtimeRoot, "openspec/tools", tool), ...args], {
     cwd: options.cwd ?? runtimeRoot,

@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { runTool } from "./helpers.ts";
+import { runTool, removeOptions } from "./helpers.ts";
 
 const start = "2026-08-30T10:00:00.000Z";
 const end = "2026-08-30T10:20:00.000Z";
@@ -19,7 +19,7 @@ function append(root: string, payload: Record<string, unknown>): SpawnSyncReturn
   const file = join(input, "event.json");
   writeFileSync(file, `${JSON.stringify(payload)}\n`, "utf8");
   const result = runTool("metrics-control.ts", ["append", "--state-root", root, "--event-file", file]);
-  rmSync(input, { recursive: true, force: true });
+  rmSync(input, removeOptions);
   return result;
 }
 
@@ -47,7 +47,7 @@ function append(root: string, payload: Record<string, unknown>): SpawnSyncReturn
     assert.equal(value.usefulOutputSeconds, 180);
     assert.equal(value.dataCompleteness, 0.8);
     assert.equal(value.throughput, 3);
-  } finally { rmSync(root, { recursive: true, force: true }); }
+  } finally { rmSync(root, removeOptions); }
 });
 
 test("metrics append rejects duplicate ids without changing the event log", () => {
@@ -60,7 +60,7 @@ test("metrics append rejects duplicate ids without changing the event log", () =
     assert.notEqual(duplicate.status, 0);
     assert.match(duplicate.stderr, /重复 eventId/);
     assert.equal(readFileSync(join(root, "events-20260830.jsonl"), "utf8"), before);
-  } finally { rmSync(root, { recursive: true, force: true }); }
+  } finally { rmSync(root, removeOptions); }
 });
 
 test("metrics append rejects sensitive input and repository-local state roots", () => {
@@ -72,7 +72,7 @@ test("metrics append rejects sensitive input and repository-local state roots", 
     const unsafe = runTool("metrics-control.ts", ["append", "--state-root", join(process.cwd(), ".metrics-test-state"), "--event-file", "missing.json"]);
     assert.notEqual(unsafe.status, 0);
     assert.match(unsafe.stderr, /state-root 不得位于当前仓库内/);
-  } finally { rmSync(root, { recursive: true, force: true }); }
+  } finally { rmSync(root, removeOptions); }
 });
 
 test("summary preserves missing active-count observability", () => {
@@ -84,7 +84,7 @@ test("summary preserves missing active-count observability", () => {
     const value = JSON.parse(summary.stdout);
     assert.equal(value.activeCountMax, null);
     assert.equal(value.dataCompleteness, 0);
-  } finally { rmSync(root, { recursive: true, force: true }); }
+  } finally { rmSync(root, removeOptions); }
 });
 
 test("compare emits a C+1 recommendation only for a one-slot delta", () => {
@@ -102,7 +102,7 @@ test("compare emits a C+1 recommendation only for a one-slot delta", () => {
     const invalid = runTool("metrics-control.ts", ["compare", "--baseline-file", baselineFile, "--candidate-file", baselineFile]);
     assert.notEqual(invalid.status, 0);
     assert.match(invalid.stderr, /C\+1 对照必须只增加一个 slotCount/);
-  } finally { rmSync(root, { recursive: true, force: true }); }
+  } finally { rmSync(root, removeOptions); }
 });
 
 test("cleanup removes only event files older than the explicit UTC cutoff", () => {
@@ -114,5 +114,5 @@ test("cleanup removes only event files older than the explicit UTC cutoff", () =
     const cleaned = runTool("metrics-control.ts", ["cleanup", "--state-root", root, "--before", "2026-08-31"]);
     assert.equal(existsSync(join(root, "events-20260830.jsonl")), false);
     assert.equal(existsSync(kept), true);
-  } finally { rmSync(root, { recursive: true, force: true }); }
+  } finally { rmSync(root, removeOptions); }
 });

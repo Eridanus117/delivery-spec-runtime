@@ -1,9 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
-import { resolveChangeDir, runTool, runtimeRoot } from "./helpers.ts";
+import { resolveChangeDir, runTool, runtimeRoot, removeOptions } from "./helpers.ts";
 
 
 test("runtime manifest、八层schema与九个Commands一致", () => {
@@ -227,7 +228,7 @@ test("VC-028 现状合并后门禁条目逐项可对应且一项不减", () => {
     // 旧工件名在 v6 结构下不再被接受，避免两套命名并存。
     const stale = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", "business-current", "--decision", "approved", "--approved-by", "tester"]);
     assert.notEqual(stale.status, 0); assert.match(stale.stderr, /批准参数非法/);
-  } finally { rmSync(root, { recursive: true, force: true }); }
+  } finally { rmSync(root, removeOptions); }
 });
 
 test("VC-030 发布模板删三节且保留 Spec Sync 表与门禁勾选", () => {
@@ -333,4 +334,35 @@ test("REV-003 artifact-approvals 合同覆盖 v5/v6 两种工件集且校验真�
   };
   walk(join(runtimeRoot, "openspec/changes"));
   assert.ok(checked >= 12, `被校验的批准文件数异常: ${checked}`);
+});
+
+/**
+ * VC-041 路径长度预算。Windows 的路径上限是 260，超过它 git 会把一份未改动的文件报成 `M`
+ * （受控探针：259 干净 / 260 起报 M）。升级冒烟把整个仓复制进临时根、再以 `consumer-<name>`
+ * 为名克隆消费仓，前缀本身就要吃掉约 104 字符，因此仓内相对路径的可用余量只有一百五十余字符。
+ * 预算取当前实测最大值（裁定 #3：冻结而非缩名存量），作用是挡住继续恶化：
+ * 新增的验收与归档证据一旦超限，这里当场点名，而不是等某次冒烟以「偶发 dirty」的面目失败。
+ */
+export const repositoryPathBudget = 155;
+function overBudget(paths: string[], budget: number): Array<{ path: string; length: number }> {
+  return paths.filter((path) => path.length > budget).map((path) => ({ path, length: path.length })).sort((left, right) => right.length - left.length);
+}
+test("VC-041 仓内路径长度不得超出预算，超限项被点名", () => {
+  const listed = (args: string[]): string[] => {
+    const result = spawnSync("git", args, { cwd: runtimeRoot, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+    assert.equal(result.status, 0, `git ${args.join(" ")}\n${result.stderr}`);
+    return (result.stdout ?? "").split("\0").filter(Boolean);
+  };
+  const paths = [...new Set([...listed(["ls-files", "-z"]), ...listed(["ls-files", "--others", "--exclude-standard", "-z"])])];
+  assert.ok(paths.length > 0, "未能列出任何仓内路径");
+  const violations = overBudget(paths, repositoryPathBudget);
+  assert.deepEqual(violations, [], `以下路径超出预算 ${repositoryPathBudget}：\n${violations.map((item) => `${item.length} ${item.path}`).join("\n")}`);
+  // 预算必须是紧的：如果实际最长值远低于预算，说明预算没有跟上现实，形同虚设。
+  const longest = Math.max(...paths.map((path) => path.length));
+  assert.ok(longest <= repositoryPathBudget, `实际最长路径 ${longest} 超出预算`);
+  // 超限项必须被点名而不是只给一个布尔：证据文件名要能被直接改。
+  const synthetic = overBudget([`${"a".repeat(repositoryPathBudget)}/evidence.json`], repositoryPathBudget);
+  assert.equal(synthetic.length, 1);
+  assert.ok(synthetic[0].path.endsWith("evidence.json"));
+  assert.ok(synthetic[0].length > repositoryPathBudget);
 });

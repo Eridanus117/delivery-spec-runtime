@@ -4,7 +4,7 @@ import { appendFileSync, chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, 
 import { tmpdir } from "node:os";
 import { join, sep } from "node:path";
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
-import { runtimeRoot } from "./helpers.ts";
+import { runtimeRoot, removeOptions } from "./helpers.ts";
 
 function command(root: string, executable: string, args: string[], env?: NodeJS.ProcessEnv): SpawnSyncReturns<string> {
   return spawnSync(executable, args, { cwd: root, encoding: "utf8", env: env ?? process.env });
@@ -116,12 +116,14 @@ test("升级评估只在临时根生成并输出三类脱敏delta", () => {
     assert.equal(report.deltas.candidateLocal.files.length, 9);
     assert.equal(report.consumers.length, 3);
     assert.equal(report.consumers.every((consumer: { result: string; beforeDigest: string; afterDigest: string }) => consumer.result === "PASS" && consumer.beforeDigest === consumer.afterDigest), true);
+    // T-SMOKE-2：PASS 不得携带失败原因，否则「有字段」就能过合同而字段可以永远是噪音。
+    assert.equal(report.consumers.every((consumer: { failureReason: string | null }) => consumer.failureReason === null), true);
     const serialized = JSON.stringify(report);
     for (const name of ["agent-system", "webcoding-spec", "work-spec"]) assert.equal(serialized.includes(`PRIVATE-${name}-SENTINEL`), false);
     const invocations = readFileSync(fake.log, "utf8").trim().split("\n").map((line) => JSON.parse(line));
     assert.equal(invocations.some((item) => item.cwd === runtime || consumers.some((consumer) => item.cwd === consumer.path)), false);
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    rmSync(root, removeOptions);
   }
 });
 
@@ -138,6 +140,49 @@ test("非法升级请求在启动npm前拒绝", () => {
     assert.match(result.stderr, /精确SemVer/);
     assert.equal(existsSync(fake.log), false);
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    rmSync(root, removeOptions);
+  }
+});
+
+/**
+ * T-SMOKE-1（INT-20260831-010）：冒烟失败必须在报告里留下可归因的原因。
+ * 只记退出码的报告分不清「合同被正确拒绝」与「环境问题误判」——本仓正因为报告里只有一个
+ * runtimeStatus: 1，把一个可定位的路径越限缺陷当成偶发噪音挂了整整一天。
+ * 这里注入的失败面同时也是 INT-20260831-016 的下游症状：消费仓的忽略规则吞掉受管投影，
+ * 本机看不出来，别人 clone 之后才炸。
+ */
+test("消费仓冒烟失败时报告留下可归因的原因文本", () => {
+  const root = mkdtempSync(join(tmpdir(), "openspec-upgrade-reason-"));
+  try {
+    const runtime = runtimeFixture(root);
+    const consumer = consumerFixture(root, runtime, "swallowed");
+    // 忽略规则命中一条受管投影，并把它移出 index：本机工作树照旧完好，clone 出来却没有它。
+    writeFileSync(join(consumer, ".gitignore"), ".claude/skills/\n");
+    git(consumer, ["rm", "-r", "--cached", "-q", "--", ".claude/skills/delivery-pilot"]);
+    git(consumer, ["add", "--", ".gitignore"]);
+    git(consumer, ["commit", "-qm", "ignore rule swallows a managed projection"]);
+
+    const evidenceRoot = join(runtime, "openspec/changes/test-upgrade/08-验收/runs/run-2/upgrade-evaluation");
+    const requestPath = join(root, "request.json");
+    writeFileSync(requestPath, `${JSON.stringify({ schemaVersion: 1, currentVersion: "1.10.0", candidateVersion: "1.11.0", runtimeRoot: runtime, evidenceRoot, consumers: [{ name: "swallowed", path: consumer }] }, null, 2)}\n`);
+    const fake = fakeNpm(root);
+    const result = command(runtimeRoot, process.execPath, ["--experimental-strip-types", join(runtimeRoot, "openspec/tools/openspec-upgrade.ts"), "evaluate", "--request", requestPath], fake.env);
+    // 结论 FAIL 时入口本身以非零退出，但报告必须已经落盘——否则失败原因就随进程一起消失了。
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /候选评估未通过/);
+    const report = JSON.parse(readFileSync(join(evidenceRoot, "upgrade-report.json"), "utf8"));
+    assert.equal(report.result, "FAIL");
+    assert.equal(report.consumers.length, 1);
+    const consumerEntry = report.consumers[0];
+    assert.equal(consumerEntry.result, "FAIL");
+    assert.equal(typeof consumerEntry.failureReason, "string");
+    assert.ok(consumerEntry.failureReason.length > 0, "FAIL 必须带非空原因");
+    // 原因必须可归因到具体环节与具体路径，而不是「失败了」三个字。
+    assert.match(consumerEntry.failureReason, /runtime-check/);
+    assert.match(consumerEntry.failureReason, /delivery-pilot/);
+    // 报告仍不得泄露消费仓私有内容。
+    assert.equal(JSON.stringify(report).includes("PRIVATE-swallowed-SENTINEL"), false);
+  } finally {
+    rmSync(root, removeOptions);
   }
 });
