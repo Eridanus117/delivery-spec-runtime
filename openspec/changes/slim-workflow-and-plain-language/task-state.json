@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "tasks": [
+    {
+      "id": "1.1",
+      "state": "planned",
+      "deliverables": [
+        "openspec/profiles/plain-language-v1.json",
+        "openspec/contracts/plain-language.schema.json",
+        "openspec/contracts/readability-review.schema.json",
+        "openspec/tools/plain-language.ts",
+        "delivery-control.ts 新增 plain-language 子命令与验收前校验"
+      ],
+      "verification": [
+        "T-01.1",
+        "T-01.2",
+        "T-01.3",
+        "T-01.4",
+        "T-01.5",
+        "T-01.6"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "2.1",
+      "state": "planned",
+      "deliverables": [
+        "openspec/tools/upgrade-report.ts（把报告校验函数挪出入口模块）",
+        "openspec/tools/openspec-upgrade.ts 去掉路径比较守卫且不再导出符号",
+        "入口守卫检查覆盖全部入口模块"
+      ],
+      "verification": [
+        "T-02.1",
+        "T-02.2",
+        "T-02.3"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "3.1",
+      "state": "planned",
+      "deliverables": [
+        "intake-control.ts 立项门改为全部判定通过后再写两侧文件",
+        "敏感内容检查区分网址与本机盘符路径"
+      ],
+      "verification": [
+        "T-03.1",
+        "T-03.2",
+        "T-03.3",
+        "T-03.4"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "4.1",
+      "state": "planned",
+      "deliverables": [
+        "delivery-lifecycle.ts 评审自算范围纳入 openspec/specs 的直接改动"
+      ],
+      "verification": [
+        "T-04.1",
+        "T-04.2"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "5.1",
+      "state": "planned",
+      "deliverables": [
+        "task-state 契约新增 replayable",
+        "delivery-control.ts 按 replayable 分派证据规则",
+        "本 Change 自身任务状态改用新字段"
+      ],
+      "verification": [
+        "T-05.1",
+        "T-05.2",
+        "T-05.3",
+        "T-05.4",
+        "T-05.5"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "6.1",
+      "state": "planned",
+      "deliverables": [
+        "schema.yaml 升到第 7 版",
+        "solution-proposal 模板并入现状章节",
+        "tasks 模板并入实施切片与回滚章节",
+        "取消 current-state 与 change-plan 两份模板",
+        "delivery-control.ts 新增第 7 版工件路径表并在新建时声明"
+      ],
+      "verification": [
+        "T-06.1",
+        "T-06.2",
+        "T-06.3",
+        "T-06.4",
+        "T-06.5"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "7.1",
+      "state": "planned",
+      "deliverables": [
+        "artifact-approvals 契约第 2 版（按门记一条，内部逐份记哈希）",
+        "delivery-control.ts 批准子命令与状态判定改按门",
+        "旧口径只读兼容"
+      ],
+      "verification": [
+        "T-07.1",
+        "T-07.2",
+        "T-07.3",
+        "T-07.4",
+        "T-07.5"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "8.1",
+      "state": "planned",
+      "deliverables": [
+        "需要人工批准的门由站位定义推导，删除第二份清单",
+        "station-authority 七站全部补真负向对照与探针活性对照"
+      ],
+      "verification": [
+        "T-08.1",
+        "T-08.2",
+        "T-08.3",
+        "T-08.4",
+        "T-08.5"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "9.1",
+      "state": "planned",
+      "deliverables": [
+        "在途 Change 目录断言改写为不变量形态",
+        "路径长度预算断言保持原强度并写明判断依据"
+      ],
+      "verification": [
+        "T-09.1",
+        "T-09.2",
+        "T-09.3"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "10.1",
+      "state": "planned",
+      "deliverables": [
+        "docs/portable-core.md 通用核心与本仓特有清单",
+        "交互指引补摆材料附路径",
+        "README 与说明文档同步新结构",
+        "分析线调用示例补全参数名"
+      ],
+      "verification": [
+        "T-10.1",
+        "T-10.2",
+        "T-10.3",
+        "T-10.4"
+      ],
+      "evidence": [],
+      "blocker": null
+    }
+  ]
+}
