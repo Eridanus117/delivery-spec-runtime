@@ -8,8 +8,10 @@ artifacts:
     description: 不改写原意的需求原始材料索引
     template: raw-requirements.md
     instruction: |
-      建立本次 change 的原始需求资产索引，并同步维护 `change-sources.json` 机器合同。
+      建立本次 change 的原始需求资产索引。
       记录来源、时间、原始位置、介质、完整性和关联材料；原始附件可以放在同目录 attachments/。
+      材料索引表的 RAW 编号顺序即来源权威顺序：RAW-001 权威最高，编号越大权威越低。
+      冲突时以编号更小的来源为准，因此录入时就要按权威从高到低编号，不要按拿到材料的先后编号。
       不要把归一化解释写成原文，也不要静默修正冲突。
     requires: []
 

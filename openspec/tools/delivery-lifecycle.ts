@@ -317,13 +317,13 @@ function reopen(changeRoot: string, options: Map<string, string>): void {
   if (!relative(allowedArchive, source) || relative(allowedArchive, source).startsWith("..") || dirname(target) !== allowedActive || existsSync(target)) fail("reopen源或目标路径非法");
   if (git(repo, ["status", "--porcelain"]).toString("utf8").trim()) fail("reopen要求clean worktree");
   parseReadiness(readJson(readinessPath(source)));
-  const stamp = requiredOption(options, "reopened-at").replace(/[^0-9A-Za-z_-]/g, "-"); const history = join(source, "lifecycle-history", stamp); mkdirSync(history, { recursive: true });
-  for (const name of [implementationReviewName, acceptanceStateName, readinessName]) copyFileSync(join(source, name), join(history, name));
-  for (const name of ["08-验收", "09-发布"]) if (existsSync(join(source, name))) copyTree(join(source, name), join(history, name));
+  // reopen-state.json 与 lifecycle-history/<stamp>/** 已移除：全仓 grep 确认代码里没有任何
+  // reader，纯留痕。归档前的 review / acceptance / readiness 与 08/09 本来就在 git 历史里，
+  // 再复制一份快照既不被机器消费、也不比 git 更可信。
+  const reason = requiredOption(options, "reason"); requiredOption(options, "reopened-by"); requiredOption(options, "reopened-at");
   renameSync(source, target);
   for (const name of [implementationReviewName, acceptanceStateName, readinessName, "08-验收", "09-发布"]) rmSync(join(target, name), { recursive: true, force: true });
-  atomicWriteJson(join(target, "reopen-state.json"), { schemaVersion: 1, archivedName: basename(source), reason: requiredOption(options, "reason"), reopenedBy: requiredOption(options, "reopened-by"), reopenedAt: requiredOption(options, "reopened-at"), historyPath: relative(repo, join(target, "lifecycle-history", stamp)).split(sep).join("/") });
-  renderReopenedTasks(target); console.log(JSON.stringify({ reopened: true, target }, null, 2));
+  renderReopenedTasks(target); console.log(JSON.stringify({ reopened: true, target, archivedName: basename(source), reason }, null, 2));
 }
 
 function main(): void {

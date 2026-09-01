@@ -191,7 +191,7 @@
     },
     {
       "id": "4.1",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
         "openspec/schemas/delivery-change/schema.yaml 的 raw-requirements instruction 与 templates/raw-requirements.md：明确『材料索引表的 RAW 编号顺序即来源权威顺序』",
         "覆盖度自检记录：逐项确认 change-sources.json 的信息在 01 索引中均有对应表达"
@@ -199,12 +199,14 @@
       "verification": [
         "VC-023：模板与 instruction 命中权威顺序声明；自检记录列出全部字段的对应关系"
       ],
-      "evidence": [],
+      "evidence": [
+        "07-实施任务/证据/4.1.md"
+      ],
       "blocker": null
     },
     {
       "id": "4.2",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
         "openspec/tools/delivery-control.ts 移除 sources 子命令、parseSources 与 sourcesPath",
         "删除 openspec/contracts/sources.schema.json",
@@ -214,12 +216,14 @@
         "VC-022：sources inspect/write 非零；新建 Change 不产出 change-sources.json",
         "VC-038：bootstrap 候选不含 change-sources.json"
       ],
-      "evidence": [],
+      "evidence": [
+        "07-实施任务/证据/4.2.md"
+      ],
       "blocker": null
     },
     {
       "id": "4.3",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
         "openspec/tools/delivery-lifecycle.ts：reopen 不再写 reopen-state.json、不再复制 lifecycle-history 快照目录"
       ],
@@ -227,12 +231,14 @@
         "VC-006：reopen 后目标目录不存在 reopen-state.json 与 lifecycle-history/",
         "test/lifecycle.test.ts 既有 reopen 断言改写后通过"
       ],
-      "evidence": [],
+      "evidence": [
+        "07-实施任务/证据/4.3.md"
+      ],
       "blocker": null
     },
     {
       "id": "4.4",
-      "state": "planned",
+      "state": "verified",
       "deliverables": [
         "openspec/tools/delivery-control.ts 移除 parseMode/modePath 与 update snapshot、update diagnose 两命令及 updateSnapshotPath",
         "删除 openspec/contracts/change-mode.schema.json",
@@ -241,7 +247,9 @@
       "verification": [
         "VC-024：两命令非零；存在 change-mode.json 时 guard 行为与不存在时一致且不再解析该文件"
       ],
-      "evidence": [],
+      "evidence": [
+        "07-实施任务/证据/4.4.md"
+      ],
       "blocker": null
     },
     {

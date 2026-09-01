@@ -174,13 +174,8 @@ function buildCandidate(workRoot: string, candidate: string): void {
   // 旧流程没有持久化摘要批准；不得从文件存在或会话记忆伪造 migrationSource。
   atomicWriteJson(join(candidate, "artifact-approvals.json"), { schemaVersion: 1, artifacts: {} });
   atomicWriteJson(join(candidate, "task-state.json"), { schemaVersion: 1, tasks: parseLegacyTasks(join(source, "07-implementation-tasks/tasks.md")) });
-  atomicWriteJson(join(candidate, "change-sources.json"), {
-    schemaVersion: 1,
-    sources: [
-      { id: "user-session", kind: "user", authority: 1, locator: "current-session", adapter: "builtin:user" },
-      { id: "baseline-manifest", kind: "file", authority: 2, locator: "bootstrap/baseline-manifest.json", adapter: "builtin:file" },
-    ],
-  });
+  // change-sources.json 已移除：它唯一的读者是自己的回显命令，没有任何 guard 读取，
+  // 而其内容与 01-原始需求索引.md 的材料索引表重复。来源全序改由「RAW 编号顺序即权威顺序」承载。
 }
 
 

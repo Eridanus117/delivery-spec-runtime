@@ -104,6 +104,8 @@ test("Acceptance与Archive Readiness取代Markdown关键词并支持受控reopen
     const archiveRoot = join(repo, "openspec/changes/archive"); mkdirSync(archiveRoot, { recursive: true }); const archived = join(archiveRoot, "2026-08-30-demo-change"); renameSync(change, archived); git(repo, ["add", "."]); git(repo, ["commit", "-qm", "archive"]);
     const target = join(repo, "openspec/changes/demo-change"); result = runTool("delivery-lifecycle.ts", ["reopen", "--change-root", archived, "--target-root", target, "--reason", "PR要求行为变化", "--reopened-by", "maintainer", "--reopened-at", "2026-08-30T12:03:00Z"], { cwd: repo }); assert.equal(result.status, 0, result.stderr);
     assert.equal(existsSync(join(target, "implementation-review.json")), false); assert.equal(existsSync(join(target, "acceptance-state.json")), false); assert.equal(existsSync(join(target, "archive-readiness.json")), false);
-    const task = JSON.parse(readFileSync(join(target, "task-state.json"), "utf8")).tasks[0]; assert.equal(task.state, "implemented_unverified"); assert.equal(existsSync(join(target, "lifecycle-history/2026-08-30T12-03-00Z/implementation-review.json")), true);
+    const task = JSON.parse(readFileSync(join(target, "task-state.json"), "utf8")).tasks[0]; assert.equal(task.state, "implemented_unverified"); // VC-006：reopen 后既不写 reopen-state.json，也不再复制 lifecycle-history 快照目录。
+    assert.equal(existsSync(join(target, "reopen-state.json")), false);
+    assert.equal(existsSync(join(target, "lifecycle-history")), false);
   } finally { rmSync(repo, { recursive: true, force: true }); }
 });

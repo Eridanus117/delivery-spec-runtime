@@ -1,13 +1,16 @@
 #!/usr/bin/env -S node --experimental-strip-types
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { basename, isAbsolute, join, resolve } from "node:path";
 import {
   atomicWriteJson, exactKeys, fail, integer, now, object, parseArgs, readJson, requiredOption,
-  sha256File, sha256Paths, stringArray, text, withFileLock, type JsonObject,
+  sha256File, sha256Paths, stringArray, text, withFileLock,
 } from "./runtime-lib.ts";
 import { requireAcceptance, requireReadiness, requireReview } from "./delivery-lifecycle.ts";
 
-type Mode = "delivery" | "rehearsal";
+// 本仓只有 delivery 一种模式。rehearsal 演练模式已随 change-mode.json 一并退场
+// （全历史零实例）；默认值在这里显式写死，不再从文件解析。
+// 将来若需要演练模式，须重新立法而非恢复旧文件。
+const mode = "delivery" as const;
 type TaskStateName = "planned" | "implemented_unverified" | "blocked_external" | "verified";
 type ChangeInfo = { schemaVersion: 1; displayName: string };
 type Approval = { digest: string; decision: "approved" | "rejected"; approvedBy: string; approvedAt: string; migrationSource: string | null };
@@ -37,10 +40,7 @@ function validateDecisionArtifacts(root: string): void {
 function infoPath(root: string): string { return join(root, "change-info.json"); }
 function approvalsPath(root: string): string { return join(root, "artifact-approvals.json"); }
 function tasksPath(root: string): string { return join(root, "task-state.json"); }
-function sourcesPath(root: string): string { return join(root, "change-sources.json"); }
-function modePath(root: string): string { return join(root, "change-mode.json"); }
 function lockPath(root: string): string { return join(root, ".delivery-control.lock"); }
-function updateSnapshotPath(root: string): string { return join(root, ".delivery-update-snapshot.json"); }
 function taskMarkdownPath(root: string): string { return join(root, "07-实施任务/实施任务.md"); }
 function slugFor(root: string): string {
   const slug = basename(root);
@@ -54,14 +54,6 @@ function parseInfo(path: string): ChangeInfo {
   const displayName = text(value.displayName, "change-info.displayName");
   if (displayName !== displayName.trim()) fail("change-info.displayName 不得包含首尾空白");
   return { schemaVersion: 1, displayName };
-}
-function parseMode(root: string): Mode {
-  if (!existsSync(modePath(root))) return "delivery";
-  const value = object(readJson(modePath(root)), "change-mode");
-  exactKeys(value, ["schemaVersion", "mode", "reason", "approvedBy", "approvedAt"], ["schemaVersion", "mode", "reason", "approvedBy", "approvedAt"], "change-mode");
-  if (value.schemaVersion !== 1 || value.mode !== "rehearsal") fail("change-mode 只允许显式 rehearsal");
-  text(value.reason, "change-mode.reason"); text(value.approvedBy, "change-mode.approvedBy"); text(value.approvedAt, "change-mode.approvedAt");
-  return "rehearsal";
 }
 function digestPattern(value: string, label: string): string {
   if (!/^sha256:[0-9a-f]{64}$/.test(value)) fail(`${label} 不是小写SHA-256`);
@@ -125,19 +117,6 @@ function parseTasks(path: string): TaskState {
   for (const task of tasks) { if (ids.has(task.id)) fail(`重复 task id: ${task.id}`); ids.add(task.id); }
   return { schemaVersion: 1, tasks };
 }
-function parseSources(value: unknown): JsonObject {
-  const root = object(value, "change-sources"); exactKeys(root, ["schemaVersion", "sources"], ["schemaVersion", "sources"], "change-sources");
-  if (root.schemaVersion !== 1 || !Array.isArray(root.sources)) fail("change-sources合同非法");
-  const ids = new Set<string>(); const authorities = new Set<number>();
-  for (const [index, source] of root.sources.entries()) {
-    const item = object(source, `sources[${index}]`); exactKeys(item, ["id", "kind", "authority", "locator", "adapter"], ["id", "kind", "authority", "locator", "adapter"], `sources[${index}]`);
-    const id = text(item.id, `sources[${index}].id`); if (ids.has(id)) fail(`重复来源id: ${id}`); ids.add(id);
-    text(item.kind, `sources[${index}].kind`); text(item.locator, `sources[${index}].locator`); text(item.adapter, `sources[${index}].adapter`);
-    const authority = integer(item.authority, `sources[${index}].authority`); if (authority < 1 || authorities.has(authority)) fail(`来源authority非法或重复: ${authority}`); authorities.add(authority);
-  }
-  for (let authority = 1; authority <= authorities.size; authority += 1) if (!authorities.has(authority)) fail("来源authority必须从1连续递增");
-  return root;
-}
 function projectionStates(root: string): Map<string, { checked: boolean; state: string }> {
   const result = new Map<string, { checked: boolean; state: string }>();
   if (!existsSync(taskMarkdownPath(root))) return result;
@@ -155,16 +134,16 @@ function verifyTaskProjection(root: string, state: TaskState): void {
 }
 function init(root: string, options: Map<string, string>): void {
   if (existsSync(infoPath(root))) fail("Change 已初始化"); const slug = requiredOption(options, "slug"); if (slug !== slugFor(root)) fail("--slug 必须等于Change目录名");
-  const mode = requiredOption(options, "mode"); if (mode !== "delivery" && mode !== "rehearsal") fail("--mode 只能是 delivery 或 rehearsal");
+  const requestedMode = options.get("mode") ?? mode; if (requestedMode !== mode) fail(`--mode 只能是 ${mode}：rehearsal 演练模式已随 change-mode.json 一并移除，如需演练模式须重新立法`);
   const info = { schemaVersion: 1, displayName: requiredOption(options, "display-name") };
-  withFileLock(lockPath(root), () => { atomicWriteJson(infoPath(root), info); atomicWriteJson(approvalsPath(root), { schemaVersion: 1, artifacts: {} }); if (mode === "rehearsal") atomicWriteJson(modePath(root), { schemaVersion: 1, mode: "rehearsal", reason: requiredOption(options, "reason"), approvedBy: requiredOption(options, "approved-by"), approvedAt: requiredOption(options, "approved-at") }); });
+  withFileLock(lockPath(root), () => { atomicWriteJson(infoPath(root), info); atomicWriteJson(approvalsPath(root), { schemaVersion: 1, artifacts: {} }); });
   parseInfo(infoPath(root)); console.log(JSON.stringify({ slug, displayName: info.displayName, mode }, null, 2));
 }
 function inspect(root: string): void {
   const info = parseInfo(infoPath(root)); const approvals = parseApprovals(approvalsPath(root)); const effective: Record<string, string> = {};
   for (const artifact of Object.keys(artifactPaths)) effective[artifact] = approvalStatus(root, approvals, artifact);
   const tasks = existsSync(tasksPath(root)) ? parseTasks(tasksPath(root)) : null; if (tasks && existsSync(taskMarkdownPath(root))) verifyTaskProjection(root, tasks);
-  console.log(JSON.stringify({ slug: slugFor(root), displayName: info.displayName, mode: parseMode(root), approvals, effective, tasks }, null, 2));
+  console.log(JSON.stringify({ slug: slugFor(root), displayName: info.displayName, mode, approvals, effective, tasks }, null, 2));
 }
 function approvalSet(root: string, options: Map<string, string>): void {
   const artifact = requiredOption(options, "artifact"); const decision = requiredOption(options, "decision"); if (!(artifact in artifactPaths) || (decision !== "approved" && decision !== "rejected")) fail("批准参数非法");
@@ -188,18 +167,16 @@ function renderTasks(root: string): void {
   console.log(JSON.stringify({ path: taskMarkdownPath(root), tasks: state.tasks.length }, null, 2));
 }
 function guard(root: string, operation: string): void {
-  parseInfo(infoPath(root)); const approvals = parseApprovals(approvalsPath(root)); const mode = parseMode(root);
-  if (operation === "apply") { if (mode !== "delivery") fail("rehearsal 模式禁止 apply"); requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); }
-  else if (operation === "acceptance") { requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); if (mode === "delivery" && state.tasks.some((task) => task.state !== "verified")) fail("delivery 验收前全部任务必须 verified"); if (mode === "delivery") requireReview(root); }
-  else if (operation === "release") { guard(root, "acceptance"); if (mode === "delivery") requireAcceptance(root); else { const path = join(root, "08-验收/验收记录.md"); if (!existsSync(path) || !/^- 结论：(PARTIAL|FAIL|BLOCKED)\s*$/m.test(readFileSync(path, "utf8"))) fail("rehearsal 发布记录前需要模板格式的非PASS结论"); } }
+  parseInfo(infoPath(root)); const approvals = parseApprovals(approvalsPath(root));
+  if (operation === "apply") { requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); }
+  else if (operation === "acceptance") { requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); if (state.tasks.some((task) => task.state !== "verified")) fail("验收前全部任务必须 verified"); requireReview(root); }
+  else if (operation === "release") { guard(root, "acceptance"); requireAcceptance(root); }
   else if (operation === "verify") { requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); }
-  else if (operation === "sync") { if (mode === "rehearsal") fail("rehearsal 模式禁止 sync"); requireAcceptance(root); }
-  else if (operation === "archive") { if (mode === "rehearsal") fail("rehearsal 模式禁止 archive"); guard(root, "release"); requireReadiness(root); }
+  else if (operation === "sync") { requireAcceptance(root); }
+  else if (operation === "archive") { guard(root, "release"); requireReadiness(root); }
   else fail(`未知 guard operation: ${operation}`);
   console.log(JSON.stringify({ allowed: true, operation, mode }, null, 2));
 }
 function adapterInspect(options: Map<string, string>): void { const registry = object(readJson(requiredOption(options, "registry")), "source-adapters"); exactKeys(registry, ["schemaVersion", "adapters"], ["schemaVersion", "adapters"], "source-adapters"); if (registry.schemaVersion !== 1 || !Array.isArray(registry.adapters)) fail("source-adapters合同非法"); const ids = new Set<string>(); for (const [index, value] of registry.adapters.entries()) { const adapter = object(value, `adapters[${index}]`); exactKeys(adapter, ["id", "command", "trustDomain", "kinds"], ["id", "command", "trustDomain", "kinds"], `adapters[${index}]`); const id = text(adapter.id, `adapters[${index}].id`); if (ids.has(id)) fail(`重复adapter id: ${id}`); ids.add(id); const command = text(adapter.command, `adapters[${index}].command`); if (isAbsolute(command) || command.split(/[\\/]/).includes("..")) fail(`adapter command越界: ${command}`); const domain = text(adapter.trustDomain, `adapters[${index}].trustDomain`); if (domain !== "work" && domain !== "private") fail("adapter trustDomain非法"); stringArray(adapter.kinds, `adapters[${index}].kinds`); } console.log(JSON.stringify(registry, null, 2)); }
-function updateSnapshot(root: string, options: Map<string, string>): void { const paths = readJson(requiredOption(options, "paths-file")); if (!Array.isArray(paths) || paths.some((path) => typeof path !== "string")) fail("更新路径清单必须是字符串数组"); const files: Record<string, string> = {}; for (const value of paths as string[]) { const path = resolve(root, value); const rel = relative(root, path); if (isAbsolute(rel) || rel === ".." || rel.startsWith(`..${sep}`)) fail(`更新路径越出 Change: ${value}`); if (!existsSync(path)) fail(`更新路径不存在: ${value}`); files[rel.split(sep).join("/")] = sha256File(path); } const snapshot = { schemaVersion: 1, changeSlug: slugFor(root), createdAt: now(), files }; atomicWriteJson(updateSnapshotPath(root), snapshot); console.log(JSON.stringify(snapshot, null, 2)); }
-function updateDiagnose(root: string): void { const snapshot = object(readJson(updateSnapshotPath(root)), "update-snapshot"); exactKeys(snapshot, ["schemaVersion", "changeSlug", "createdAt", "files"], ["schemaVersion", "changeSlug", "createdAt", "files"], "update-snapshot"); if (snapshot.schemaVersion !== 1 || snapshot.changeSlug !== slugFor(root)) fail("update-snapshot 与 Change 不一致"); const changed: Array<{ path: string; before: string; after: string | null }> = []; for (const [path, beforeValue] of Object.entries(object(snapshot.files, "update-snapshot.files"))) { const before = text(beforeValue, `files.${path}`); const current = join(root, path); const after = existsSync(current) ? sha256File(current) : null; if (after !== before) changed.push({ path, before, after }); } const approvals = parseApprovals(approvalsPath(root)); const effective: Record<string, string> = {}; for (const artifact of Object.keys(artifactPaths)) effective[artifact] = approvalStatus(root, approvals, artifact); console.log(JSON.stringify({ changed, approvals: effective }, null, 2)); }
-function main(): void { const parsed = parseArgs(process.argv.slice(2)); const root = resolve(requiredOption(parsed.options, "change-root")); const [command, action] = parsed.positional; if (command === "init") init(root, parsed.options); else if (command === "inspect") inspect(root); else if (command === "approval" && action === "inspect") approvalsInspect(root); else if (command === "approval" && action === "set") approvalSet(root, parsed.options); else if (command === "task" && action === "inspect") { const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); console.log(JSON.stringify(state, null, 2)); } else if (command === "task" && action === "write") taskWrite(root, parsed.options); else if (command === "task" && action === "set") taskSet(root, parsed.options); else if (command === "task" && action === "render") renderTasks(root); else if (command === "sources" && action === "inspect") console.log(JSON.stringify(parseSources(readJson(sourcesPath(root))), null, 2)); else if (command === "sources" && action === "write") { const sources = parseSources(readJson(requiredOption(parsed.options, "file"))); withFileLock(lockPath(root), () => atomicWriteJson(sourcesPath(root), sources)); console.log(JSON.stringify(sources, null, 2)); } else if (command === "adapter" && action === "inspect") adapterInspect(parsed.options); else if (command === "update" && action === "snapshot") updateSnapshot(root, parsed.options); else if (command === "update" && action === "diagnose") updateDiagnose(root); else if (command === "runtime-check") console.log(JSON.stringify({ allowed: true, runtime: "delivery-spec-runtime", schema: "delivery-change" }, null, 2)); else if (command === "guard") guard(root, requiredOption(parsed.options, "operation")); else fail("未知delivery-control命令"); }
+function main(): void { const parsed = parseArgs(process.argv.slice(2)); const root = resolve(requiredOption(parsed.options, "change-root")); const [command, action] = parsed.positional; if (command === "init") init(root, parsed.options); else if (command === "inspect") inspect(root); else if (command === "approval" && action === "inspect") approvalsInspect(root); else if (command === "approval" && action === "set") approvalSet(root, parsed.options); else if (command === "task" && action === "inspect") { const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); console.log(JSON.stringify(state, null, 2)); } else if (command === "task" && action === "write") taskWrite(root, parsed.options); else if (command === "task" && action === "set") taskSet(root, parsed.options); else if (command === "task" && action === "render") renderTasks(root); else if (command === "adapter" && action === "inspect") adapterInspect(parsed.options); else if (command === "runtime-check") console.log(JSON.stringify({ allowed: true, runtime: "delivery-spec-runtime", schema: "delivery-change" }, null, 2)); else if (command === "guard") guard(root, requiredOption(parsed.options, "operation")); else fail("未知delivery-control命令"); }
 try { main(); } catch (error) { console.error((error as Error).message); process.exitCode = 1; }
