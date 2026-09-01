@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineCommit": "e6d3637a678404dcf6c4496609c392050d10de46",
-  "reviewedCommit": "dae528e0d253cdab76d4e072b2168f7c08ff9682",
+  "reviewedCommit": "d2ce7a2ea5fad624dab711fe5e9bbfb60c07a655",
   "reviewedPaths": [
     {
       "path": ".claude/skills/delivery-pilot/SKILL.md",
@@ -9,14 +9,24 @@
       "sha256": "sha256:d667050096032ec8167c1d963b0c0f9ba2c3cdae14fb6e6e3ea4cf5f5e27b81d"
     },
     {
+      "path": ".omp/command-sources/bodies/opsx-continue.md",
+      "exists": true,
+      "sha256": "sha256:b50aaccdf61442a46ca2d7346885ff28d9b681f6e1adcf4153a10a5a03457da3"
+    },
+    {
       "path": ".omp/command-sources/bodies/opsx-propose.md",
       "exists": true,
-      "sha256": "sha256:8051a028a06d57d22724c450ba8de49c672d817527f2d6c880b0254ae1b183eb"
+      "sha256": "sha256:abf345a1f7a7bff0da196cd18126787358fc1c3d00d3f89cd36fc1b103063eb5"
+    },
+    {
+      "path": ".omp/commands/opsx-continue.md",
+      "exists": true,
+      "sha256": "sha256:dfb497de11c8c61bd02a8e0ede517dd7e05f484c11d00a2916ba2340bac22840"
     },
     {
       "path": ".omp/commands/opsx-propose.md",
       "exists": true,
-      "sha256": "sha256:bf8804fcbf3939a2733176f04b18b31be6c0b68e162872998d2f779ccffa8c98"
+      "sha256": "sha256:d7f9bc1ea0b0dd55bd162ccc1c11f1112b6fb25641ce0703a89eab3fdb0e74d8"
     },
     {
       "path": "AGENTS.md",
@@ -91,7 +101,7 @@
     {
       "path": "openspec/intake/INT-20260901-023-repo-suited-workflow.md",
       "exists": true,
-      "sha256": "sha256:03bfc5a38de29568cfe9f29b049917d5b176fdbb3e46d495b453d6fbf871f368"
+      "sha256": "sha256:6a0cb4b4f200b0b0dc90c8194e1030d4d54a3ee4743c899f053d27495d4deaae"
     },
     {
       "path": "openspec/intake/INT-20260901-025-upgrade-agent-system-round2.md",
@@ -231,7 +241,7 @@
     {
       "path": "test/contracts.test.ts",
       "exists": true,
-      "sha256": "sha256:eb22593d5596f675a5a25b92a5b04fe21fc3acf45583f73b9dc9ffe9b2357e07"
+      "sha256": "sha256:153c9d38f11c71d89ac5ae2eef5b68ba843b020b7901a6ea02905400515fe331"
     },
     {
       "path": "test/control.test.ts",
@@ -246,7 +256,7 @@
     {
       "path": "test/interaction.test.ts",
       "exists": true,
-      "sha256": "sha256:254e82e92667f113b9b792db8fe3bacd23f316ae53f0e85fc2df2168e4aa7519"
+      "sha256": "sha256:bc461242851fe4b871aade6719c3bb1bc7c9483d7bae001c8f83166a7c92e0e8"
     },
     {
       "path": "test/lifecycle.test.ts",
@@ -264,9 +274,9 @@
       "sha256": "sha256:b980782ca39a69f57dfdbdddd72f242e266d3002e5521b37a99f5617999fe3d6"
     }
   ],
-  "reviewedDigest": "sha256:5f05719bb92afbe668606f86f01b431eb6926a7648cdca83b580869999d1765d",
-  "reviewer": "独立实施评审终审（未参与实施的空白会话；三轮逐条敌对复测，全量测试连跑三次）",
-  "reviewedAt": "2026-09-01T22:40:00Z",
+  "reviewedDigest": "sha256:5dea741873bc9b7f19d8de9818f21207f65c4bd94808c400f418758ebf656145",
+  "reviewer": "独立实施评审终审（未参与实施的空白会话；四轮逐条敌对复测，全量测试连跑三次）",
+  "reviewedAt": "2026-09-01T22:52:00Z",
   "findings": [
     {
       "id": "REV-001",
@@ -428,7 +438,7 @@
       "line": 876,
       "summary": "本轮为防止文字口径再次走样而新增的两处守卫，网眼比它们要挡的那类问题粗一档。旧计数那条是硬编码黑名单（只挡「九项规划」「八项规划」「九项 artifact」「八层」四种措辞），换一种同样错误的写法（例如「9 份规划工件」）即可绕过，实测确认绕得过去。另一处是 docs/governance.md 的工件代号对照表：断言只检查三个代号名作为字符串出现，不校验代号与文件路径的对应关系，把某个代号旁边的路径写错不会被任何测试发现，实测确认察觉不到。相比之下同批新增的 02-需求理解 那条是真源扫描（直接读 schema 正文并遍历模板目录），质量明显更高。",
       "status": "ACCEPTED",
-      "resolution": "记录为加固建议，不判为未关闭项：这两处守卫拦住的正是本轮实际发生过的回归，方向没错，只是网眼偏粗；而代号表的正确性另有 test/control.test.ts 用同一批代号真实调用工具作间接兜底，眼下不会漏出错误行为。建议下次触碰这块时把代号表改成从 v7ArtifactPaths 推导，并把计数类说法换成从工件表算出的份数再比对。"
+      "resolution": "本轮修掉了两处里更要紧的那一处，另一处按原样保留，故仍记为已知取舍而非未关闭项。**已修**：工件代号对照表不再是手写清单，改为从 delivery-control.ts 的第 7 版工件路径表现场解析，逐个代号与逐条路径核对说明文档。判别力我做了四组变异实测——整行删掉 tasks、raw-requirements、test-plan 三个代号中的任意一个，都会当场报「代号对照表缺代号: <名>」；把 test-plan 对应的路径改指另一个文件，报「代号 test-plan 对应的路径没写进对照表: <正确路径>」；四次还原后均恢复通过。**仍保留**：工件计数那条守卫依旧是硬编码黑名单（九项规划、八项规划、九项 artifact、八层四种措辞），换成「9 份规划工件」这类写法仍绕得过去。它拦住的是本轮真实发生过的那种回归，方向没错；建议下次触碰这块时把计数也改成从工件表算出份数再比对，与代号表同规格。"
     },
     {
       "id": "REV-019",
@@ -437,7 +447,7 @@
       "line": null,
       "summary": "长期规范 openspec/specs/delivery-lifecycle-governance/spec.md 第 134 行那条「现状文档必须合并为单一 artifact 且不削弱门禁」，本单的增量既没有 MODIFIED 也没有 REMOVED 覆盖它。第 7 版已经把现状并进方案提案、不再有独立的现状工件，于是这条要求会在规范同步之后继续要求一份不存在的工件，它的第一个场景「对合并后的现状 artifact 执行批准与验收门禁」也随之无法执行。它保护的两条实质不变量（合并后门禁数量不减、存量结构仍可读）都仍然成立且仍被测试覆盖，所以这是措辞过期而不是防线缺失。",
       "status": "ACCEPTED",
-      "resolution": "记录并移交规范同步站，不判为本单未关闭项：这条要求早于评审基线，且本单增量已用「每一份必产工件须有说得出名字的读者」与「合并后覆盖面不减」两条覆盖了它的实质意图。建议在规范同步时顺手把它改写成不点名具体工件的形态，或与 REV-003 改写的那条合并。"
+      "resolution": "已按建议移交规范同步站，并留下书面备忘，故从「无人认领」变为「有主且有期限」。事项记录 INT-20260901-023 新增一节写明：该条款说的是第 6 版那次合并，第 7 版把现状并进方案提案之后「单一现状 artifact」已无对应物；本轮不改正文，理由是直接改长期规范正是本单刚立规矩禁止的事，改它属于规范同步站的工作；并给出两条都可接受的出口——以 MODIFIED 改写成第 7 版口径，或确认已被本单改写段顶替后按 REMOVED 撤掉——最后一句写明「两条都可以，但不能装作没看见」。这条要求保护的两条实质不变量（合并后门禁数量不减、存量结构仍可读）本来就仍然成立且仍被测试覆盖，所以移交而非返工是恰当处置。"
     },
     {
       "id": "REV-020",
@@ -463,9 +473,9 @@
       "path": ".omp/commands/opsx-propose.md",
       "line": 138,
       "summary": "两条 agent 面向的命令正文仍在教已经被本单废止的按份批准：opsx-propose.md 第 138 行（源文件第 125 行）写「才通过 runtime-entry.ts approval set --artifact \"<artifact-id>\" --decision approved --approved-by \"<批准人>\" 分项记录」，opsx-continue.md 第 77 行（源文件第 64 行）给的命令块同样带 --artifact。而本单把批准改成按门记之后，工具对 --artifact 是硬拒绝：实测照这条命令执行，返回「--artifact 不再被接受：批准按人真实表态的次数记，一次表态一条记录，覆盖当时的全部工件」。这是 REV-002 的同一处缺陷在同一份文件里的另一行——本轮把第 137 行的工件计数改对了，紧挨着的第 138 行没动。本轮为防这类走样新增的命令正文断言，黑名单里没有 --artifact 也没有「分项记录」，所以拦不住。全仓扫描确认残留只有这四处（两份源文件与两份渲染副本、涉及 opsx-propose 与 opsx-continue 两条命令），其余废止说法（change-mode、rehearsal、change-sources、九项、02-需求理解 等）在 .omp 下均已清干净。",
-      "status": "OPEN",
-      "resolution": null
+      "status": "RESOLVED",
+      "resolution": "已关闭。四份文件（两份源、两份渲染副本）里带 --artifact 的命令块全部改写成按门批准的写法，并逐条点出三条路各自该用哪个参数、把完整用法指向 docs/governance.md 的「批准的三条路」；顺带把「分项记录」这个描述也改掉了。render check 报 changed 为空，源与渲染副本一致。全仓复扫确认 --artifact 与「分项记录」在 .omp 下已清零，仅剩的出现是工具自身的拒绝文案与断言它的那两条测试，都属正当。断言的判别力我做了变异实测：把旧的 --artifact 命令写回渲染副本，当场报「opsx-propose.md 仍在教已废止的按份批准: --artifact」；把「分项记录」写回，报同一条断言点名该词；两次还原后均恢复通过。"
     }
   ],
-  "result": "FAIL"
+  "result": "PASS"
 }
