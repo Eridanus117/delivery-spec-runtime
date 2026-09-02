@@ -3,7 +3,7 @@
   "tasks": [
     {
       "id": "1.1",
-      "state": "implemented_unverified",
+      "state": "verified",
       "deliverables": [
         "openspec/profiles/plain-language-v1.json",
         "openspec/contracts/plain-language.schema.json",
@@ -25,7 +25,7 @@
     },
     {
       "id": "2.1",
-      "state": "implemented_unverified",
+      "state": "verified",
       "deliverables": [
         "openspec/tools/upgrade-report.ts（把报告校验函数挪出入口模块）",
         "openspec/tools/openspec-upgrade.ts 去掉路径比较守卫且不再导出符号",
@@ -42,7 +42,7 @@
     },
     {
       "id": "3.1",
-      "state": "implemented_unverified",
+      "state": "verified",
       "deliverables": [
         "intake-control.ts 立项门改为全部判定通过后再写两侧文件",
         "敏感内容检查区分网址与本机盘符路径"
@@ -59,7 +59,7 @@
     },
     {
       "id": "4.1",
-      "state": "implemented_unverified",
+      "state": "verified",
       "deliverables": [
         "delivery-lifecycle.ts 评审自算范围纳入 openspec/specs 的直接改动"
       ],
@@ -73,7 +73,7 @@
     },
     {
       "id": "5.1",
-      "state": "implemented_unverified",
+      "state": "verified",
       "deliverables": [
         "task-state 契约新增 replayable",
         "delivery-control.ts 按 replayable 分派证据规则",
@@ -92,7 +92,7 @@
     },
     {
       "id": "6.1",
-      "state": "implemented_unverified",
+      "state": "verified",
       "deliverables": [
         "schema.yaml 升到第 7 版",
         "solution-proposal 模板并入现状章节",
@@ -113,7 +113,7 @@
     },
     {
       "id": "7.1",
-      "state": "implemented_unverified",
+      "state": "verified",
       "deliverables": [
         "artifact-approvals 契约第 2 版（按门记一条，内部逐份记哈希）",
         "delivery-control.ts 批准子命令与状态判定改按门",
@@ -132,7 +132,7 @@
     },
     {
       "id": "8.1",
-      "state": "implemented_unverified",
+      "state": "verified",
       "deliverables": [
         "需要人工批准的门由站位定义推导，删除第二份清单",
         "station-authority 七站全部补真负向对照与探针活性对照"
@@ -150,7 +150,7 @@
     },
     {
       "id": "9.1",
-      "state": "implemented_unverified",
+      "state": "verified",
       "deliverables": [
         "在途 Change 目录断言改写为不变量形态",
         "路径长度预算断言保持原强度并写明判断依据"
@@ -166,7 +166,7 @@
     },
     {
       "id": "10.1",
-      "state": "implemented_unverified",
+      "state": "verified",
       "deliverables": [
         "docs/portable-core.md 通用核心与本仓特有清单",
         "交互指引补摆材料附路径",

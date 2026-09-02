@@ -14,9 +14,18 @@
         "solution-decision": "sha256:f7e209a91976a9894b7bf5807936ca0ce41d2b372f5249fa65aa109a548d8ef5",
         "change-plan": "sha256:fad04cec78fd7c84e78a4d7590279314423884ed4f094bf8bfc88f7ef0e06e82",
         "test-plan": "sha256:691931cdfeca12715c62900a0914bca107feb22b664add4e11928d7cc95dca8b",
-        "tasks": "sha256:100344cd9f1aed94751d73b3ece51b3db1a0ff6bf8fc53b782a8ab39e3ea224d"
+        "tasks": "sha256:597b645452626e70cc2e73247c2dab706d7e84dd8b8886027f80996415c6f5f9"
       },
-      "refreshes": []
+      "refreshes": [
+        {
+          "refreshedBy": "Claude（任务状态转 verified 后的机械刷新，非人表态）",
+          "refreshedAt": "2026-09-02T01:52:27.286Z",
+          "artifacts": [
+            "tasks"
+          ],
+          "unchanged": []
+        }
+      ]
     }
   }
 }
