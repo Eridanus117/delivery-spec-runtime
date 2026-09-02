@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "implementationCommit": "d2ce7a2ea5fad624dab711fe5e9bbfb60c07a655",
+  "acceptanceDigest": "sha256:609aaae6eea05f1f2743cb2e4663403d8af1daa99b39c80bc91483d5bb8bca9b",
+  "releasePlanDigest": "sha256:30b46570e07f094ca00197d248fa5b9362bb1900722c89d4eb747ddfc7d981c3",
+  "specSync": [
+    {
+      "deltaPath": "openspec/changes/slim-workflow-and-plain-language/specs/delivery-lifecycle-governance/spec.md",
+      "deltaSha256": "sha256:b34ccfb8a44d92a30d98dfc104d5d2cb58febc07a927391c572958328c808cda",
+      "mainPath": "openspec/specs/delivery-lifecycle-governance/spec.md",
+      "mainSha256": "sha256:69d1b587b699eee82de2cc215033341b2f637b34a4d4adb659e0c1ee3683665a"
+    },
+    {
+      "deltaPath": "openspec/changes/slim-workflow-and-plain-language/specs/human-interaction/spec.md",
+      "deltaSha256": "sha256:6187e807f4ed6046ad03c44cd049755889b2d9e4e19d3e9934be97f54077d727",
+      "mainPath": "openspec/specs/human-interaction/spec.md",
+      "mainSha256": "sha256:588a1784e926e1d311adc03af294035962b858a0b3b8eab74bdfeedc7f1e0b7f"
+    },
+    {
+      "deltaPath": "openspec/changes/slim-workflow-and-plain-language/specs/intake-workflow/spec.md",
+      "deltaSha256": "sha256:f738f049899a6047da93090486b6c8e5584e1d590c0d54003f5253e3a3068b94",
+      "mainPath": "openspec/specs/intake-workflow/spec.md",
+      "mainSha256": "sha256:7938c0555930d630debd9970266082c583948bb289a918fb1d2c3b3e15b04310"
+    },
+    {
+      "deltaPath": "openspec/changes/slim-workflow-and-plain-language/specs/requirement-analysis/spec.md",
+      "deltaSha256": "sha256:2db6bc9013bc90eee48be96cab4d11ebf637064627566ed6eee3e8d2cee0d73e",
+      "mainPath": "openspec/specs/requirement-analysis/spec.md",
+      "mainSha256": "sha256:9ebf8b5b64b86b4b786fc1c4af96f7e235915cb0ce427ce8c60c811f56812c00"
+    },
+    {
+      "deltaPath": "openspec/changes/slim-workflow-and-plain-language/specs/runtime-distribution/spec.md",
+      "deltaSha256": "sha256:44490aa8d3c604f79a31e86bdff9561bfa0f524bba4cf2248b4506410fb23f8a",
+      "mainPath": "openspec/specs/runtime-distribution/spec.md",
+      "mainSha256": "sha256:1a960e8b792b860660ed428ecf8d4396dc02481adf16500567317ef4771d4fe2"
+    }
+  ],
+  "strictValidation": "PASS",
+  "cleanupEvidence": {
+    "path": "openspec/changes/slim-workflow-and-plain-language/08-验收/cleanup/清理结论.md",
+    "sha256": "sha256:4e7ec71b3af52a34ed34787de079e1773685cbdcb0b711ff06cb3dbf285891c1"
+  },
+  "prStarted": false,
+  "migrationSource": null,
+  "historicalPr": null,
+  "attestedBy": "维护者（验收门口表态「同意」，由 Claude 转录，非亲签）",
+  "attestedAt": "2026-09-02T02:20:21.799Z",
+  "result": "READY"
+}

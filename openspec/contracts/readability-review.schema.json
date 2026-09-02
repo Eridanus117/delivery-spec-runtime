@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "delivery-change/readability-review.schema.json",
+  "title": "Readability review record",
+  "description": "陌生读者审读的记录。一份必过文件一条 review；每条意见都要有处置结论，OPEN 的意见会让门禁停下。这是这道关唯一的落盘产物——它证明不了「确实找过一个不知情的会话」，只能证明「有人逐条回应了这些意见」；伪造面由独立评审抽查兜。**伪造与过期是两回事**：审读之后又改文字属于过期，由 digest 兜住。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "reviews"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "reviews": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target",
+          "digest",
+          "reviewedAt",
+          "reviewer",
+          "findings"
+        ],
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1,
+            "description": "被审读文件相对 Change 根的路径；PR 正文这类没有落盘位置的，用 pull-request 这样的手动项 id。"
+          },
+          "reviewedAt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reviewer": {
+            "type": "string",
+            "minLength": 1,
+            "description": "审读者的形态描述，例如「无本仓上下文的空白会话」。要求它是结构上不知情的第三方，不接受写作会话自称已代入陌生读者视角。"
+          },
+          "findings": {
+            "type": "array",
+            "description": "允许为空数组：审读确实可能一条意见都没有。空数组与「没做审读」由 target 是否出现来区分，不靠条数推断。",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "quote",
+                "issue",
+                "status",
+                "resolution"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^RD-[0-9]{3,}$"
+                },
+                "quote": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "被圈出的原文片段。"
+                },
+                "issue": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "读者说他不懂什么。"
+                },
+                "status": {
+                  "enum": [
+                    "RESOLVED",
+                    "ACCEPTED",
+                    "OPEN"
+                  ]
+                },
+                "resolution": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "RESOLVED（已改）与 ACCEPTED（说明理由后不改）必须写非空处置；OPEN 必须为 null，且门禁会因为存在 OPEN 而停下。"
+                }
+              }
+            }
+          },
+          "digest": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "description": "被审读文件在审读那一刻的内容哈希。审读之后又把文字改了，这条记录就过期，门禁停下——与工件批准、实施评审、验收、归档就绪同规格。缺了它，一份文字审读完之后被整篇改写，这道关照样放行。"
+          }
+        }
+      }
+    }
+  }
+}

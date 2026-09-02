@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "routingVersion": "v1.1.0",
+  "routingVersion": "v1.2.0",
   "unmatched": {
     "profileId": "delivery-change",
     "requiresAnalysis": true,
@@ -12,7 +12,7 @@
     {
       "changeObject": "governance-contract",
       "displayName": "治理合同",
-      "description": "改动交付流水线自身的约束：openspec/contracts/**、openspec/schemas/**、openspec/profiles/**、AGENTS.md 的硬规则、命令源与站位定义。",
+      "description": "改动交付流水线自身的约束：openspec/contracts/**、openspec/schemas/**、openspec/profiles/**、AGENTS.md 的硬规则、命令源与站位定义，以及 .gitattributes 这类决定全仓文件字节形态的配置。",
       "profileId": "delivery-change",
       "requiresAnalysis": true,
       "analysisProfileId": "requirement-analysis",
@@ -28,23 +28,40 @@
         "AGENTS.md",
         "runtime-manifest.json",
         "public-allowlist.json",
-        "openspec/config.yaml"
+        "openspec/config.yaml",
+        ".gitattributes"
       ],
-      "reason": "治理合同是所有后续改动的判据来源，改错一次会让此后每一单都建立在错的门禁上，必须先把问题和候选摊开再动手。"
+      "reason": "治理合同是所有后续改动的判据来源，改错一次会让此后每一单都建立在错的门禁上，必须先把问题和候选摊开再动手。.gitattributes 归在这一档，是因为它定义全仓文件落盘时的行尾形态，而受管投影校验、渲染一致性检查、批准新鲜度这几套机制全部按字节比对——改一行行尾属性会同时改变所有这些检查的判据，性质与改合同相同，不是「改一个小配置」。"
     },
     {
       "changeObject": "tool-code",
       "displayName": "工具代码",
-      "description": "改动 openspec/tools/** 的可执行行为与其配套 test/** 断言。",
+      "description": "改动 openspec/tools/** 的可执行行为、其配套 test/** 断言，以及 .github/** 里决定这些检查在远端怎么跑的 CI 配置。",
       "profileId": "delivery-change",
       "requiresAnalysis": true,
       "analysisProfileId": "requirement-analysis",
       "rank": 20,
       "pathPrefixes": [
         "openspec/tools/",
-        "test/"
+        "test/",
+        ".github/"
       ],
-      "reason": "工具代码是门禁的执行体，行为改动会直接放宽或收紧真门禁，需要完整的方案与验收链留痕。"
+      "reason": "工具代码是门禁的执行体，行为改动会直接放宽或收紧真门禁，需要完整的方案与验收链留痕。.github/ 归在同一档，是因为 CI 配置决定这些检查在远端到底跑不跑、什么条件下判失败——删掉一个 job 与改坏一个检查函数，后果是同一件事。它没有进治理合同档，是因为它不定义判据本身（判据在 contracts / schemas / profiles 里），而且「加一条检查」这类改动往往要同时改测试与 CI，放同一档才能一次声明到位。"
+    },
+    {
+      "changeObject": "pipeline-output",
+      "displayName": "流水线自身产物",
+      "description": "交付流水线自己最后两站写出来的东西：规范同步写进 openspec/specs/** 的长期规范，以及归档站移进 openspec/changes/archive/** 的历史证据。这一档只用来给路径定档，不用来给事项定档——它不是任何人的「改动对象」，所以 promotable 为 false。",
+      "profileId": "delivery-change",
+      "requiresAnalysis": true,
+      "analysisProfileId": "requirement-analysis",
+      "rank": 15,
+      "promotable": false,
+      "pathPrefixes": [
+        "openspec/specs/",
+        "openspec/changes/archive/"
+      ],
+      "reason": "这两个目录先前不属于任何一档，于是一律按未匹配取最重档，结果是这条流水线自己最后两站的收尾动作——同步长期规范、归档证据——会被自己的越档校验拦住。修法不是关掉校验，而是给它们一个能反映真实分量的档位序：15 严格高于文档表达（10），所以快车道那两档碰不了长期规范与归档证据；15 不高于工具代码（20），所以两个走完整流程的档位做收尾动作时不会被自己拦住。之所以不给它们最轻档，是因为长期规范是规范性行为的真源、归档证据是审计链，改它们的代价远高于改一句说明文字。之所以也不给最重档，是因为把「流程收尾」判成「改治理合同」会形成自指循环：要求归档这个动作先走一遍完整流程，等于让流程为了结束自己而重新开始，与 ledger-only 不可立项的理由同构。注意它挡不住「在实施提交里绕过增量链路直接写长期规范」这种同档位内的越权——那件事由评审范围负责，不由本表负责。"
     },
     {
       "changeObject": "doc-expression",
@@ -61,8 +78,8 @@
     },
     {
       "changeObject": "ledger-only",
-      "displayName": "纯台账",
-      "description": "只在 openspec/intake/** 内增删改条目本身，不产生任何 Change 目录与代码改动。",
+      "displayName": "纯事项记录",
+      "description": "只在 openspec/intake/** 内增删改事项记录本身，不产生任何 Change 目录与代码改动。",
       "profileId": "light-change",
       "requiresAnalysis": false,
       "rank": 0,
@@ -70,7 +87,7 @@
       "pathPrefixes": [
         "openspec/intake/"
       ],
-      "reason": "台账条目就是分析线的输入，要求它先跑一遍分析线会形成自指循环；条目写错的代价只是台账不整洁，可直接改。因其定义自述「不产生任何 Change 目录」，它与 promote（恰恰就是产生 Change 的操作）自相矛盾，故 promotable 为 false：这类条目只能 hold 或 close，要立项就必须先改声明并因此落入需要分析线的档位。"
+      "reason": "事项记录就是分析线的输入，要求它先跑一遍分析线会形成自指循环；条目写错的代价只是事项记录不整洁，可直接改。因其定义自述「不产生任何 Change 目录」，它与 promote（恰恰就是产生 Change 的操作）自相矛盾，故 promotable 为 false：这类条目只能 hold 或 close，要立项就必须先改声明并因此落入需要分析线的档位。"
     }
   ]
 }

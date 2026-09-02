@@ -103,18 +103,36 @@ function nulPaths(buffer: Buffer): string[] {
 function changeRelative(repo: string, changeRoot: string): string {
   return relative(repo, realpathSync(changeRoot)).split(sep).join("/");
 }
-function isLifecyclePath(path: string, changeRel: string): boolean {
-  return path === changeRel || path.startsWith(`${changeRel}/`) || path === "openspec/specs" || path.startsWith("openspec/specs/");
+/**
+ * Change 目录自身是治理产物，不是实现改动，任何时候都不进评审范围。
+ */
+function isChangeOwnedPath(path: string, changeRel: string): boolean {
+  return path === changeRel || path.startsWith(`${changeRel}/`);
+}
+/**
+ * 长期规范目录的处置分两种情形，此前被一刀切地整体排除，于是漏掉了一整类改动。
+ *
+ * 情形一：**实施提交里直接写长期规范**。正常入口是「先在 Change 内写增量，验收后由规范同步站
+ * 合入」，绕过这条链路直接写，评审应该看得见——上一单就真的发生过一次，46 行长期规范被直接写入，
+ * 而评审在结构上看不见它。这不是审查者疏忽，是范围计算把它排除了。所以 baseline→reviewed
+ * 这段区间**必须包含**长期规范目录。
+ *
+ * 情形二：**评审之后由规范同步站写长期规范**。那是流程自己的收尾动作，发生在评审之后、归档之前，
+ * 不该让已完成的评审失效。所以「评审后有没有漂移」这项检查**继续排除**长期规范目录；
+ * 这一段的完整性另有守卫——归档就绪记录会绑定每一对增量与主规范的内容哈希。
+ */
+function isPostReviewWritablePath(path: string): boolean {
+  return path === "openspec/specs" || path.startsWith("openspec/specs/");
 }
 function implementationPaths(repo: string, from: string, to: string, changeRoot: string): string[] {
   const changeRel = changeRelative(repo, changeRoot);
-  return [...new Set(nulPaths(git(repo, ["diff", "--name-only", "-z", from, to, "--"])).filter((path) => !isLifecyclePath(path, changeRel)))].sort();
+  return [...new Set(nulPaths(git(repo, ["diff", "--name-only", "-z", from, to, "--"])).filter((path) => !isChangeOwnedPath(path, changeRel)))].sort();
 }
 function dirtyImplementationPaths(repo: string, changeRoot: string): string[] {
   const changeRel = changeRelative(repo, changeRoot);
   const tracked = nulPaths(git(repo, ["diff", "--name-only", "-z", "HEAD", "--"]));
   const untracked = nulPaths(git(repo, ["ls-files", "--others", "--exclude-standard", "-z"]));
-  return [...new Set([...tracked, ...untracked].filter((path) => !isLifecyclePath(path, changeRel)))].sort();
+  return [...new Set([...tracked, ...untracked].filter((path) => !isChangeOwnedPath(path, changeRel) && !isPostReviewWritablePath(path)))].sort();
 }
 function commitHasPath(repo: string, reviewedCommit: string, path: string): boolean {
   return spawnSync("git", ["cat-file", "-e", `${reviewedCommit}:${path}`], { cwd: repo, encoding: "utf8" }).status === 0;
@@ -199,7 +217,11 @@ function inspectReviewState(changeRoot: string): Review {
   const review = parseReview(readJson(reviewPath(changeRoot)));
   const repo = repoRoot(changeRoot);
   if (spawnSync("git", ["merge-base", "--is-ancestor", review.reviewedCommit, "HEAD"], { cwd: repo }).status !== 0) fail("implementation review stale: reviewedCommit不是当前HEAD祖先");
-  const later = implementationPaths(repo, review.reviewedCommit, "HEAD", changeRoot);
+  // 评审之后的漂移检查，两侧都要排除长期规范目录：工作树那一侧在 dirtyImplementationPaths 里排除，
+  // 提交区间这一侧在这里排除。此前只做了工作树那一侧，于是「先提交规范同步、再跑归档门禁」这条顺序
+  // 会拿到一句指向 openspec/specs 的评审过期——而按设计那不该失效。当前流水线把规范同步留在工作树里
+  // 与归档一起提交，所以还没撞上；但两侧判据不一致本身就是账没记清。
+  const later = implementationPaths(repo, review.reviewedCommit, "HEAD", changeRoot).filter((path) => !isPostReviewWritablePath(path));
   if (later.length) fail(`implementation review stale: review后实现路径变化 ${later.join(", ")}`);
   const dirty = dirtyImplementationPaths(repo, changeRoot);
   if (dirty.length) fail(`implementation review stale: 工作树实现路径变化 ${dirty.join(", ")}`);

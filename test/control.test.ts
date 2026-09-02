@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { createArtifactTree, runTool, runtimeRoot, removeOptions } from "./helpers.ts";
@@ -14,7 +14,6 @@ const artifactFiles: Record<string, string> = {
   "07-实施任务/实施任务.md": "# 实施任务\n- [ ] 1.1 [planned] 完成演示\n- [ ] 9.9 [planned] 已删除任务\n  - 交付物：obsolete\n",
   "specs/example/spec.md": "## ADDED Requirements\n",
 };
-const artifacts = ["raw-requirements", "specs", "current-state", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"];
 test("严格来源、批准失效、任务状态和投影合同", () => {
   const root = mkdtempSync(join(tmpdir(), "delivery-control-"));
   try {
@@ -28,13 +27,13 @@ test("严格来源、批准失效、任务状态和投影合同", () => {
       assert.notEqual(result.status, 0); assert.match(result.stderr, /未知delivery-control命令/);
     }
     assert.equal(existsSync(join(change, "change-sources.json")), false);
-    const taskImport = join(root, "tasks.json"); writeFileSync(taskImport, JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "planned", deliverables: ["src/demo.ts"], verification: ["node --test demo.test.ts"], evidence: [], blocker: null }] }));
+    const taskImport = join(root, "tasks.json"); writeFileSync(taskImport, JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "planned", deliverables: ["src/demo.ts"], verification: ["node --test demo.test.ts"], evidence: [], blocker: null, replayable: false }] }));
     result = runTool("delivery-control.ts", ["task", "write", "--change-root", change, "--file", taskImport]); assert.equal(result.status, 0, result.stderr);
     result = runTool("delivery-control.ts", ["task", "render", "--change-root", change]); assert.equal(result.status, 0, result.stderr);
     assert.doesNotMatch(readFileSync(join(change, "07-实施任务/实施任务.md"), "utf8"), /9\.9|已删除任务|obsolete/);
-    for (const artifact of artifacts) { result = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", artifact, "--decision", "approved", "--approved-by", "tester"]); assert.equal(result.status, 0, result.stderr); }
+    result = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--gate", "decision", "--decision", "approved", "--approved-by", "tester", "--runtime-root", runtimeRoot]); assert.equal(result.status, 0, result.stderr);
     result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]); assert.equal(result.status, 0, result.stderr);
-    result = runTool("delivery-control.ts", ["task", "set", "--change-root", change, "--id", "1.1", "--state", "verified"]); assert.notEqual(result.status, 0); assert.match(result.stderr, /缺少 evidence/);
+    result = runTool("delivery-control.ts", ["task", "set", "--change-root", change, "--id", "1.1", "--state", "verified"]); assert.notEqual(result.status, 0); assert.match(result.stderr, /不可重跑，verified 时必须保存证据/);
     // VC-026：evidence 四类负向全部 fail closed，且 task-state.json 逐字节不变。
     mkdirSync(join(change, "08-验收"), { recursive: true });
     writeFileSync(join(change, "08-验收/empty.tap"), "");
@@ -67,17 +66,26 @@ test("严格来源、批准失效、任务状态和投影合同", () => {
     result = runTool("delivery-control.ts", ["task", "set", "--change-root", change, "--id", "1.1", "--state", "verified", "--evidence", "08-验收/control.tap"]); assert.equal(result.status, 0, result.stderr);
     result = runTool("delivery-control.ts", ["task", "render", "--change-root", change]); assert.equal(result.status, 0, result.stderr);
     result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "acceptance"]); assert.notEqual(result.status, 0); assert.match(result.stderr, /tasks 批准状态为 stale/);
-    result = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", "tasks", "--decision", "approved", "--approved-by", "tester"]); assert.equal(result.status, 0, result.stderr);
+    // 任务表是机械回填，走「刷新」这条路：必须声明刷新了哪几份，首次表态的人与时间原样保留。
+    result = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--gate", "decision", "--refreshed-artifact", "tasks", "--refreshed-by", "tester（证据回填后的机械刷新，Claude 代笔）", "--runtime-root", runtimeRoot]); assert.equal(result.status, 0, result.stderr);
     result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "acceptance"]); assert.notEqual(result.status, 0); assert.match(result.stderr, /implementation-review/);
     // VC-024：update snapshot / diagnose 两个命令随 .delivery-update-snapshot.json 概念一并移除。
-    const updatePaths = join(root, "update-paths.json"); writeFileSync(updatePaths, JSON.stringify(["05-改造方案/改造方案.md"]));
+    const updatePaths = join(root, "update-paths.json"); writeFileSync(updatePaths, JSON.stringify(["05-改造方案/方案提案.md"]));
     for (const args of [["update", "snapshot", "--paths-file", updatePaths], ["update", "diagnose"]]) {
       result = runTool("delivery-control.ts", [args[0], args[1], "--change-root", change, ...args.slice(2)]);
       assert.notEqual(result.status, 0); assert.match(result.stderr, /未知delivery-control命令/);
     }
     assert.equal(existsSync(join(change, ".delivery-update-snapshot.json")), false);
     // 批准新鲜度不依赖 snapshot：工件事后改动仍然直接使批准 stale。
-    writeFileSync(join(change, "05-改造方案/改造方案.md"), "changed plan\n"); result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]); assert.notEqual(result.status, 0); assert.match(result.stderr, /change-plan 批准状态为 stale/);
+    // v7 起 03-现状/现状.md 与 05-改造方案/改造方案.md 仍留在这个 fixture 的磁盘上，
+    // 但它们已不是工件，改动它们不影响任何批准——这正是「合并后旧文件不再参与门禁」的现场。
+    writeFileSync(join(change, "03-现状/现状.md"), "current drifted\n");
+    result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
+    assert.equal(result.status, 0, `已合并的旧文件不应再影响门禁: ${result.stderr}`);
+    // 批准新鲜度不依赖 snapshot：真正的工件事后改动仍然直接使批准 stale。
+    writeFileSync(join(change, "05-改造方案/方案提案.md"), `${artifactFiles["05-改造方案/方案提案.md"]}事后追加\n`);
+    result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
+    assert.notEqual(result.status, 0); assert.match(result.stderr, /solution-proposal 批准状态为 stale/);
     const infoPath = join(change, "change-info.json"); const info = JSON.parse(readFileSync(infoPath, "utf8")); info.unknown = true; writeFileSync(infoPath, JSON.stringify(info)); result = runTool("delivery-control.ts", ["inspect", "--change-root", change]); assert.notEqual(result.status, 0); assert.match(result.stderr, /未知字段 unknown/);
   } finally { rmSync(root, removeOptions); }
 });
@@ -96,10 +104,10 @@ test("VC-024 change-mode 概念移除后 guard 行为与不存在时一致", () 
     assert.notEqual(result.status, 0); assert.match(result.stderr, /rehearsal .*已随 change-mode\.json 一并移除/);
 
     const taskImport = join(root, "tasks.json");
-    writeFileSync(taskImport, JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "planned", deliverables: ["src/demo.ts"], verification: ["node --test"], evidence: [], blocker: null }] }));
+    writeFileSync(taskImport, JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "planned", deliverables: ["src/demo.ts"], verification: ["node --test"], evidence: [], blocker: null, replayable: true }] }));
     assert.equal(runTool("delivery-control.ts", ["task", "write", "--change-root", change, "--file", taskImport]).status, 0);
     assert.equal(runTool("delivery-control.ts", ["task", "render", "--change-root", change]).status, 0);
-    for (const artifact of artifacts) assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", artifact, "--decision", "approved", "--approved-by", "tester"]).status, 0);
+    assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--gate", "decision", "--decision", "approved", "--approved-by", "tester", "--runtime-root", runtimeRoot]).status, 0);
 
     // 基线：无 change-mode.json 时 apply 放行、mode 报 delivery。
     const before = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
@@ -141,10 +149,10 @@ test("REV-002 声明与事实交叉校验：声明低档而实际触碰高档路
     assert.equal(runTool("delivery-control.ts", ["init", "--change-root", change, "--slug", "demo-change", "--display-name", "演示", "--mode", "delivery"]).status, 0);
     // 导入文件放仓外：它是测试脚手架，不该被当成本 Change 触碰的实现路径。
     const taskImport = join(mkdtempSync(join(tmpdir(), "delivery-scope-in-")), "tasks.json");
-    writeFileSync(taskImport, JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "planned", deliverables: ["d"], verification: ["v"], evidence: [], blocker: null }] }));
+    writeFileSync(taskImport, JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "planned", deliverables: ["d"], verification: ["v"], evidence: [], blocker: null, replayable: true }] }));
     assert.equal(runTool("delivery-control.ts", ["task", "write", "--change-root", change, "--file", taskImport]).status, 0);
     assert.equal(runTool("delivery-control.ts", ["task", "render", "--change-root", change]).status, 0);
-    for (const artifact of artifacts) assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", artifact, "--decision", "approved", "--approved-by", "tester"]).status, 0);
+    assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--gate", "decision", "--decision", "approved", "--approved-by", "tester", "--runtime-root", runtimeRoot]).status, 0);
 
     // 只碰 docs/：与声明相符，verify 放行。
     mkdirSync(join(repo, "docs"), { recursive: true });
@@ -171,5 +179,196 @@ test("REV-002 声明与事实交叉校验：声明低档而实际触碰高档路
     result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "verify", "--runtime-root", runtimeRoot], { cwd: repo });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /governance-contract/);
+    rmSync(join(repo, "openspec/contracts/new.schema.json"));
+
+    // 曾经的四处路径空白，逐处取负向对照：声明「只改说明面」时，四处都必须被判成越档。
+    // 这四处过去一律落在「未匹配」上，看起来也是拒绝，但拒绝理由是「分类不出来」而不是
+    // 「归类到了更重的档」；断言逐处核对归类名，正是为了区分这两种拒绝。
+    for (const [path, expectedObject] of [
+      [".gitattributes", "governance-contract"],
+      [".github/workflows/probe.yml", "tool-code"],
+      ["openspec/specs/demo-capability/spec.md", "pipeline-output"],
+      ["openspec/changes/archive/2026-09-01-demo/08-验收/验收记录.md", "pipeline-output"],
+    ] as const) {
+      mkdirSync(dirname(join(repo, path)), { recursive: true });
+      writeFileSync(join(repo, path), "probe\n", "utf8");
+      result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "verify", "--runtime-root", runtimeRoot], { cwd: repo });
+      assert.notEqual(result.status, 0, `${path} 未被判成越档`);
+      assert.match(result.stderr, new RegExp(`归类 ${expectedObject}`), `${path} 的归类不是 ${expectedObject}：${result.stderr}`);
+      rmSync(join(repo, path));
+    }
+
+    // 正向对照：把声明改成「工具代码」后，规范同步与归档这两处收尾动作必须放行。
+    // 这一条才是本次修表要解决的真问题——过去它们落在未匹配上，任何档位做收尾都会被自己拦住。
+    writeFileSync(join(repo, "openspec/intake/INT-20260901-050-doc.md"), "---\nschemaVersion: 1\nid: INT-20260901-050-doc\nstate: promoted\nphase: capture\nsource: synthetic\ncapturedAt: 2026-09-01\npromotedTo: demo-change\nchangeObject: tool-code\n---\n\n# Intake\n", "utf8");
+    mkdirSync(join(repo, "openspec/specs/demo-capability"), { recursive: true });
+    writeFileSync(join(repo, "openspec/specs/demo-capability/spec.md"), "# spec\n", "utf8");
+    mkdirSync(join(repo, "openspec/changes/archive/2026-09-01-demo"), { recursive: true });
+    writeFileSync(join(repo, "openspec/changes/archive/2026-09-01-demo/note.md"), "evidence\n", "utf8");
+    result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "verify", "--runtime-root", runtimeRoot], { cwd: repo });
+    assert.equal(result.status, 0, `工具代码档做收尾动作被误挡：${result.stderr}`);
+
+    // 但同一个声明碰行尾属性仍然要被拒——正向对照不得连带把更重的一档也放开。
+    writeFileSync(join(repo, ".gitattributes"), "* text=auto eol=lf\n", "utf8");
+    result = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "verify", "--runtime-root", runtimeRoot], { cwd: repo });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /\.gitattributes/);
   } finally { rmSync(repo, removeOptions); }
+});
+
+/**
+ * T-05 证据按「这次验证能不能再跑一遍」分派（维护者 2026-09-01 方案门的新原则）。
+ *
+ * 原话：「测试日志和验收证据，在 vibe coding 中意义不大……我会觉得单测其实根本不需要记录。」
+ * 判据从「证据重不重要」换成「能不能重跑」：可重跑的不留日志，要复核就当场重跑；
+ * 不可重跑的必须记录，做完就没了。前者是本仓的全部情形，后者是公司仓的全部情形。
+ */
+test("T-05 证据规则按 replayable 分派，存量任务状态仍可读", () => {
+  const root = mkdtempSync(join(tmpdir(), "delivery-replayable-"));
+  try {
+    const change = join(root, "openspec/changes/demo-change");
+    createArtifactTree(change);
+    for (const [path, body] of Object.entries(artifactFiles)) writeFileSync(join(change, path), body);
+    assert.equal(runTool("delivery-control.ts", ["init", "--change-root", change, "--slug", "demo-change", "--display-name", "演示", "--mode", "delivery"]).status, 0);
+    const importPath = join(root, "tasks.json");
+    const write = (tasks: unknown[]) => writeFileSync(importPath, JSON.stringify({ schemaVersion: 1, tasks }));
+    const task = (extra: Record<string, unknown>) => ({ id: "1.1", state: "planned", deliverables: ["d"], verification: ["v"], evidence: [], blocker: null, ...extra });
+
+    // T-05.5：新写入不带 replayable 一律拒绝——不让默认值替人回答「这次验证能不能重跑」。
+    write([{ id: "1.1", state: "planned", deliverables: ["d"], verification: ["v"], evidence: [], blocker: null }]);
+    let result = runTool("delivery-control.ts", ["task", "write", "--change-root", change, "--file", importPath]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /必须为每个任务显式声明 replayable/);
+
+    // T-05.1：声明可重跑却保存了证据路径 → 拒绝，理由指向「要复核就当场重跑」。
+    mkdirSync(join(change, "08-验收"), { recursive: true });
+    writeFileSync(join(change, "08-验收/证据.md"), "x\n", "utf8");
+    write([task({ replayable: true, state: "verified", evidence: ["08-验收/证据.md"] })]);
+    result = runTool("delivery-control.ts", ["task", "write", "--change-root", change, "--file", importPath]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /可以重跑，就不得保存证据路径/);
+
+    // T-05.2：声明不可重跑、已 verified 却没有证据 → 拒绝，理由指向「做完就没了」。
+    write([task({ replayable: false, state: "verified", evidence: [] })]);
+    result = runTool("delivery-control.ts", ["task", "write", "--change-root", change, "--file", importPath]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /不可重跑，verified 时必须保存证据/);
+
+    // T-05.3：不可重跑且有证据时，原有的路径逃逸与非空校验一条不少地仍然生效。
+    write([task({ replayable: false, state: "verified", evidence: ["../外面.md"] })]);
+    result = runTool("delivery-control.ts", ["task", "write", "--change-root", change, "--file", importPath]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /不得使用 \.\. 越界/);
+    write([task({ replayable: false, state: "verified", evidence: ["08-验收/证据.md"] })]);
+    assert.equal(runTool("delivery-control.ts", ["task", "write", "--change-root", change, "--file", importPath]).status, 0);
+
+    // 正向：本仓的常态——可重跑、不留证据。
+    write([task({ replayable: true, state: "verified", evidence: [] })]);
+    result = runTool("delivery-control.ts", ["task", "write", "--change-root", change, "--file", importPath]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(JSON.parse(result.stdout).tasks[0].replayable, true);
+
+    // T-05.4：存量任务状态没有这个字段时仍可读出。缺省按实际形态推断，而不是一律当成可重跑——
+    // 归档目录里的存量任务带着自然语言证据，一律按可重跑解释会让它们集体解析失败。
+    writeFileSync(join(change, "task-state.json"), JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "verified", deliverables: ["d"], verification: ["v"], evidence: ["历史上的一句自然语言"], blocker: null }] }, null, 2), "utf8");
+    assert.equal(runTool("delivery-control.ts", ["task", "render", "--change-root", change]).status, 0);
+    const legacy = runTool("delivery-control.ts", ["task", "inspect", "--change-root", change]);
+    assert.equal(legacy.status, 0, legacy.stderr);
+    assert.equal(JSON.parse(legacy.stdout).tasks[0].replayable, false, "带证据的存量任务应被推断为不可重跑");
+  } finally { rmSync(root, removeOptions); }
+});
+
+/**
+ * REV-004 敌对测试：门级批准的重签必须逐份问责。
+ *
+ * 评审实测出的那条链路是这样的：门级批准原先是整体覆写，于是「回填任务状态」这种每次
+ * `task render` 都会发生的机械改动，可以顺带把一处被篡改的方案决策一起重新祝福——
+ * 八份工件全回到 approved，实施门禁放行，篡改毫无提示。它与 AGENTS.md「任何改变语义的
+ * 改动都必须重新取得维护者表态，不得由 agent 重签」直接冲突，而那条规则正是本仓上一次
+ * 被判不通过的原因。本用例逐步复现那条链路，并要求它在第三步被拦住。
+ */
+test("REV-004 机械回填的刷新不得顺带重新祝福被篡改的工件", () => {
+  const root = mkdtempSync(join(tmpdir(), "delivery-refresh-"));
+  try {
+    const change = join(root, "openspec/changes/demo-change");
+    createArtifactTree(change);
+    for (const [path, body] of Object.entries(artifactFiles)) writeFileSync(join(change, path), body);
+    assert.equal(runTool("delivery-control.ts", ["init", "--change-root", change, "--slug", "demo-change", "--display-name", "演示", "--mode", "delivery"]).status, 0);
+    const attest = (extra: string[]) => runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--gate", "decision", "--approved-by", "maintainer", "--runtime-root", runtimeRoot, ...extra]);
+    const refresh = (extra: string[]) => runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--gate", "decision", "--refreshed-by", "Claude（证据回填后的机械刷新）", "--runtime-root", runtimeRoot, ...extra]);
+    const approvalsFile = join(change, "artifact-approvals.json");
+    const readApprovals = () => JSON.parse(readFileSync(approvalsFile, "utf8"));
+
+    // 第一步：首签。一条记录覆盖全部工件，逐份记内容哈希。
+    assert.equal(attest(["--decision", "approved"]).status, 0);
+    const first = readApprovals();
+    const firstAt = first.gates.decision.approvedAt;
+    const decisionDigest = first.gates.decision.artifacts["solution-decision"];
+    assert.deepEqual(first.gates.decision.refreshes, []);
+    assert.equal(runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]).status, 0);
+
+    // 第二步：一处机械回填（任务表）＋一处语义篡改（方案决策）。两份都转 stale。
+    const tasksPath = join(change, "07-实施任务/实施任务.md");
+    const decisionPath = join(change, "05-改造方案/方案决策.md");
+    const decisionBody = readFileSync(decisionPath, "utf8");
+    writeFileSync(tasksPath, `${readFileSync(tasksPath, "utf8")}- [x] 1.1 [verified] 回填\n`);
+    writeFileSync(decisionPath, decisionBody.replace("- 选择：B", "- 选择：A（被篡改）"));
+    let guard = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
+    assert.notEqual(guard.status, 0);
+
+    // 第三步：以「证据回填后重批准」的名义刷新任务表。**必须被拦住，并点名搭车的那一份。**
+    const before = readFileSync(approvalsFile, "utf8");
+    const sneaky = refresh(["--refreshed-artifact", "tasks"]);
+    assert.notEqual(sneaky.status, 0, "被篡改的方案决策搭上了机械回填的车");
+    assert.match(sneaky.stderr, /solution-decision/);
+    assert.match(sneaky.stderr, /重新取得维护者表态/);
+    assert.equal(readFileSync(approvalsFile, "utf8"), before, "刷新被拒时批准记录不得被改动");
+    assert.notEqual(runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]).status, 0);
+
+    // 把篡改撤掉之后，同一条刷新命令必须成功——这道拦截拦的是搭车，不是刷新本身。
+    writeFileSync(decisionPath, decisionBody);
+    const refreshed = refresh(["--refreshed-artifact", "tasks"]);
+    assert.equal(refreshed.status, 0, refreshed.stderr);
+    const after = readApprovals();
+    // 首次表态的人与时间原样保留，刷新追加而不是覆写。
+    assert.equal(after.gates.decision.approvedAt, firstAt, "刷新覆写了首次表态的时间");
+    assert.equal(after.gates.decision.approvedBy, first.gates.decision.approvedBy);
+    assert.equal(after.gates.decision.artifacts["solution-decision"], decisionDigest, "刷新动了没被声明的工件的哈希");
+    assert.equal(after.gates.decision.refreshes.length, 1);
+    assert.deepEqual(after.gates.decision.refreshes[0].artifacts, ["tasks"]);
+    assert.equal(runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]).status, 0);
+
+    // 不声明刷新了哪几份，一律拒绝——不问责就没有刷新这条路。
+    writeFileSync(tasksPath, `${readFileSync(tasksPath, "utf8")}- [x] 1.2 [verified] 再回填\n`);
+    const silent = refresh([]);
+    assert.notEqual(silent.status, 0);
+    assert.match(silent.stderr, /缺少 --refreshed-artifact/);
+
+    // 参数名与它落到的字段必须同名：刷新记的是「谁做了这次回填」，不是「谁表的态」。
+    // 拿表态人那个参数来刷新，一律拒绝并指出该用哪个——不然写的人会以为自己在改表态人，
+    // 而那一对字段恰恰是机械回填碰不得的。
+    const wrongParam = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--gate", "decision", "--refreshed-artifact", "tasks", "--approved-by", "maintainer", "--runtime-root", runtimeRoot]);
+    assert.notEqual(wrongParam.status, 0);
+    assert.match(wrongParam.stderr, /刷新不接受 --approved-by/);
+    assert.match(wrongParam.stderr, /--refreshed-by/);
+
+    // 语义确实变了时的正确出口：重新取得人工表态。它会覆写表态时间并清空刷新记录，
+    // 读批准链的人一眼能看出这是一次新的表态，不是回填。
+    writeFileSync(decisionPath, decisionBody.replace("- 选择：B", "- 选择：A"));
+    const reattested = attest(["--decision", "approved", "--new-attestation", "维护者复看后改选 A"]);
+    assert.equal(reattested.status, 0, reattested.stderr);
+    const final = readApprovals();
+    assert.notEqual(final.gates.decision.approvedAt, firstAt, "重新表态却没有留下新的表态时间");
+    assert.deepEqual(final.gates.decision.refreshes, []);
+    assert.match(final.gates.decision.migrationSource, /重新取得表态：/, "重新表态没有留下理由");
+
+    // 首签时不许声明「重新表态」——那会让「第一次过人」和「重新过人」在记录上无法区分。
+    const fresh = join(root, "openspec/changes/fresh-change");
+    createArtifactTree(fresh);
+    for (const [path, body] of Object.entries(artifactFiles)) writeFileSync(join(fresh, path), body);
+    assert.equal(runTool("delivery-control.ts", ["init", "--change-root", fresh, "--slug", "fresh-change", "--display-name", "演示", "--mode", "delivery"]).status, 0);
+    const wrongFirst = runTool("delivery-control.ts", ["approval", "set", "--change-root", fresh, "--gate", "decision", "--decision", "approved", "--approved-by", "maintainer", "--new-attestation", "无中生有", "--runtime-root", runtimeRoot]);
+    assert.notEqual(wrongFirst.status, 0);
+    assert.match(wrongFirst.stderr, /首签不必声明它/);
+  } finally { rmSync(root, removeOptions); }
 });

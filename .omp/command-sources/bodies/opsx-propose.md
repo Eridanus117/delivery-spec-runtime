@@ -8,9 +8,10 @@
 - design.md（如何实现）
 - tasks.md（实现步骤）
 
-对于 `delivery-change`，05 不是单一设计文件：必须先创建 `solution-proposal`，呈现至少两个候选、
-Trade-off、推荐和未决问题；再等待维护者明确选择后创建 `solution-decision`；最后才能创建
-`change-plan`。推荐不得自动成为决策，Proposal、Decision 和 Plan 分别批准。
+对于 `delivery-change`，05 不是单一设计文件：必须先创建 `solution-proposal`，写清现状、至少两个候选、
+Trade-off、推荐、落地后可感知的变化清单和未决问题；再等待维护者明确选择后创建 `solution-decision`。
+推荐不得自动成为决策。实施切片、迁移与回滚不再另立工件，写进 `07-实施任务/实施任务.md` 的对应一节。
+批准按人真实表态的次数记：方案门一次表态记一条，覆盖当时的全部工件，每份工件的内容哈希逐一记录。
 
 `<capability-path>` 是相对于 `specs/` 的规范目录（例如 `user-auth` 或 `identity/user-auth`）。保留现有能力的完整路径，并遵循项目为新能力建立的组织方式。
 
@@ -120,8 +121,8 @@ Trade-off、推荐和未决问题；再等待维护者明确选择后创建 `sol
 - 变更名称和位置
 - 已创建构件的列表及简短描述，以及任何跳过的条件构件和跳过原因
 - 已准备就绪："实现所需的所有构件均已准备就绪。"
-- 对 `delivery-change`，01～07 的九项规划 artifact 只是已生成，`artifact-approvals.json` 仍保持未批准；尤其分别展示 Proposal 摘要、Trade-off 和 Decision 供维护者审阅。
-- 不得从本次 propose 请求、文件存在或会话记忆自动批准任一 artifact。只有维护者明确选择候选并批准当前摘要后，才通过 `runtime-entry.ts approval set --artifact "<artifact-id>" --decision approved --approved-by "<批准人>"` 分项记录。
+- 对 `delivery-change`，六份规划工件只是已生成，`artifact-approvals.json` 仍保持未批准；尤其分别展示 Proposal 摘要、Trade-off 和 Decision 供维护者审阅。
+- 不得从本次 propose 请求、文件存在或会话记忆自动批准。只有维护者明确选择候选并批准当前内容后，才用 `runtime-entry.ts approval set --gate <站位id> --decision approved --approved-by "<表态形态，须写明是亲签还是转录>"` 记一条——**一次表态一条记录，覆盖当时的全部工件**，不再按份签发。机械回填之后要刷新时走 `--refreshed-artifact` 与 `--refreshed-by`；内容有语义改动时走 `--new-attestation`。三条路的完整用法见 `docs/governance.md` 的「批准的三条路」。
 - 提示："构件已准备好供审阅。准备好后，请运行 `/opsx-apply`。"
 
 **构件创建指南**

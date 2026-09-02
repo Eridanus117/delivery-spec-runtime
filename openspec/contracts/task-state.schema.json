@@ -3,30 +3,167 @@
   "$id": "delivery-change/task-state.schema.json",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "tasks"],
+  "required": [
+    "schemaVersion",
+    "tasks"
+  ],
   "properties": {
-    "schemaVersion": { "const": 1 },
+    "schemaVersion": {
+      "const": 1
+    },
     "tasks": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "state", "deliverables", "verification", "evidence", "blocker"],
+        "required": [
+          "id",
+          "state",
+          "deliverables",
+          "verification",
+          "evidence",
+          "blocker"
+        ],
         "properties": {
-          "id": { "type": "string", "minLength": 1 },
-          "state": { "enum": ["planned", "implemented_unverified", "blocked_external", "verified"] },
-          "deliverables": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
-          "verification": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "state": {
+            "enum": [
+              "planned",
+              "implemented_unverified",
+              "blocked_external",
+              "verified"
+            ]
+          },
+          "deliverables": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "verification": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "replayable": {
+            "type": "boolean",
+            "description": "这次验证还能不能再跑一遍。true 表示可以（本仓的自动化测试全属此类）——此时不得保存任何证据路径，要复核就当场重跑，存下来的日志无法证明它对应的是当前这版代码。false 表示做完就没了（构造一次请求走一遍场景），此时 verified 必须保存证据，那是唯一一次机会。缺省视为 true，只服务于存量任务状态的只读兼容；新写入由 delivery-control 强制显式声明，免得默认值替人把这个判断悄悄做掉。"
+          },
           "evidence": {
             "type": "array",
-            "description": "证据是 Change 内的相对路径，写入时由 delivery-control 校验其存在且内容非空；绝对路径与 .. 越界一律拒绝且不写入任何状态。该校验只作用于 active Change 的写入路径，不回溯归档目录中的自然语言证据。",
-            "items": { "type": "string", "minLength": 1, "pattern": "^(?!/|[A-Za-z]:)(?!.*(^|[\\\\/])\\.\\.([\\\\/]|$)).+$" }
+            "description": "不可重跑的验证留下的记录，是 Change 内的相对路径，写入时由 delivery-control 校验其存在且内容非空；绝对路径与 .. 越界一律拒绝且不写入任何状态。该校验只作用于 active Change 的写入路径，不回溯归档目录中的自然语言证据。",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!/|[A-Za-z]:)(?!.*(^|[\\\\/])\\.\\.([\\\\/]|$)).+$"
+            }
           },
-          "blocker": { "type": ["string", "null"] }
+          "blocker": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         },
         "allOf": [
-          { "if": { "properties": { "state": { "const": "verified" } } }, "then": { "properties": { "evidence": { "minItems": 1 }, "blocker": { "type": "null" } } }, "else": { "properties": { "evidence": { "maxItems": 0 } } } },
-          { "if": { "properties": { "state": { "const": "blocked_external" } } }, "then": { "properties": { "blocker": { "type": "string", "minLength": 1 } } }, "else": { "properties": { "blocker": { "type": "null" } } } }
+          {
+            "description": "显式声明可重跑的验证不留日志。字段缺失时不加约束——归档目录里的存量任务带着自然语言证据，一律按可重跑解释会让它们集体失效，而存量不迁移是既定取向。",
+            "if": {
+              "required": [
+                "replayable"
+              ],
+              "properties": {
+                "replayable": {
+                  "const": true
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "evidence": {
+                  "maxItems": 0
+                }
+              }
+            }
+          },
+          {
+            "description": "不可重跑的验证在 verified 时必须留证据；未 verified 时仍然不留（还没做完就没有证据可言）。",
+            "if": {
+              "required": [
+                "replayable"
+              ],
+              "properties": {
+                "replayable": {
+                  "const": false
+                },
+                "state": {
+                  "const": "verified"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "evidence": {
+                  "minItems": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "const": "verified"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "blocker": {
+                  "type": "null"
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "evidence": {
+                  "maxItems": 0
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "const": "blocked_external"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "blocker": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "blocker": {
+                  "type": "null"
+                }
+              }
+            }
+          }
         ]
       }
     }

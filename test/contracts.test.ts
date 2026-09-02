@@ -2,14 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { checkIgnoreIncomplete } from "../openspec/tools/runtime-lib.ts";
-import { validateReport } from "../openspec/tools/openspec-upgrade.ts";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { validateReport } from "../openspec/tools/upgrade-report.ts";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { resolveChangeDir, runTool, runtimeRoot, removeOptions } from "./helpers.ts";
 
 
-test("runtime manifest、八层schema与九个Commands一致", () => {
+test("runtime manifest、六层schema与九个Commands一致", () => {
   const manifest = JSON.parse(readFileSync(join(runtimeRoot, "runtime-manifest.json"), "utf8"));
   assert.equal(manifest.schemaVersion, 2);
   assert.equal(manifest.node.minimum, "22.6.0");
@@ -23,11 +23,18 @@ test("runtime manifest、八层schema与九个Commands一致", () => {
   ]);
   for (const item of manifest.submodule.links) assert.equal(existsSync(join(runtimeRoot, item.source)), true, item.source);
   const schema = readFileSync(join(runtimeRoot, "openspec/schemas/delivery-change/schema.yaml"), "utf8");
-  for (const path of ["01-原始需求", "02-需求理解", "03-现状", "05-改造方案", "06-测试方案", "07-实施任务", "08-验收", "09-发布"]) assert.match(schema, new RegExp(path));
+  // v7 起只剩六层：现状并进方案提案、改造方案并进实施任务。
+  for (const path of ["01-原始需求", "05-改造方案", "06-测试方案", "07-实施任务", "08-验收", "09-发布"]) assert.match(schema, new RegExp(path));
+  for (const gone of ["03-现状/现状.md", "05-改造方案/改造方案.md"]) assert.doesNotMatch(schema, new RegExp(gone.replace("/", "\/")), `已取消的工件仍在 schema 里: ${gone}`);
+  assert.doesNotMatch(schema, /02-需求理解/, "schema 仍在指一个已取消的目录");
+  for (const name of readdirSync(join(runtimeRoot, "openspec/schemas/delivery-change/templates"))) {
+    const body = readFileSync(join(runtimeRoot, "openspec/schemas/delivery-change/templates", name), "utf8");
+    assert.ok(!body.includes("02-需求理解"), `模板 ${name} 仍在指一个已取消的目录`);
+  }
   assert.match(schema, /name: delivery-change/);
-  assert.match(schema, /version: 6/);
+  assert.match(schema, /version: 7/);
   assert.ok(schema.indexOf("id: solution-proposal") < schema.indexOf("id: solution-decision"));
-  assert.ok(schema.indexOf("id: solution-decision") < schema.indexOf("id: change-plan"));
+  assert.ok(schema.indexOf("id: solution-decision") < schema.indexOf("id: test-plan"));
   assert.match(schema, /`task-state\.json`/);
   const commands = readdirSync(join(runtimeRoot, ".omp/commands")).filter((name) => /^opsx-.*\.md$/.test(name)).sort();
   assert.deepEqual(commands, ["opsx-apply.md", "opsx-archive.md", "opsx-continue.md", "opsx-explore.md", "opsx-new.md", "opsx-propose.md", "opsx-sync.md", "opsx-update.md", "opsx-verify.md"]);
@@ -199,45 +206,104 @@ test("VC-027/VC-029 归档目录与旧结构 Change 不受 v6 与 evidence 新�
   }
 });
 
-test("VC-028 现状合并后门禁条目逐项可对应且一项不减", () => {
-  const v5Keys = ["raw-requirements", "specs", "business-current", "technical-current", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"];
+/**
+ * T-06 / VC-028：工件合并只减少工件数，不减少任何一项校验。
+ *
+ * 本仓合过两次。v6 把两份现状并成一份；v7 又把现状并进方案提案、改造方案并进实施任务，
+ * 只剩六份。每一次合并都必须满足同一条不变量：**合并后那份工件承接原先各份各自参与的
+ * 全部门禁与内容哈希**，一项都不能丢。存量 Change 按各自声明的版本解析，不迁移。
+ */
+test("VC-028/T-06 工件合并只减工件数不减校验，存量结构按各自版本解析", () => {
+  const proposalBody = "# 方案提案\n## 现状\n改造前长这样。\n## 候选 A：简单\n## 候选 B：严格\n## Trade-off 矩阵\n## 推荐\n## 未决问题\n";
+  const decisionBody = "# 方案决策\n- 状态：APPROVED\n- 选择：B\n- 决策人：tester\n- 决策时间：2026-09-01\n## 接受的后果\n## 拒绝方案\n";
   const root = mkdtempSync(join(tmpdir(), "delivery-merge-"));
   try {
     const change = join(root, "openspec/changes/demo-change");
-    for (const dir of ["01-原始需求", "03-现状", "05-改造方案", "06-测试方案", "07-实施任务", "specs/example"]) mkdirSync(join(change, dir), { recursive: true });
+    for (const dir of ["01-原始需求", "05-改造方案", "06-测试方案", "07-实施任务", "specs/example"]) mkdirSync(join(change, dir), { recursive: true });
     const files: Record<string, string> = {
-      "01-原始需求/原始需求索引.md": "raw\n", "03-现状/现状.md": "current\n",
-      "05-改造方案/方案提案.md": "# 方案提案\n## 候选 A：简单\n## 候选 B：严格\n## Trade-off 矩阵\n## 推荐\n## 未决问题\n",
-      "05-改造方案/方案决策.md": "# 方案决策\n- 状态：APPROVED\n- 选择：B\n- 决策人：tester\n- 决策时间：2026-08-30\n## 接受的后果\n## 拒绝方案\n",
-      "05-改造方案/改造方案.md": "plan\n", "06-测试方案/000-测试方案索引.md": "tests\n",
-      "07-实施任务/实施任务.md": "# 实施任务\n", "specs/example/spec.md": "## ADDED Requirements\n",
+      "01-原始需求/原始需求索引.md": "raw\n",
+      "05-改造方案/方案提案.md": proposalBody,
+      "05-改造方案/方案决策.md": decisionBody,
+      "06-测试方案/000-测试方案索引.md": "tests\n",
+      "07-实施任务/实施任务.md": "# 实施任务\n## 实施切片、迁移与回滚\n一片。\n## 任务清单\n",
+      "specs/example/spec.md": "## ADDED Requirements\n",
     };
     for (const [path, body] of Object.entries(files)) writeFileSync(join(change, path), body);
     assert.equal(runTool("delivery-control.ts", ["init", "--change-root", change, "--slug", "demo-change", "--display-name", "演示", "--mode", "delivery"]).status, 0);
+    // T-06.4：新建 Change 一律显式声明当前版本，版本判别不靠目录形状推断。
+    assert.equal(JSON.parse(readFileSync(join(change, "change-info.json"), "utf8")).deliverySchemaVersion, 7);
 
     const effective = JSON.parse(runTool("delivery-control.ts", ["approval", "inspect", "--change-root", change]).stdout).effective;
-    const v6Keys = Object.keys(effective);
-    // 门禁条目集合逐项可对应：v6 = v5 去掉两份现状、并入 current-state，其余一一对应，无遗漏。
-    const expected = v5Keys.filter((key) => key !== "business-current" && key !== "technical-current");
-    expected.splice(2, 0, "current-state");
-    assert.deepEqual(v6Keys, expected);
-    assert.deepEqual(v5Keys.filter((key) => !["business-current", "technical-current"].includes(key)).filter((key) => !v6Keys.includes(key)), []);
+    const v7Keys = Object.keys(effective);
+    // T-06.1：六份，且顺序与依赖顺序一致。
+    assert.deepEqual(v7Keys, ["raw-requirements", "specs", "solution-proposal", "solution-decision", "test-plan", "tasks"]);
+    // 被合并掉的那几项确实不在清单里了；没被合并的一项不少。
+    for (const merged of ["business-current", "technical-current", "current-state", "change-plan"]) {
+      assert.equal(v7Keys.includes(merged), false, `已合并的工件仍单列: ${merged}`);
+    }
+    for (const kept of ["raw-requirements", "specs", "solution-proposal", "solution-decision", "test-plan", "tasks"]) {
+      assert.equal(v7Keys.includes(kept), true, `未合并的工件丢了: ${kept}`);
+    }
 
-    // 合并后的 artifact 承接原两份各自参与的全部校验：先把除它以外的工件全部批准，
-    // 此时 apply 必须恰好卡在 current-state 上，证明它确实在门禁清单里。
-    assert.equal(effective["current-state"], "pending");
-    for (const artifact of v6Keys.filter((key) => key !== "current-state")) assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", artifact, "--decision", "approved", "--approved-by", "tester"]).status, 0);
+    // 承接校验。批准第 2 版按「人真实表态一次记一条」记，所以不存在「只批一半」这种状态——
+    // 一条门批准要么覆盖当时的全部工件，要么写不进去。于是这里换个测法：
+    // 先看没有任何门批准时 apply 被拦，再看批准一次之后放行，最后看改任一份工件仍然点名失效。
     let guard = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
-    assert.notEqual(guard.status, 0); assert.match(guard.stderr, /current-state 批准状态为 pending/);
-    // 批准后放行；随后改动正文即 stale，说明 digest 计算确实接在该 artifact 上。
-    assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", "current-state", "--decision", "approved", "--approved-by", "tester"]).status, 0);
+    assert.notEqual(guard.status, 0);
+    assert.match(guard.stderr, /批准状态为 pending/);
+    assert.equal(runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--gate", "decision", "--decision", "approved", "--approved-by", "tester", "--runtime-root", runtimeRoot]).status, 0);
     assert.equal(runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]).status, 0);
-    writeFileSync(join(change, "03-现状/现状.md"), "current drifted\n");
+
+    // T-07.2：一条批准覆盖六份工件，但每份的内容哈希仍逐一记录——改了哪一份就失效，并且点得出名字。
+    const record = JSON.parse(readFileSync(join(change, "artifact-approvals.json"), "utf8"));
+    assert.equal(record.schemaVersion, 2);
+    assert.deepEqual(Object.keys(record.gates), ["decision"]);
+    assert.deepEqual(Object.keys(record.gates.decision.artifacts).sort(), [...v7Keys].sort());
+
+    // 改动并进来的那一节（现状）同样让批准失效——说明内容哈希确实盖住了被合并的内容。
+    writeFileSync(join(change, "05-改造方案/方案提案.md"), proposalBody.replace("改造前长这样。", "改造前其实长那样。"));
     guard = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
-    assert.notEqual(guard.status, 0); assert.match(guard.stderr, /current-state 批准状态为 stale/);
-    // 旧工件名在 v6 结构下不再被接受，避免两套命名并存。
-    const stale = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", "business-current", "--decision", "approved", "--approved-by", "tester"]);
-    assert.notEqual(stale.status, 0); assert.match(stale.stderr, /批准参数非法/);
+    assert.notEqual(guard.status, 0);
+    assert.match(guard.stderr, /solution-proposal 批准状态为 stale/);
+    writeFileSync(join(change, "05-改造方案/方案提案.md"), proposalBody);
+
+    // 改动并进实施任务的那一节同样失效，且报错点名的是另一份工件——定位能力没有因为合并而变粗。
+    writeFileSync(join(change, "07-实施任务/实施任务.md"), files["07-实施任务/实施任务.md"].replace("一片。", "两片。"));
+    guard = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
+    assert.notEqual(guard.status, 0);
+    assert.match(guard.stderr, /tasks 批准状态为 stale/);
+    writeFileSync(join(change, "07-实施任务/实施任务.md"), files["07-实施任务/实施任务.md"]);
+
+    // T-07.3：一条门批准必须覆盖当时的全部工件。这里从「读」的一侧测——门禁用的正是这一侧：
+    // 手写一条只盖住五份的批准，第六份必须被判 pending，且 apply 点名拦住它。
+    const full = JSON.parse(readFileSync(join(change, "artifact-approvals.json"), "utf8"));
+    const partialRecord = JSON.parse(JSON.stringify(full));
+    delete partialRecord.gates.decision.artifacts["test-plan"];
+    writeFileSync(join(change, "artifact-approvals.json"), JSON.stringify(partialRecord, null, 2));
+    const partial = runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]);
+    assert.notEqual(partial.status, 0);
+    assert.match(partial.stderr, /test-plan 批准状态为 pending/);
+    writeFileSync(join(change, "artifact-approvals.json"), JSON.stringify(full, null, 2));
+    assert.equal(runTool("delivery-control.ts", ["guard", "--change-root", change, "--operation", "apply"]).status, 0);
+    // T-07.5：两种口径不得混写——按工件写入的老参数在第 2 版文件上一律拒绝。
+    const mixed = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", "tasks", "--decision", "approved", "--approved-by", "tester", "--runtime-root", runtimeRoot]);
+    assert.notEqual(mixed.status, 0);
+    assert.match(mixed.stderr, /--artifact 不再被接受/);
+    // T-06.2：旧工件名在新结构下一律不被接受，避免两套命名并存。
+    for (const legacy of ["current-state", "change-plan", "business-current"]) {
+      const stale = runTool("delivery-control.ts", ["approval", "set", "--change-root", change, "--artifact", legacy, "--decision", "approved", "--approved-by", "tester", "--runtime-root", runtimeRoot]);
+      assert.notEqual(stale.status, 0, `旧工件名仍被接受: ${legacy}`);
+    }
+
+    // T-06.3：存量结构按各自声明的版本解析，行为不变。
+    for (const [declared, expected] of [
+      [6, ["raw-requirements", "specs", "current-state", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"]],
+      [5, ["raw-requirements", "specs", "business-current", "technical-current", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"]],
+    ] as const) {
+      writeFileSync(join(change, "change-info.json"), JSON.stringify({ schemaVersion: 1, displayName: "演示", deliverySchemaVersion: declared }, null, 2));
+      const keys = Object.keys(JSON.parse(runTool("delivery-control.ts", ["approval", "inspect", "--change-root", change]).stdout).effective);
+      assert.deepEqual(keys, expected as unknown as string[], `声明第 ${declared} 版的 Change 未按该版解析`);
+    }
   } finally { rmSync(root, removeOptions); }
 });
 
@@ -259,23 +325,41 @@ test("VC-030 发布模板删三节且保留 Spec Sync 表与门禁勾选", () =>
   }
 });
 
-test("VC-039 早期目录归档后 active Change 只剩两个", () => {
+/**
+ * VC-039 / T-09（记账型断言的处置示范）。
+ *
+ * 这条断言原先用一份写死的目录清单来表达「早期目录已经归档」。它在 `fix-thorn-batch` 一单里
+ * 撞红两次（建立时登记、归档时注销），在本单建立时又撞红第三次——**三次都没有暴露任何真问题，
+ * 只是在为一份点时快照缴费**。
+ *
+ * 判据是维护者定的：**看这条断言背后有没有真不变量，不看它像不像快照**。
+ * 这里背后的真不变量有两条，跟「此刻在途的是哪几个 Change」无关：
+ *   一、那两个早期目录必须已经归档且带处置记录；
+ *   二、在途目录必须都是合法 Change（有 change-info.json）——半截目录不该赖在 active 里。
+ * 于是改成直接断言这两条。新建或归档一个 Change 之后，这条断言不需要任何改动。
+ *
+ * 同族的反例见 VC-041：那条形态上也像快照，但它背后有真不变量，所以保留原强度。
+ */
+test("VC-039/T-09 早期目录已归档，在途目录都是合法 Change（不再锁死清单）", () => {
   const active = readdirSync(join(runtimeRoot, "openspec/changes"), { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && entry.name !== "archive")
     .map((entry) => entry.name)
     .sort();
-  // 本 Change 归档后，active 只余按裁定 C3 暂不处置的 metrics 目录。
-  // 注意：这是一份**点时快照**断言，不是不变量——每新建一个 Change 都必须在此登记、
-  // 每归档一个又必须在此注销，否则测试立刻转红。fix-thorn-batch 于 2026-09-01 建立时
-  // 曾在此登记，当日归档后再次移除：一建一归两次改动，都只是这条快照的记账。
-  // 该断言形态是否改为真正的不变量（两个早期目录不在 active），已记录在
-  // INT-20260831-014 信号9 与 INT-20260901-023，随工作流重设计裁定。
-  assert.deepEqual(active, ["establish-runtime-metrics-baseline"]);
-  // 两个早期目录确实落到了 archive 且带处置记录。
+  // 不变量一：两个早期目录不在 active，且确实落到了 archive 且带处置记录。
   for (const name of ["2026-09-01-establish-intake-inventory", "2026-09-01-establish-workflow-v01-contract"]) {
+    const slug = name.replace(/^\d{4}-\d{2}-\d{2}-/, "");
+    assert.equal(active.includes(slug), false, `早期目录仍在 active: ${slug}`);
     const archived = join(runtimeRoot, "openspec/changes/archive", name);
     assert.equal(existsSync(archived), true, `未归档: ${name}`);
     assert.equal(existsSync(join(archived, "处置记录.md")), true, `缺处置记录: ${name}`);
+  }
+  // 不变量二：在途目录都是合法 Change。半截目录赖在 active 里同样是账没记清，
+  // 但这条不需要知道「此刻在途的是哪几个」，所以新建、归档都不必回来改它。
+  for (const name of active) {
+    const info = join(runtimeRoot, "openspec/changes", name, "change-info.json");
+    assert.equal(existsSync(info), true, `在途目录不是合法 Change（缺 change-info.json）: ${name}`);
+    const parsed = JSON.parse(readFileSync(info, "utf8")) as { displayName?: string };
+    assert.ok(parsed.displayName && parsed.displayName.length > 0, `在途 Change 缺显示名: ${name}`);
   }
   // superseded 目录的处置记录必须写明取代关系。
   const superseded = readFileSync(join(runtimeRoot, "openspec/changes/archive/2026-09-01-establish-workflow-v01-contract/处置记录.md"), "utf8");
@@ -304,22 +388,47 @@ test("VC-039 早期目录归档后 active Change 只剩两个", () => {
   assert.match(delta, /只读的条目清单/);
 });
 
-test("REV-003 artifact-approvals 合同覆盖 v5/v6 两种工件集且校验真实批准文件", () => {
+test("REV-003/T-07.4 批准合同同时容纳两种口径，并校验仓内全部真实批准文件", () => {
   const schema = JSON.parse(readFileSync(join(runtimeRoot, "openspec/contracts/artifact-approvals.schema.json"), "utf8"));
-  const allowed = Object.keys(schema.properties.artifacts.properties);
-  // 两种形态的工件名都必须被合同接受，否则 v6 Change 写出的批准文件违反本仓自己分发的合同。
+  const [legacy, gated] = schema.oneOf as Array<Record<string, any>>;
+  const allowed = Object.keys(legacy.properties.artifacts.properties);
+  // 两种工件集的名字都必须被合同接受，否则历史 Change 写出的批准文件违反本仓自己分发的合同。
   for (const key of ["raw-requirements", "specs", "current-state", "business-current", "technical-current", "solution-proposal", "solution-decision", "change-plan", "test-plan", "tasks"]) {
     assert.ok(allowed.includes(key), `artifact-approvals 合同缺少工件名: ${key}`);
   }
-  assert.equal(schema.properties.artifacts.additionalProperties, false);
-  // 但不允许两种形态混写进同一个文件。
-  assert.deepEqual(schema.properties.artifacts.not.required, ["current-state", "business-current"]);
+  assert.equal(legacy.properties.artifacts.additionalProperties, false);
+  // 但不允许两种工件集混写进同一个文件。
+  assert.deepEqual(legacy.properties.artifacts.not.required, ["current-state", "business-current"]);
+  // 第 2 版：一条门批准里逐份记哈希，这是「合并批准不丢定位能力」的合同侧保证。
+  assert.equal(gated.properties.schemaVersion.const, 2);
+  assert.equal(gated.properties.gates.additionalProperties.properties.artifacts.minProperties, 1);
+  assert.match(gated.properties.gates.additionalProperties.properties.artifacts.additionalProperties.pattern, /sha256/);
 
   const approvalRequired: string[] = schema.$defs.approval.required;
   const approvalAllowed = Object.keys(schema.$defs.approval.properties);
   /** 针对本合同形状的定向校验：仓内没有 JSON Schema 引擎，也不为一条断言引入依赖。 */
   const validate = (path: string, label: string) => {
     const value = JSON.parse(readFileSync(path, "utf8"));
+    if (value.schemaVersion === 2) {
+      assert.deepEqual(Object.keys(value).sort(), ["gates", "schemaVersion"], `${label} 顶层键`);
+      for (const [gate, record] of Object.entries(value.gates) as Array<[string, Record<string, unknown>]>) {
+        // refreshes 是可选的：还没发生过机械回填的门就没有这个键。必填的那五个一个不能少，
+        // 也不许多出合同外的键——多出来的键说明有人在批准记录里塞了合同没规定的东西。
+        const allowedGateKeys = ["approvedAt", "approvedBy", "artifacts", "decision", "migrationSource", "refreshes"];
+        const requiredGateKeys = ["approvedAt", "approvedBy", "artifacts", "decision", "migrationSource"];
+        for (const key of requiredGateKeys) assert.ok(key in record, `${label}.${gate} 缺 ${key}`);
+        for (const key of Object.keys(record)) assert.ok(allowedGateKeys.includes(key), `${label}.${gate} 出现合同外字段: ${key}`);
+        assert.ok(["approved", "rejected"].includes(record.decision as string), `${label}.${gate}.decision`);
+        assert.ok(typeof record.approvedBy === "string" && (record.approvedBy as string).length > 0, `${label}.${gate}.approvedBy`);
+        const digests = Object.entries(record.artifacts as Record<string, string>);
+        assert.ok(digests.length > 0, `${label}.${gate} 没有覆盖任何工件`);
+        for (const [name, digest] of digests) {
+          assert.ok(allowed.includes(name), `${label}.${gate} 出现合同外工件: ${name}`);
+          assert.match(digest, /^sha256:[0-9a-f]{64}$/, `${label}.${gate}.${name}`);
+        }
+      }
+      return;
+    }
     assert.equal(value.schemaVersion, 1, `${label} schemaVersion`);
     assert.deepEqual(Object.keys(value).sort(), ["artifacts", "schemaVersion"], `${label} 顶层键`);
     const names = Object.keys(value.artifacts);
@@ -333,7 +442,7 @@ test("REV-003 artifact-approvals 合同覆盖 v5/v6 两种工件集且校验真�
       assert.ok(typeof approval.approvedBy === "string" && approval.approvedBy.length > 0, `${label}.${name}.approvedBy`);
     }
   };
-  // 用合同校验仓内全部真实批准文件：active 的 v6/v5 Change 与 12 个归档目录。
+  // 用合同校验仓内全部真实批准文件：在途 Change 与 12 个归档目录，两种口径都要过。
   let checked = 0;
   const walk = (dir: string) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -354,6 +463,13 @@ test("REV-003 artifact-approvals 合同覆盖 v5/v6 两种工件集且校验真�
  * 为名克隆消费仓，前缀本身就要吃掉约 104 字符，因此仓内相对路径的可用余量只有一百五十余字符。
  * 预算取当前实测最大值（裁定 #3：冻结而非缩名存量），作用是挡住继续恶化：
  * 新增的验收与归档证据一旦超限，这里当场点名，而不是等某次冒烟以「偶发 dirty」的面目失败。
+ *
+ * **T-09.3：这条断言形态上像快照，但它保留原强度，不按记账型断言处置。**
+ * 判据是「背后有没有真不变量」，不是「像不像快照」。这里背后的不变量是硬的：Windows 上路径
+ * 超过 260 会把一份干净文件误报成已修改，症状与真实漂移无法区分，人也没有办法在起文件名时
+ * 心算它。常量取等于实测最大值是刻意的棘轮——一旦允许「为了让某条长路径通过顺手把预算调宽」，
+ * 就没人会再把它调回来，而这道防线的全部作用正是挡住继续恶化。
+ * 对照 VC-039：那一条背后没有任何不变量，三次撞红都只是为快照缴费，所以已改写。
  */
 const repositoryPathBudget = 155;
 function overBudget(paths: string[], budget: number): Array<{ path: string; length: number }> {
@@ -519,5 +635,253 @@ test("T-GUARD-3 两个工具经软链路径调用时行为与真实路径一致"
   } finally {
     // rmSync 对 junction 走 unlink 而不递归进目标，实测不会波及被链接的仓库。
     rmSync(root, removeOptions);
+  }
+});
+
+/**
+ * T-02.1/T-02.2（REV-008 通用化，INT-20260901-024 收口）
+ *
+ * 「只有被直接运行时才执行 main()」这类守卫的判据是路径比较，在路径中任意一段是软链或
+ * junction 时必然为假——ESM 主模块走 realpath，argv[1] 保留调用时的写法，两者不等。
+ * 后果不是报错，是进程以退出码 0、零输出静默结束，本应被拒的东西被放行。
+ *
+ * 本断言不再逐个点名文件，而是把 openspec/tools 下的模块按「有没有 main()、有没有导出」
+ * 自动分成三类，逐类施加规则。新加一个入口模块时不需要改这条断言，它自动被覆盖——
+ * 这正是「不变量断言」与「点时快照断言」的差别。
+ */
+test("T-02.1/T-02.2 入口模块一律无条件执行 main()，判据函数不住在入口里", () => {
+  const toolsDir = join(runtimeRoot, "openspec/tools");
+  const stripComments = (source: string) => source.replace(/^\s*\/\/.*$/gm, "").replace(/^\s*\*.*$/gm, "");
+  const pureEntries: string[] = [];
+  const dualRole: string[] = [];
+  const libraries: string[] = [];
+  for (const name of readdirSync(toolsDir).filter((item) => item.endsWith(".ts")).sort()) {
+    const source = readFileSync(join(toolsDir, name), "utf8");
+    const code = stripComments(source);
+    const invokesMain = /\bmain\(\);/.test(code);
+    const exportsSymbols = /^export /m.test(code);
+    if (!invokesMain) { libraries.push(name); continue; }
+    (exportsSymbols ? dualRole : pureEntries).push(name);
+
+    if (!exportsSymbols) {
+      // 纯入口：不导出任何东西，也就没有任何 import 方，守卫失去全部存在理由。
+      // 无条件执行：文件末尾那段调用 main() 的代码必须是一个裸 try，里面不得有任何条件判断。
+      // 不钉具体写法（单行还是多行），只钉「没有条件」这个不变量。
+      const tailIndex = code.lastIndexOf("\ntry");
+      assert.ok(tailIndex >= 0, `${name}: 找不到调用 main() 的收尾代码`);
+      const tail = code.slice(tailIndex);
+      assert.ok(tail.includes("main();"), `${name}: 收尾代码没有调用 main()`);
+      assert.ok(!tail.includes("if ("), `${name}: main() 的调用被条件包住了，入口必须无条件执行`);
+      assert.doesNotMatch(code, /import\.meta\.filename/, `${name}: 入口不得出现 import.meta.filename 守卫`);
+      assert.doesNotMatch(code, /process\.argv\[1\]/, `${name}: 入口不得按 argv[1] 决定是否执行 main`);
+    } else {
+      // 双重身份（既是入口又被别人 import）：守卫不能删，但判据必须能吸收软链，
+      // 也就是两侧都过 realpath 之后再比。行为侧的对照在 T-GUARD-3。
+      assert.ok(code.includes("samePath(process.argv[1]"), `${name}: 既是入口又被 import，其执行守卫必须走 samePath 这一个能吸收软链的判据`);
+      assert.ok(!code.includes("resolve(process.argv[1]) ==="), `${name}: 不得用原样字符串比较作为执行守卫`);
+    }
+  }
+  // 三类都不为空，否则说明分类逻辑本身失效了（比如正则没匹配上任何文件）。
+  assert.ok(pureEntries.length > 0 && dualRole.length > 0 && libraries.length > 0, `分类失效: ${JSON.stringify({ pureEntries, dualRole, libraries })}`);
+  // 升级报告的判据必须已经搬出入口：它是本轮收口的那一处。
+  assert.ok(libraries.includes("upgrade-report.ts"), "升级报告的判据必须住在库模块里");
+  assert.ok(pureEntries.includes("openspec-upgrade.ts"), "openspec-upgrade.ts 必须已成为不导出任何符号的纯入口");
+});
+
+/** T-02.3：判据换了住处之后仍然是同一份判据——搬家不得把校验弄丢。 */
+test("T-02.3 升级报告校验搬进库模块后仍拒绝残缺报告", () => {
+  const archived = join(runtimeRoot, "openspec/changes/archive/2026-08-30-establish-controlled-openspec-upgrades/08-验收/runs/20260830T1151Z-upgrade-final/upgrade-evaluation/upgrade-report.json");
+  const report = JSON.parse(readFileSync(archived, "utf8")) as Record<string, unknown>;
+  validateReport(report);
+  for (const key of ["schemaVersion", "consumers", "result"]) {
+    const broken = { ...report };
+    delete broken[key];
+    assert.throws(() => validateReport(broken), new RegExp(""), `删掉 ${key} 之后校验竟然通过`);
+  }
+});
+
+/** 双重身份模块的守卫全靠 samePath 一处吸收软链，所以它自己必须真的过 realpath。 */
+test("T-02.2 samePath 是唯一能吸收软链的判据，它必须真的做 realpath", () => {
+  const lib = readFileSync(join(runtimeRoot, "openspec/tools/runtime-lib.ts"), "utf8");
+  const body = lib.slice(lib.indexOf("export function samePath"));
+  assert.match(body.slice(0, body.indexOf("\n}")), /realpath/i, "samePath 必须解析真实路径，否则所有双重身份模块的守卫都会在软链下失配");
+});
+
+/** T-06.5：合并后的模板必须真的带上承接来的那一节，否则「并进去」只是嘴上说说。 */
+test("T-06.5 第 7 版模板承接被合并的两节，且旧模板已不存在", () => {
+  const templates = join(runtimeRoot, "openspec/schemas/delivery-change/templates");
+  const proposal = readFileSync(join(templates, "solution-proposal.md"), "utf8");
+  assert.match(proposal, /^## 现状$/m, "方案提案模板缺少承接来的现状一节");
+  assert.match(proposal, /^## 落地后维护者能感知到的具体变化清单$/m, "方案提案模板缺少可感知变化清单");
+  const tasks = readFileSync(join(templates, "tasks.md"), "utf8");
+  assert.match(tasks, /^## 实施切片、迁移与回滚$/m, "实施任务模板缺少承接来的实施切片一节");
+  assert.match(tasks, /^## 任务清单$/m, "实施任务模板缺少渲染边界");
+  assert.match(tasks, /能不能再跑一遍/, "实施任务模板没有说清证据规则");
+  for (const gone of ["current-state.md", "change-plan.md"]) {
+    assert.equal(existsSync(join(templates, gone)), false, `已合并的模板仍然存在: ${gone}`);
+  }
+});
+
+/** 渲染以「任务清单」为界：界线以上人写的内容原样保留，界线以下由机器状态重生成。 */
+test("T-06.5 任务清单渲染保留人写的实施切片一节", () => {
+  const root = mkdtempSync(join(tmpdir(), "delivery-render-"));
+  try {
+    const change = join(root, "openspec/changes/demo-change");
+    mkdirSync(join(change, "07-实施任务"), { recursive: true });
+    writeFileSync(join(change, "change-info.json"), JSON.stringify({ schemaVersion: 1, displayName: "演示", deliverySchemaVersion: 7 }));
+    writeFileSync(join(change, "artifact-approvals.json"), JSON.stringify({ schemaVersion: 1, artifacts: {} }));
+    writeFileSync(join(change, "task-state.json"), JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "planned", deliverables: ["d"], verification: ["v"], evidence: [], blocker: null, replayable: true }] }));
+    const human = "# 实现任务拆分\n\n## 实施切片、迁移与回滚\n\n这一段是人写的，渲染不得动它。\n\n## 任务清单\n旧的渲染结果\n";
+    writeFileSync(join(change, "07-实施任务/实施任务.md"), human, "utf8");
+    assert.equal(runTool("delivery-control.ts", ["task", "render", "--change-root", change]).status, 0);
+    const rendered = readFileSync(join(change, "07-实施任务/实施任务.md"), "utf8");
+    assert.match(rendered, /这一段是人写的，渲染不得动它。/, "渲染把人写的一节冲掉了");
+    assert.doesNotMatch(rendered, /旧的渲染结果/, "界线以下没有被重新生成");
+    assert.match(rendered, /- \[ \] 1\.1 \[planned\]/);
+  } finally { rmSync(root, removeOptions); }
+});
+
+/**
+ * T-09.2：记账型断言处置到位的验收方式——新建或归档一个 Change 之后，
+ * 上面那条断言不需要任何改动就仍然成立。这里用一个临时仓做同构验证：
+ * 造两个在途目录，断言的两条不变量照样成立；把其中一个变成半截目录，立刻被抓。
+ */
+test("T-09.2 新建或归档 Change 后，在途目录断言无需改动仍然成立", () => {
+  const root = mkdtempSync(join(tmpdir(), "delivery-active-"));
+  try {
+    const changes = join(root, "openspec/changes");
+    mkdirSync(join(changes, "archive"), { recursive: true });
+    const legal = (name: string) => {
+      mkdirSync(join(changes, name), { recursive: true });
+      writeFileSync(join(changes, name, "change-info.json"), JSON.stringify({ schemaVersion: 1, displayName: name, deliverySchemaVersion: 7 }));
+    };
+    /** 与被测断言同构的判定：只看两条不变量，不看「此刻在途的是哪几个」。 */
+    const violations = () => readdirSync(changes, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && entry.name !== "archive")
+      .map((entry) => entry.name)
+      .filter((name) => !existsSync(join(changes, name, "change-info.json")));
+
+    legal("alpha");
+    assert.deepEqual(violations(), []);
+    // 再建一个：断言不需要任何改动。这正是它与点时快照的差别。
+    legal("beta");
+    assert.deepEqual(violations(), []);
+    // 归档一个：同样不需要改动。
+    renameSync(join(changes, "alpha"), join(changes, "archive", "2026-09-01-alpha"));
+    assert.deepEqual(violations(), []);
+    // 但半截目录会被抓住——不变量确实还在管事，不是放空。
+    mkdirSync(join(changes, "gamma"), { recursive: true });
+    assert.deepEqual(violations(), ["gamma"]);
+  } finally { rmSync(root, removeOptions); }
+});
+
+/** REV-004：合同侧也要钉住「刷新必须逐份问责」，否则实现改回整体覆写时没人拦。 */
+test("REV-004 批准合同要求刷新记录逐份问责且不覆写原表态", () => {
+  const schema = JSON.parse(readFileSync(join(runtimeRoot, "openspec/contracts/artifact-approvals.schema.json"), "utf8"));
+  const record = schema.oneOf[1].properties.gates.additionalProperties;
+  const refreshes = record.properties.refreshes;
+  assert.ok(refreshes, "合同里没有刷新记录，等于默许整体重签");
+  assert.equal(refreshes.items.properties.artifacts.minItems, 1, "刷新记录可以不写刷新了哪几份，等于没有问责");
+  assert.deepEqual([...refreshes.items.required].sort(), ["artifacts", "refreshedAt", "refreshedBy"]);
+  // 原表态那一对字段的说明必须写明「机械回填不得覆写」，这是这条设计的要害。
+  assert.match(record.properties.approvedBy.description, /不得覆写|不得降级/);
+  assert.match(refreshes.description, /逐份问责/);
+});
+
+/**
+ * REV-006/REV-007 渲染边界。两条都必须按行锚定，早先的写法两条都错过：
+ * 起点用裸子串查找，正文里提到那五个字就把文件腰斩；没有终点，模板界线以下自带的两节
+ * 在首次渲染时被静默删掉。这里三种情形各测一遍。
+ */
+test("REV-006/007 渲染只重写任务清单那一段，人写内容与模板自带节都不动", () => {
+  const root = mkdtempSync(join(tmpdir(), "delivery-boundary-"));
+  const prepare = (body: string) => {
+    const change = join(root, "openspec/changes/demo-change");
+    mkdirSync(join(change, "07-实施任务"), { recursive: true });
+    writeFileSync(join(change, "change-info.json"), JSON.stringify({ schemaVersion: 1, displayName: "演示", deliverySchemaVersion: 7 }));
+    writeFileSync(join(change, "artifact-approvals.json"), JSON.stringify({ schemaVersion: 2, gates: {} }));
+    writeFileSync(join(change, "task-state.json"), JSON.stringify({ schemaVersion: 1, tasks: [{ id: "1.1", state: "planned", deliverables: ["d"], verification: ["v"], evidence: [], blocker: null, replayable: true }] }));
+    writeFileSync(join(change, "07-实施任务/实施任务.md"), body, "utf8");
+    return change;
+  };
+  try {
+    // REV-006：把模板原样放进来，模板界线以下自带的两节必须活下来。
+    const template = readFileSync(join(runtimeRoot, "openspec/schemas/delivery-change/templates/tasks.md"), "utf8");
+    let change = prepare(template);
+    assert.equal(runTool("delivery-control.ts", ["task", "render", "--change-root", change]).status, 0);
+    let out = readFileSync(join(change, "07-实施任务/实施任务.md"), "utf8");
+    assert.match(out, /^## 依赖关系$/m, "模板自带的「依赖关系」被渲染删掉了");
+    assert.match(out, /^## 关于证据$/m, "模板自带的「关于证据」被渲染删掉了——那正是解释可否重跑判据的那一节");
+    assert.match(out, /^## 实施切片、迁移与回滚$/m);
+    assert.match(out, /- \[ \] 1\.1 \[planned\]/);
+    rmSync(join(root, "openspec"), { recursive: true, force: true });
+
+    // REV-007：人写正文里**提到**这五个字，不得触发腰斩。
+    change = prepare("# 实现任务拆分\n\n## 实施切片、迁移与回滚\n\n渲染规则：以 `## 任务清单` 这一行为界，界线以上原样保留。\n这句话后面的内容必须活着。\n\n## 任务清单\n旧的\n\n## 依赖关系\n\n收尾。\n");
+    assert.equal(runTool("delivery-control.ts", ["task", "render", "--change-root", change]).status, 0);
+    out = readFileSync(join(change, "07-实施任务/实施任务.md"), "utf8");
+    assert.match(out, /这句话后面的内容必须活着。/, "正文提到边界字符串就被腰斩了");
+    assert.match(out, /渲染规则：以 `## 任务清单` 这一行为界/, "人写的那句话被截断了");
+    assert.match(out, /^## 依赖关系$/m);
+    assert.doesNotMatch(out, /旧的/, "界线内的旧渲染结果没有被重新生成");
+    // 只应存在一个整行的任务清单标题——腰斩的另一个症状是标题被复制。
+    assert.equal(out.split(/\r?\n/).filter((line) => line.trim() === "## 任务清单").length, 1);
+    rmSync(join(root, "openspec"), { recursive: true, force: true });
+
+    // 边界行带尾随空格同样算数：按行锚定不该被空白骗过。
+    change = prepare("# 实现任务拆分\n\n## 任务清单  \n旧的\n\n## 依赖关系\n\n收尾。\n");
+    assert.equal(runTool("delivery-control.ts", ["task", "render", "--change-root", change]).status, 0);
+    out = readFileSync(join(change, "07-实施任务/实施任务.md"), "utf8");
+    assert.doesNotMatch(out, /旧的/);
+    assert.match(out, /^## 依赖关系$/m);
+  } finally { rmSync(root, removeOptions); }
+});
+
+/**
+ * REV-001：`openspec/config.yaml` 的 rules 段给每类工件挂治理规则，键必须是 schema 里真实存在的
+ * 工件 id。工件合并升版时漏改这里，规则就挂到了一个不存在的 id 上——外部工具只打印一行
+ * 「Unknown artifact ID in rules」就过去了，规则**静默失效**，而承接了那些内容的工件并没有补上。
+ * 这条断言把两侧钉在一起：rules 的键集必须是 schema 工件 id 的子集。
+ */
+test("REV-001 config.yaml 的规则不得挂到不存在的工件上", () => {
+  const config = readFileSync(join(runtimeRoot, "openspec/config.yaml"), "utf8");
+  const schema = readFileSync(join(runtimeRoot, "openspec/schemas/delivery-change/schema.yaml"), "utf8");
+  const artifactIds = new Set((schema.match(/^  - id: (\S+)$/gm) ?? []).map((line) => line.replace(/^  - id: /, "").trim()));
+  assert.ok(artifactIds.size > 0, "没能从 schema 里解析出任何工件 id");
+  // rules 段的键：缩进两格、以冒号结尾、且位于 rules: 之后。
+  const rulesBody = config.slice(config.indexOf("\nrules:"));
+  const ruleKeys = (rulesBody.match(/^ {2}([a-z][a-z0-9-]*):$/gm) ?? []).map((line) => line.trim().replace(/:$/, ""));
+  assert.ok(ruleKeys.length > 0, "没能从 config.yaml 里解析出任何规则键");
+  const orphan = ruleKeys.filter((key) => !artifactIds.has(key));
+  assert.deepEqual(orphan, [], `config.yaml 的规则挂在不存在的工件上，这些规则已经静默失效：${orphan.join("、")}`);
+  // 反向也钉一句：被合并掉的两个旧 id 不得再出现在 rules 里。
+  for (const gone of ["current-state", "change-plan"]) assert.ok(!ruleKeys.includes(gone), `已合并的工件仍挂着规则: ${gone}`);
+});
+
+/**
+ * REV-002：命令正文与它的渲染副本同源，所以「渲染一致性检查」发现不了两边同时过时。
+ * 这条从内容侧钉：命令正文不得再提已取消的工件，也不得再讲已废止的按份批准口径。
+ */
+test("REV-002 命令正文不得停留在已废止的工件与批准口径上", () => {
+  const commandRoot = join(runtimeRoot, ".omp/command-sources/bodies");
+  const rendered = join(runtimeRoot, ".omp/commands");
+  for (const dir of [commandRoot, rendered]) {
+    for (const name of readdirSync(dir).filter((item) => item.endsWith(".md"))) {
+      const body = readFileSync(join(dir, name), "utf8");
+      for (const gone of ["change-plan", "03-现状", "改造方案.md"]) {
+        assert.ok(!body.includes(gone), `${name} 仍在提已取消的工件: ${gone}`);
+      }
+      // 按份批准这条路已经封死，它在正文里有三种出现形态：口径说法、参数名、以及「分项记录」
+      // 这类描述。只堵一种，换个说法就漏过去了——这次漏网的正是参数名那一种。
+      for (const stale of ["分别批准", "--artifact", "分项记录"]) {
+        assert.ok(!body.includes(stale), `${name} 仍在教已废止的按份批准: ${stale}`);
+      }
+      // 工件计数：本单把八份并成六份，任何写死「九项/八项规划工件」的说法都已过时。
+      for (const stale of ["九项规划", "八项规划", "九项 artifact", "八层"]) {
+        assert.ok(!body.includes(stale), `${name} 停留在旧的工件计数: ${stale}`);
+      }
+      // 已取消的目录名同理：照着它建目录会建出一个不存在的层。
+      assert.ok(!body.includes("02-需求理解"), `${name} 仍在指一个已取消的目录`);
+    }
   }
 });

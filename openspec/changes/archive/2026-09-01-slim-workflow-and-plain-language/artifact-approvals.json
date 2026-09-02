@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 2,
+  "gates": {
+    "decision": {
+      "decision": "approved",
+      "approvedBy": "维护者（门口表态由 Claude 转录，非亲签）",
+      "approvedAt": "2026-09-01T21:26:08.110Z",
+      "migrationSource": "重新取得表态：返工语义订正后重新表态：战果数字更正为约 17、撤下未实现承诺、禁词写法改指向名单",
+      "artifacts": {
+        "raw-requirements": "sha256:aff72d6ac9dc03658430dcd31d15866e6386458f4ae99574f7d5bb875f49c074",
+        "specs": "sha256:c9cf9804e02d355ac6f4b50ac2d3a8b1f78f32fe80000ff8fe648f7f9ddca06a",
+        "current-state": "sha256:74d398dd2665763d35ebcf468643684c41bb53226c990cf9ef83f1ba562352cf",
+        "solution-proposal": "sha256:5b4645527fe2cadbbba8558e80c2931dae5337f7980e4abbb2c549d9937f38fb",
+        "solution-decision": "sha256:f7e209a91976a9894b7bf5807936ca0ce41d2b372f5249fa65aa109a548d8ef5",
+        "change-plan": "sha256:fad04cec78fd7c84e78a4d7590279314423884ed4f094bf8bfc88f7ef0e06e82",
+        "test-plan": "sha256:691931cdfeca12715c62900a0914bca107feb22b664add4e11928d7cc95dca8b",
+        "tasks": "sha256:597b645452626e70cc2e73247c2dab706d7e84dd8b8886027f80996415c6f5f9"
+      },
+      "refreshes": [
+        {
+          "refreshedBy": "Claude（任务状态转 verified 后的机械刷新，非人表态）",
+          "refreshedAt": "2026-09-02T01:52:27.286Z",
+          "artifacts": [
+            "tasks"
+          ],
+          "unchanged": []
+        }
+      ]
+    }
+  }
+}

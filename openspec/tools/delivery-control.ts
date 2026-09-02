@@ -8,6 +8,7 @@ import {
   sha256File, sha256Paths, stringArray, text, withFileLock,
 } from "./runtime-lib.ts";
 import { requireAcceptance, requireReadiness, requireReview } from "./delivery-lifecycle.ts";
+import { changeMustPassFiles, loadPolicy, scanBannedWords, unclassifiedFiles, verifyPlainLanguage } from "./plain-language.ts";
 
 // 本仓只有 delivery 一种模式。rehearsal 演练模式已随 change-mode.json 一并退场
 // （全历史零实例）；默认值在这里显式写死，不再从文件解析。
@@ -16,8 +17,10 @@ const mode = "delivery" as const;
 type TaskStateName = "planned" | "implemented_unverified" | "blocked_external" | "verified";
 type ChangeInfo = { schemaVersion: 1; displayName: string; deliverySchemaVersion: number | null };
 type Approval = { digest: string; decision: "approved" | "rejected"; approvedBy: string; approvedAt: string; migrationSource: string | null };
-type ApprovalState = { schemaVersion: 1; artifacts: Record<string, Approval> };
-type Task = { id: string; state: TaskStateName; deliverables: string[]; verification: string[]; evidence: string[]; blocker: string | null };
+type GateRefresh = { refreshedBy: string; refreshedAt: string; artifacts: string[]; unchanged: string[] };
+type GateApproval = { decision: "approved" | "rejected"; approvedBy: string; approvedAt: string; migrationSource: string | null; artifacts: Record<string, string>; refreshes: GateRefresh[] };
+type ApprovalState = { schemaVersion: 1; artifacts: Record<string, Approval>; gates?: undefined } | { schemaVersion: 2; gates: Record<string, GateApproval>; artifacts?: undefined };
+type Task = { id: string; state: TaskStateName; deliverables: string[]; verification: string[]; evidence: string[]; blocker: string | null; replayable: boolean };
 type TaskState = { schemaVersion: 1; tasks: Task[] };
 
 // v6 起 business-current 与 technical-current 合并为单一 current-state。
@@ -49,6 +52,19 @@ const v5ArtifactPaths: Record<string, string[]> = {
   "test-plan": ["06-测试方案/测试方案.md"],
   tasks: ["07-实施任务/实施任务.md"],
 };
+// v7 起再合两份：现状并进方案提案（现状本来就是提案的事实依据），改造方案并进实施任务
+// （两者同在方案决策之后产生、同是写给实施者看的）。测试方案不并——它的编号被任务表与
+// 验收覆盖表逐条回引，删了会断链。合并只减少工件数，不减少任何一项校验：合并后那份文件的
+// 内容哈希涵盖原来两份的全部内容。
+const v7ArtifactPaths: Record<string, string[]> = {
+  "raw-requirements": ["01-原始需求/原始需求索引.md"],
+  specs: ["specs"],
+  "solution-proposal": ["05-改造方案/方案提案.md"],
+  "solution-decision": ["05-改造方案/方案决策.md"],
+  "test-plan": ["06-测试方案/000-测试方案索引.md"],
+  tasks: ["07-实施任务/实施任务.md"],
+};
+const currentDeliverySchemaVersion = 7;
 function artifactPathsFor(root: string): Record<string, string[]> {
   // 优先用 change-info.json 的显式标记判版本：靠「03-现状/现状.md 是否存在」推断，
   // 会让一个新建的 v6 Change 在写出该文件之前被判成 v5，报错文案还会要求已经不存在的模板。
@@ -56,7 +72,7 @@ function artifactPathsFor(root: string): Record<string, string[]> {
   try {
     const value = object(readJson(infoPath(root)), "change-info");
     const declared = value.deliverySchemaVersion;
-    if (typeof declared === "number") return declared >= 6 ? v6ArtifactPaths : v5ArtifactPaths;
+    if (typeof declared === "number") return declared >= 7 ? v7ArtifactPaths : declared >= 6 ? v6ArtifactPaths : v5ArtifactPaths;
   } catch {}
   return existsSync(join(root, currentStatePath)) ? v6ArtifactPaths : v5ArtifactPaths;
 }
@@ -106,10 +122,55 @@ function parseApproval(value: unknown, label: string): Approval {
   const migrationSource = item.migrationSource === null ? null : text(item.migrationSource, `${label}.migrationSource`);
   return { digest: digestPattern(text(item.digest, `${label}.digest`), `${label}.digest`), decision, approvedBy: text(item.approvedBy, `${label}.approvedBy`), approvedAt: text(item.approvedAt, `${label}.approvedAt`), migrationSource };
 }
+/**
+ * 批准记录有两种口径，都要能读。
+ *
+ * 第 1 版「一份工件一条」：全仓 15 个 Change 累计 107 条记录，而维护者在三道门内说过的话
+ * 合计约五十来个字、六次「同意」。一次表态被展开成八条各自签发的记录，读批准链的人就分不清
+ * 「他表了八次态」和「他表了一次态、被复制成八条」——批准链的全部价值恰恰是让人一眼看出
+ * 这次放行是谁按下的。
+ *
+ * 第 2 版「人真实表态一次记一条」：一条记录覆盖那一刻的全部工件，**但每份工件的内容哈希仍
+ * 逐一记录**，所以「改了哪一份就失效、并且能点名是哪一份」的定位能力一份不丢。
+ *
+ * 存量按文件自己声明的版本解析，不迁移——与工件路径表同一取向。
+ */
+function parseGateApproval(value: unknown, label: string, root: string): GateApproval {
+  const item = object(value, label);
+  exactKeys(item, ["decision", "approvedBy", "approvedAt", "migrationSource", "artifacts", "refreshes"], ["decision", "approvedBy", "approvedAt", "migrationSource", "artifacts"], label);
+  const decision = text(item.decision, `${label}.decision`);
+  if (decision !== "approved" && decision !== "rejected") fail(`${label}.decision 非法`);
+  const known = artifactPathsFor(root);
+  const input = object(item.artifacts, `${label}.artifacts`);
+  const artifacts: Record<string, string> = {};
+  for (const [artifact, digest] of Object.entries(input)) {
+    if (!(artifact in known)) fail(`${label}.artifacts 含未知工件: ${artifact}`);
+    artifacts[artifact] = digestPattern(text(digest, `${label}.artifacts.${artifact}`), `${label}.artifacts.${artifact}`);
+  }
+  // refreshes 缺省为空数组：机械回填还没发生过的门就是这个形态，不必回写文件。
+  // 每条刷新记录都要说清「谁、什么时候、刷新了哪几份」——门级批准的问责粒度就落在这里。
+  const refreshes = item.refreshes === undefined ? [] : (Array.isArray(item.refreshes) ? item.refreshes : fail(`${label}.refreshes 必须是数组`)).map((entry, index) => {
+    const record = object(entry, `${label}.refreshes[${index}]`);
+    exactKeys(record, ["refreshedBy", "refreshedAt", "artifacts", "unchanged"], ["refreshedBy", "refreshedAt", "artifacts"], `${label}.refreshes[${index}]`);
+    const names = stringArray(record.artifacts, `${label}.refreshes[${index}].artifacts`);
+    if (!names.length) fail(`${label}.refreshes[${index}].artifacts 不得为空——没说清刷新了哪几份，就等于没有问责`);
+    for (const name of names) if (!(name in known)) fail(`${label}.refreshes[${index}] 含未知工件: ${name}`);
+    return { refreshedBy: text(record.refreshedBy, `${label}.refreshes[${index}].refreshedBy`), refreshedAt: text(record.refreshedAt, `${label}.refreshes[${index}].refreshedAt`), artifacts: names, unchanged: record.unchanged === undefined ? [] : stringArray(record.unchanged, `${label}.refreshes[${index}].unchanged`) };
+  });
+  return { decision, approvedBy: text(item.approvedBy, `${label}.approvedBy`), approvedAt: text(item.approvedAt, `${label}.approvedAt`), migrationSource: item.migrationSource === null ? null : text(item.migrationSource, `${label}.migrationSource`), artifacts, refreshes };
+}
 function parseApprovals(path: string, root: string): ApprovalState {
   const value = object(readJson(path), "artifact-approvals");
+  const version = integer(value.schemaVersion, "artifact-approvals.schemaVersion");
+  if (version === 2) {
+    exactKeys(value, ["schemaVersion", "gates"], ["schemaVersion", "gates"], "artifact-approvals");
+    const input = object(value.gates, "artifact-approvals.gates");
+    const gates: Record<string, GateApproval> = {};
+    for (const [gate, record] of Object.entries(input)) gates[gate] = parseGateApproval(record, `artifact-approvals.gates.${gate}`, root);
+    return { schemaVersion: 2, gates };
+  }
+  if (version !== 1) fail("artifact-approvals.schemaVersion 仅支持 1 或 2");
   exactKeys(value, ["schemaVersion", "artifacts"], ["schemaVersion", "artifacts"], "artifact-approvals");
-  if (value.schemaVersion !== 1) fail("artifact-approvals.schemaVersion 仅支持 1");
   const input = object(value.artifacts, "artifact-approvals.artifacts"); const artifacts: Record<string, Approval> = {};
   for (const [artifact, approval] of Object.entries(input)) {
     if (!(artifact in artifactPathsFor(root))) fail(`未知批准artifact: ${artifact}`);
@@ -117,11 +178,29 @@ function parseApprovals(path: string, root: string): ApprovalState {
   }
   return { schemaVersion: 1, artifacts };
 }
+/**
+ * 单份工件的有效状态。两种口径共用同一个取值域，好让下游门禁与报错文案不必分版本写。
+ * 第 2 版下，某份工件的状态取自「覆盖它的那条门批准」——覆盖不到就是 pending，
+ * 哈希对不上就是 stale，于是失效时仍然点得出是哪一份变了。
+ */
 function approvalStatus(root: string, state: ApprovalState, artifact: string): "pending" | "approved" | "rejected" | "stale" {
-  const record = state.artifacts[artifact]; if (!record) return "pending";
+  let expected: string | null = null;
+  let decision: "approved" | "rejected" | null = null;
+  if (state.schemaVersion === 2) {
+    for (const gate of Object.values(state.gates)) {
+      const digest = gate.artifacts[artifact];
+      if (digest === undefined) continue;
+      expected = digest;
+      decision = gate.decision;
+    }
+  } else {
+    const record = state.artifacts[artifact];
+    if (record) { expected = record.digest; decision = record.decision; }
+  }
+  if (expected === null || decision === null) return "pending";
   let current: string | null = null; try { current = artifactDigest(root, artifact); } catch { current = null; }
-  if (current !== record.digest) return "stale";
-  return record.decision;
+  if (current !== expected) return "stale";
+  return decision;
 }
 function requireApproved(root: string, state: ApprovalState, artifacts: string[]): void {
   for (const artifact of artifacts) {
@@ -150,19 +229,52 @@ function validateEvidence(root: string, evidence: string[], label: string): void
     if (!statSync(target).isFile() || statSync(target).size === 0) fail(`${label} evidence 必须是非空文件: ${item}`);
   }
 }
+/**
+ * 任务解析。
+ *
+ * `replayable` 是本轮新增的字段，回答一个此前没人问过的问题：**这次验证还能不能再跑一遍？**
+ * 维护者原话是「测试日志和验收证据，在 vibe coding 中意义不大……我会觉得单测其实根本不
+ * 需要记录」。判据由此从「证据重不重要」换成「能不能重跑」：
+ *
+ *   - **可重跑**（本仓的自动化测试全属此类）→ **不许留证据路径**。要复核就当场再跑一遍；
+ *     存下来的日志无法证明它对应的是当前这版代码，留着只是让人以为有据可查。
+ *   - **不可重跑**（构造一次请求走一遍场景，做完就没了）→ **必须留证据**，那是唯一一次机会。
+ *
+ * 「记录验证过程」这个能力因此保留在通用底盘上，只是在本仓恒为关闭——这一条是未来接入
+ * 公司仓时最关键的一处差异，那边的验证恰好落在「不可重跑」那一侧。
+ *
+ * 缺省视为可重跑，好让存量任务状态不必改写；但**新写入必须显式声明**（见 requireExplicitReplayable），
+ * 免得默认值替人把「这次验证到底能不能重跑」这个判断悄悄做掉。
+ */
 function parseTask(value: unknown, index: number): Task {
   const item = object(value, `tasks[${index}]`);
-  exactKeys(item, ["id", "state", "deliverables", "verification", "evidence", "blocker"], ["id", "state", "deliverables", "verification", "evidence", "blocker"], `tasks[${index}]`);
+  exactKeys(item, ["id", "state", "deliverables", "verification", "evidence", "blocker", "replayable"], ["id", "state", "deliverables", "verification", "evidence", "blocker"], `tasks[${index}]`);
   const state = text(item.state, `tasks[${index}].state`);
   if (!( ["planned", "implemented_unverified", "blocked_external", "verified"] as string[]).includes(state)) fail(`tasks[${index}].state 非法`);
   const deliverables = stringArray(item.deliverables, `tasks[${index}].deliverables`); const verification = stringArray(item.verification, `tasks[${index}].verification`); const evidence = stringArray(item.evidence, `tasks[${index}].evidence`);
   if (!deliverables.length || !verification.length) fail(`tasks[${index}] 缺少交付物或验证方式`);
+  if (item.replayable !== undefined && typeof item.replayable !== "boolean") fail(`tasks[${index}].replayable 必须是布尔值`);
+  // 缺省值按实际形态推断，而不是一律当成可重跑：归档目录里的存量任务带着自然语言证据，
+  // 一律按可重跑解释会让它们集体解析失败——只读兼容是硬要求，存量不迁移。
+  // 推断只服务于读；新写入必须显式声明（见 requireExplicitReplayable）。
+  const replayable = item.replayable === undefined ? evidence.length === 0 : (item.replayable as boolean);
   const blocker = item.blocker === null ? null : text(item.blocker, `tasks[${index}].blocker`);
-  if (state === "verified" && evidence.length === 0) fail(`tasks[${index}] verified 缺少 evidence`);
+  if (replayable && evidence.length > 0) fail(`tasks[${index}] 声明这次验证可以重跑，就不得保存证据路径——要复核就当场重跑，存下来的日志证明不了它对应当前这版代码`);
+  if (!replayable && state === "verified" && evidence.length === 0) fail(`tasks[${index}] 声明这次验证不可重跑，verified 时必须保存证据——做完就没了，不记就永远丢了`);
   if (state !== "verified" && evidence.length > 0) fail(`tasks[${index}] 非verified不得保存 evidence`);
   if (state === "blocked_external" && blocker === null) fail(`tasks[${index}] blocked_external 缺少 blocker`);
   if (state !== "blocked_external" && blocker !== null) fail(`tasks[${index}] 非blocked_external不得保存 blocker`);
-  return { id: text(item.id, `tasks[${index}].id`), state: state as TaskStateName, deliverables, verification, evidence, blocker };
+  return { id: text(item.id, `tasks[${index}].id`), state: state as TaskStateName, deliverables, verification, evidence, blocker, replayable };
+}
+/**
+ * 新写入必须显式声明 replayable。缺省值只服务于存量任务状态的只读兼容；
+ * 让新写入也吃缺省，等于把一个需要人判断的问题交给默认值回答。
+ */
+function requireExplicitReplayable(path: string): void {
+  const value = object(readJson(path), "task-state");
+  if (!Array.isArray(value.tasks)) return;
+  const missing = (value.tasks as unknown[]).map((item, index) => (item && typeof item === "object" && "replayable" in (item as Record<string, unknown>) ? null : index)).filter((index) => index !== null);
+  if (missing.length) fail(`task-state 写入必须为每个任务显式声明 replayable（这次验证能不能再跑一遍）：缺失于 tasks[${missing.join("], tasks[")}]`);
 }
 function parseTasks(path: string): TaskState {
   const value = object(readJson(path), "task-state");
@@ -191,8 +303,8 @@ function init(root: string, options: Map<string, string>): void {
   if (existsSync(infoPath(root))) fail("Change 已初始化"); const slug = requiredOption(options, "slug"); if (slug !== slugFor(root)) fail("--slug 必须等于Change目录名");
   const requestedMode = options.get("mode") ?? mode; if (requestedMode !== mode) fail(`--mode 只能是 ${mode}：rehearsal 演练模式已随 change-mode.json 一并移除，如需演练模式须重新立法`);
   // 新建 Change 一律显式标记为当前 schema 版本，使版本判别不再依赖目录形状推断。
-  const info = { schemaVersion: 1, displayName: requiredOption(options, "display-name"), deliverySchemaVersion: 6 };
-  withFileLock(lockPath(root), () => { atomicWriteJson(infoPath(root), info); atomicWriteJson(approvalsPath(root), { schemaVersion: 1, artifacts: {} }); });
+  const info = { schemaVersion: 1, displayName: requiredOption(options, "display-name"), deliverySchemaVersion: currentDeliverySchemaVersion };
+  withFileLock(lockPath(root), () => { atomicWriteJson(infoPath(root), info); atomicWriteJson(approvalsPath(root), { schemaVersion: 2, gates: {} }); });
   parseInfo(infoPath(root)); console.log(JSON.stringify({ slug, displayName: info.displayName, mode }, null, 2));
 }
 function inspect(root: string): void {
@@ -201,27 +313,186 @@ function inspect(root: string): void {
   const tasks = existsSync(tasksPath(root)) ? parseTasks(tasksPath(root)) : null; if (tasks && existsSync(taskMarkdownPath(root))) verifyTaskProjection(root, tasks);
   console.log(JSON.stringify({ slug: slugFor(root), displayName: info.displayName, mode, approvals, effective, tasks }, null, 2));
 }
-function approvalSet(root: string, options: Map<string, string>): void {
-  const artifact = requiredOption(options, "artifact"); const decision = requiredOption(options, "decision"); if (!(artifact in artifactPathsFor(root)) || (decision !== "approved" && decision !== "rejected")) fail("批准参数非法");
-  withFileLock(lockPath(root), () => { const state = parseApprovals(approvalsPath(root), root); state.artifacts[artifact] = { digest: artifactDigest(root, artifact), decision, approvedBy: requiredOption(options, "approved-by"), approvedAt: now(), migrationSource: options.get("migration-source") ?? null }; atomicWriteJson(approvalsPath(root), state); console.log(JSON.stringify(state, null, 2)); });
+/**
+ * 需要人工批准的门，由站位定义推导，不另立第二份清单（INT-20260901-020）。
+ *
+ * 此前批准模型与站位模型各说各话：批准模型要八份工件都持人工批准才放行实施，站位模型却写着
+ * 实施站是机器站；测试方案在交付站位里根本没有对应的站，却同样被索取人工表态。两份清单各说
+ * 各话时，agent 按哪一份都能给自己找到依据，门禁就失去了确定性。
+ *
+ * 现在唯一真源是 profile 里 `humanJudgment` 为真的那些站，每站再用 `approvalRecord` 声明它的
+ * 表态记在哪个文件里。落在 artifact-approvals 的那些站就是本文件要求的门；验收门的表态落在
+ * acceptance-state.json，不在这里重复索取。
+ */
+function approvalGatesFor(options: Map<string, string>): string[] {
+  const path = join(runtimeRootFor(options), "openspec/profiles/delivery-change-v1.json");
+  if (!existsSync(path)) fail("交付站位定义不存在，无法推导需要人工批准的门");
+  const profile = object(readJson(path), "delivery-change profile");
+  if (!Array.isArray(profile.stages)) fail("交付站位定义非法：stages 不是数组");
+  const gates: string[] = [];
+  for (const [index, value] of (profile.stages as unknown[]).entries()) {
+    const stage = object(value, `stages[${index}]`);
+    if (stage.humanJudgment !== true) {
+      if (stage.approvalRecord !== undefined) fail(`stages[${index}] 不是人工判断站，却声明了表态落点`);
+      continue;
+    }
+    const record = text(stage.approvalRecord, `stages[${index}].approvalRecord`);
+    if (record === "artifact-approvals") gates.push(text(stage.id, `stages[${index}].id`));
+    else if (record !== "acceptance-state") fail(`stages[${index}].approvalRecord 取值非法: ${record}`);
+  }
+  if (!gates.length) fail("交付站位定义里没有任何一个门把表态记进 artifact-approvals");
+  return gates;
 }
-function approvalsInspect(root: string): void { const state = parseApprovals(approvalsPath(root), root); const effective: Record<string, string> = {}; for (const artifact of Object.keys(artifactPathsFor(root))) effective[artifact] = approvalStatus(root, state, artifact); console.log(JSON.stringify({ ...state, effective }, null, 2)); }
-function taskWrite(root: string, options: Map<string, string>): void { const imported = parseTasks(requiredOption(options, "file")); parseInfo(infoPath(root)); for (const task of imported.tasks) validateEvidence(root, task.evidence, `tasks[${task.id}]`); withFileLock(lockPath(root), () => atomicWriteJson(tasksPath(root), imported)); console.log(JSON.stringify(imported, null, 2)); }
+/**
+ * 批准写入。三条路径，靠参数区分，谁也不能悄悄变成谁。
+ *
+ * 一、**首签**（这一门还没有任何记录）：`--gate <站位id> --decision approved --approved-by <表态形态>`。
+ *     一次覆盖当时的全部工件，逐份记内容哈希。
+ *
+ * 二、**机械回填后的刷新**（这一门已有批准）：必须显式声明**这次刷新了哪几份文件**
+ *     （`--refreshed-artifact a,b`）。机器把「实际发生变化的那批工件」与「声明的那批」对照，
+ *     **声明之外还有文件变了就拒绝**。理由是独立评审实测出来的一条链路：门级批准原先是整体覆写，
+ *     于是「回填任务状态」这种每次 `task render` 都会发生的机械改动，可以顺带把一处被篡改的方案决策
+ *     一起重新祝福——八份工件全回到 approved，门禁放行，篡改毫无提示。逐份问责堵的就是这条通道：
+ *     搭车的那一份会被点名。刷新只改被声明的那几份的哈希，**首次表态的人与时间原样保留**，
+ *     刷新记录追加到 refreshes 里，不覆写历史。
+ *
+ * 三、**重新取得人工表态**（内容有语义改动，必须重新过人）：`--new-attestation`。它会覆写表态人与
+ *     时间、重算全部哈希、清空刷新记录——因为这是一次全新的表态，不是回填。它的值是「为什么需要
+ *     重新过人」的一句说明，会记进批准记录：读批准链的人不仅看得出表态时间变了，还看得出为什么变。
+ */
+function parseRefreshedArtifacts(options: Map<string, string>, known: string[]): string[] {
+  const raw = requiredOption(options, "refreshed-artifact");
+  const declared = raw.split(",").map((item) => item.trim()).filter(Boolean);
+  if (!declared.length) fail("--refreshed-artifact 不得为空");
+  const unknown = declared.filter((item) => !known.includes(item));
+  if (unknown.length) fail(`--refreshed-artifact 含未知工件: ${unknown.join("、")}`);
+  const duplicated = declared.filter((item, index) => declared.indexOf(item) !== index);
+  if (duplicated.length) fail(`--refreshed-artifact 有重复项: ${[...new Set(duplicated)].join("、")}`);
+  return declared;
+}
+function currentDigests(root: string, required: string[]): Record<string, string> {
+  const artifacts: Record<string, string> = {};
+  const missing: string[] = [];
+  for (const artifact of required) {
+    try { artifacts[artifact] = artifactDigest(root, artifact); } catch { missing.push(artifact); }
+  }
+  if (missing.length) fail(`这一门的批准必须覆盖当时的全部工件，下列工件还不存在或读不出内容：\n  ${missing.join("\n  ")}`);
+  return artifacts;
+}
+function approvalSet(root: string, options: Map<string, string>): void {
+  withFileLock(lockPath(root), () => {
+    const state = parseApprovals(approvalsPath(root), root);
+    if (state.schemaVersion === 2) {
+      const gates = approvalGatesFor(options);
+      const gate = options.get("gate") ?? (gates.length === 1 ? gates[0] : fail(`存在多个需要人工批准的门，必须用 --gate 指定其一: ${gates.join("、")}`));
+      if (!gates.includes(gate)) fail(`未知的人工批准门 ${gate}；站位定义里落在批准记录上的门只有: ${gates.join("、")}`);
+      if (options.has("artifact")) fail("--artifact 不再被接受：批准按人真实表态的次数记，一次表态一条记录，覆盖当时的全部工件");
+      const required = Object.keys(artifactPathsFor(root));
+      const existing = state.gates[gate];
+      // 这个标志带值，值是「为什么要重新过人」的说明——一次新的人工表态总该说得出理由。
+      const newAttestation = options.get("new-attestation") ?? null;
+      if (existing && newAttestation === null) {
+        // 路径二：机械回填后的刷新。逐份问责，声明之外的变化一律拒绝。
+        if (options.has("decision") && options.get("decision") !== existing.decision) fail("刷新不得改变这一门的结论；结论要变就是一次新的人工表态，请用 --new-attestation");
+        if (options.has("approved-by")) fail("刷新不接受 --approved-by：表态人与时间记的是人真实表态，机械回填碰不得。本次刷新的执行者请用 --refreshed-by 声明。");
+        const declared = parseRefreshedArtifacts(options, required);
+        const current = currentDigests(root, required);
+        const changed = required.filter((artifact) => current[artifact] !== existing.artifacts[artifact]);
+        const undeclared = changed.filter((artifact) => !declared.includes(artifact));
+        if (undeclared.length) {
+          fail(`刷新被拒绝：声明只刷新了 ${declared.join("、")}，但下列工件的内容也变了——\n  ${undeclared.join("\n  ")}\n机械回填不得顺带重新祝福别的工件。若这些改动确有语义，必须重新取得维护者表态（--new-attestation）；若只是漏声明，把它们加进 --refreshed-artifact 再来一次。`);
+        }
+        const unchanged = declared.filter((artifact) => !changed.includes(artifact));
+        const artifacts = { ...existing.artifacts };
+        for (const artifact of declared) artifacts[artifact] = current[artifact];
+        const refreshes = [...existing.refreshes, {
+          refreshedBy: requiredOption(options, "refreshed-by"),
+          refreshedAt: now(),
+          artifacts: declared,
+          // 声明了却没变的也如实记下来：它不是错误，但读记录的人有权知道这次刷新实际动了什么。
+          unchanged,
+        }];
+        state.gates[gate] = { ...existing, artifacts, refreshes };
+        atomicWriteJson(approvalsPath(root), state);
+        console.log(JSON.stringify({ gate, refreshed: declared, unchanged, attestationPreserved: { approvedBy: existing.approvedBy, approvedAt: existing.approvedAt } }, null, 2));
+        return;
+      }
+      const decision = requiredOption(options, "decision");
+      if (decision !== "approved" && decision !== "rejected") fail("批准参数非法");
+      if (!existing && newAttestation !== null) fail("--new-attestation 只用于这一门已有批准、且内容有语义改动需要重新过人的情形；首签不必声明它");
+      const attestationNote = newAttestation === null ? (options.get("migration-source") ?? null) : `重新取得表态：${newAttestation}`;
+      state.gates[gate] = { decision, approvedBy: requiredOption(options, "approved-by"), approvedAt: now(), migrationSource: attestationNote, artifacts: currentDigests(root, required), refreshes: [] };
+      atomicWriteJson(approvalsPath(root), state);
+      console.log(JSON.stringify(state, null, 2));
+      return;
+    }
+    const decision = requiredOption(options, "decision");
+    if (decision !== "approved" && decision !== "rejected") fail("批准参数非法");
+    const artifact = requiredOption(options, "artifact");
+    if (!(artifact in artifactPathsFor(root))) fail("批准参数非法");
+    state.artifacts[artifact] = { digest: artifactDigest(root, artifact), decision, approvedBy: requiredOption(options, "approved-by"), approvedAt: now(), migrationSource: options.get("migration-source") ?? null };
+    atomicWriteJson(approvalsPath(root), state);
+    console.log(JSON.stringify(state, null, 2));
+  });
+}
+function approvalsInspect(root: string, options: Map<string, string>): void {
+  const state = parseApprovals(approvalsPath(root), root);
+  const effective: Record<string, string> = {};
+  for (const artifact of Object.keys(artifactPathsFor(root))) effective[artifact] = approvalStatus(root, state, artifact);
+  console.log(JSON.stringify({ ...state, effective }, null, 2));
+}
+function taskWrite(root: string, options: Map<string, string>): void { const file = requiredOption(options, "file"); requireExplicitReplayable(file); const imported = parseTasks(file); parseInfo(infoPath(root)); for (const task of imported.tasks) validateEvidence(root, task.evidence, `tasks[${task.id}]`); withFileLock(lockPath(root), () => atomicWriteJson(tasksPath(root), imported)); console.log(JSON.stringify(imported, null, 2)); }
 function taskSet(root: string, options: Map<string, string>): void {
   withFileLock(lockPath(root), () => { const state = parseTasks(tasksPath(root)); const task = state.tasks.find((item) => item.id === requiredOption(options, "id")); if (!task) fail("未知 task id"); const next = requiredOption(options, "state"); if (!( ["planned", "implemented_unverified", "blocked_external", "verified"] as string[]).includes(next)) fail("任务状态非法"); task.state = next as TaskStateName; task.evidence = options.has("evidence") ? [requiredOption(options, "evidence")] : []; task.blocker = options.has("blocker") ? requiredOption(options, "blocker") : null; parseTask(task, 0); validateEvidence(root, task.evidence, `tasks[${task.id}]`); atomicWriteJson(tasksPath(root), state); console.log(JSON.stringify(state, null, 2)); });
 }
+/**
+ * 任务清单渲染。
+ *
+ * 第 7 版起「实施切片、迁移与回滚」并进了这份文件，而那一节是人写的、不参与渲染。
+ * 所以渲染只重写**一段**，不整份覆盖。这一段的边界是两条：
+ *
+ *   起点：**整行等于**「## 任务清单」的那一行；
+ *   终点：其后第一个整行以「## 」开头的标题（没有就到文件末尾）。
+ *
+ * 两条边界都必须按行锚定，早先的写法两条都错过：
+ *   - 起点用裸子串查找，于是人写部分只要在正文里**提到**这五个字（模板与 schema 的写作说明
+ *     恰恰都在要求作者理解这条边界规则，提到它一点也不罕见），文件就从那句话中间被腰斩，
+ *     其后的人写内容全部消失，而任务投影校验照样通过、没有任何报警。
+ *   - 没有终点，于是界线以下的一切都被重新生成，模板自带的「依赖关系」「关于证据」两节
+ *     在首次渲染时就被静默删掉——后者恰恰是解释可否重跑判据的那一节。
+ *
+ * 文件里没有这条起点行时（存量 Change 都没有）行为与从前一致：整份覆盖。
+ * 状态真源仍然只有 task-state.json 一处；这里保留的是人写的说明，不是状态。
+ */
+const taskListHeading = "## 任务清单";
 function renderTasks(root: string): void {
   const state = parseTasks(tasksPath(root));
-  let content = "# 实现任务拆分\n\n> 状态真源：`task-state.json`。本文件由 `delivery-control.ts task render` 生成，只用于人工审阅；禁止反向解析复选框。\n";
+  let list = "";
   for (const task of state.tasks) {
-    content += `\n- [${task.state === "verified" ? "x" : " "}] ${task.id} [${task.state}]\n`;
-    content += `  - 交付物：${task.deliverables.join("；")}\n`;
-    content += `  - 验证：${task.verification.join("；")}`;
+    list += `\n- [${task.state === "verified" ? "x" : " "}] ${task.id} [${task.state}]\n`;
+    list += `  - 交付物：${task.deliverables.join("；")}\n`;
+    list += `  - 验证：${task.verification.join("；")}`;
   }
-  writeFileSync(taskMarkdownPath(root), `${content.replace(/\n+$/, "")}\n`, "utf8");
+  const rendered = `${taskListHeading}\n${list.replace(/\n+$/, "")}\n`;
+  const existing = existsSync(taskMarkdownPath(root)) ? readFileSync(taskMarkdownPath(root), "utf8") : "";
+  const lines = existing.split(/\r?\n/);
+  const start = lines.findIndex((line) => line.trim() === taskListHeading);
+  let content: string;
+  if (start < 0) {
+    content = `# 实现任务拆分\n\n> 状态真源：\`task-state.json\`。本文件由 \`delivery-control.ts task render\` 生成，只用于人工审阅；禁止反向解析复选框。\n\n${rendered}`;
+  } else {
+    const rest = lines.slice(start + 1);
+    const nextHeading = rest.findIndex((line) => line.startsWith("## "));
+    const before = lines.slice(0, start).join("\n");
+    const after = nextHeading < 0 ? "" : rest.slice(nextHeading).join("\n");
+    content = `${before}${before && !before.endsWith("\n") ? "\n" : ""}${rendered}${after ? `\n${after}` : ""}`;
+  }
+  writeFileSync(taskMarkdownPath(root), content.replace(/\n*$/, "\n"), "utf8");
   verifyTaskProjection(root, state);
   console.log(JSON.stringify({ path: taskMarkdownPath(root), tasks: state.tasks.length }, null, 2));
 }
+
 // ---- 声明与事实的交叉校验（REV-002）--------------------------------------
 // 登记时声明的 changeObject 是自报字段。只查表不核对，等于把豁免开关交回给调用方。
 // 这里按路由表的路径前缀表把「实际 git diff 触碰的路径」归类，与声明的档位序对照：
@@ -307,6 +578,20 @@ function touchedPaths(repo: string, root: string): string[] | null {
   // Change 目录自身是治理产物，不是被声明档位约束的实现改动。
   return [...collected].filter((path) => path !== changeRel && !path.startsWith(`${changeRel}/`)).sort();
 }
+/**
+ * 说人话关的仓级作用域：仓库根，加上本次改动实际碰过的路径。
+ *
+ * 与越档交叉校验共用 touchedPaths，取的是同一份「这次到底动了什么」的事实——两处判定用两份
+ * 不同的改动清单，迟早会给出互相矛盾的结论。拿不到 git 事实时返回 null：此时仓级那一侧不检查，
+ * 而不是拿一份猜出来的清单去拦人。Change 内那一侧照常检查，不受影响。
+ */
+function repoScopeFor(root: string): { repoRoot: string; changedPaths: string[] } | null {
+  const repoOutput = git(root, ["rev-parse", "--show-toplevel"]);
+  if (!repoOutput) return null;
+  const repo = realpathSync(repoOutput.trim());
+  const paths = touchedPaths(repo, root);
+  return paths === null ? null : { repoRoot: repo, changedPaths: paths };
+}
 function verifyDeclaredScope(root: string, options: Map<string, string>): void {
   const table = loadRoutingTable(runtimeRootFor(options));
   if (!table) return;
@@ -339,7 +624,9 @@ function guard(root: string, operation: string, options: Map<string, string> = n
   parseInfo(infoPath(root)); const approvals = parseApprovals(approvalsPath(root), root); const requiredBeforeAcceptance = requiredBeforeAcceptanceFor(root);
   if (operation === "apply") { requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); }
   else if (operation === "acceptance") { requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); if (state.tasks.some((task) => task.state !== "verified")) fail("验收前全部任务必须 verified"); requireReview(root); }
-  else if (operation === "release") { guard(root, "acceptance", options); requireAcceptance(root); }
+  // 说人话关的关口设在归档之前：本仓的「发出」就是开 PR，而 PR 在归档之后才创建。
+  // 放在验收门之前会拦住验收记录自己（它要先写出来才能被审读），放在归档之后就来不及了。
+  else if (operation === "release") { guard(root, "acceptance", options); requireAcceptance(root); verifyPlainLanguage(root, runtimeRootFor(options), repoScopeFor(root)); }
   else if (operation === "verify") { requireApproved(root, approvals, requiredBeforeAcceptance); validateDecisionArtifacts(root); const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); verifyDeclaredScope(root, options); }
   else if (operation === "sync") { requireAcceptance(root); }
   else if (operation === "archive") { guard(root, "release", options); requireReadiness(root); }
@@ -347,5 +634,36 @@ function guard(root: string, operation: string, options: Map<string, string> = n
   console.log(JSON.stringify({ allowed: true, operation, mode }, null, 2));
 }
 function adapterInspect(options: Map<string, string>): void { const registry = object(readJson(requiredOption(options, "registry")), "source-adapters"); exactKeys(registry, ["schemaVersion", "adapters"], ["schemaVersion", "adapters"], "source-adapters"); if (registry.schemaVersion !== 1 || !Array.isArray(registry.adapters)) fail("source-adapters合同非法"); const ids = new Set<string>(); for (const [index, value] of registry.adapters.entries()) { const adapter = object(value, `adapters[${index}]`); exactKeys(adapter, ["id", "command", "trustDomain", "kinds"], ["id", "command", "trustDomain", "kinds"], `adapters[${index}]`); const id = text(adapter.id, `adapters[${index}].id`); if (ids.has(id)) fail(`重复adapter id: ${id}`); ids.add(id); const command = text(adapter.command, `adapters[${index}].command`); if (isAbsolute(command) || command.split(/[\\/]/).includes("..")) fail(`adapter command越界: ${command}`); const domain = text(adapter.trustDomain, `adapters[${index}].trustDomain`); if (domain !== "work" && domain !== "private") fail("adapter trustDomain非法"); stringArray(adapter.kinds, `adapters[${index}].kinds`); } console.log(JSON.stringify(registry, null, 2)); }
-function main(): void { const parsed = parseArgs(process.argv.slice(2)); const root = resolve(requiredOption(parsed.options, "change-root")); const [command, action] = parsed.positional; if (command === "init") init(root, parsed.options); else if (command === "inspect") inspect(root); else if (command === "approval" && action === "inspect") approvalsInspect(root); else if (command === "approval" && action === "set") approvalSet(root, parsed.options); else if (command === "task" && action === "inspect") { const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); console.log(JSON.stringify(state, null, 2)); } else if (command === "task" && action === "write") taskWrite(root, parsed.options); else if (command === "task" && action === "set") taskSet(root, parsed.options); else if (command === "task" && action === "render") renderTasks(root); else if (command === "adapter" && action === "inspect") adapterInspect(parsed.options); else if (command === "runtime-check") console.log(JSON.stringify({ allowed: true, runtime: "delivery-spec-runtime", schema: "delivery-change" }, null, 2)); else if (command === "guard") guard(root, requiredOption(parsed.options, "operation"), parsed.options); else fail("未知delivery-control命令"); }
+/**
+ * 说人话关的命令行入口。放在这里而不是 plain-language.ts 里，是因为那份文件是库模块——
+ * 入口模块不得导出需要被断言的纯判据函数，判据和入口必须分开住。
+ *
+ * `check` 跑完整判定（必过文件都有审读记录、没有挂着的意见、没有禁词）；
+ * `scan` 只扫禁词，用于 PR 正文这类没有落盘位置、机器扫不到的文字：把草稿写成文件喂进来。
+ */
+function plainLanguage(root: string, options: Map<string, string>, action: string | undefined): void {
+  const runtime = runtimeRootFor(options);
+  if (action === undefined || action === "check") {
+    const result = verifyPlainLanguage(root, runtime, repoScopeFor(root));
+    console.log(JSON.stringify({ allowed: true, ...result }, null, 2));
+    return;
+  }
+  if (action === "scan") {
+    const policy = loadPolicy(runtime);
+    const file = requiredOption(options, "file");
+    const target = resolve(file);
+    if (!existsSync(target)) fail(`待扫描文件不存在: ${file}`);
+    const hits = scanBannedWords(dirname(target), [basename(target)], policy);
+    if (hits.length) fail(`人读文字里出现了禁词：\n  ${hits.map((hit) => `${file}:${hit.line} 「${hit.word}」→ 改用「${hit.replacement}」`).join("\n  ")}`);
+    console.log(JSON.stringify({ allowed: true, file, bannedWords: policy.bannedWords.map((item) => item.word) }, null, 2));
+    return;
+  }
+  if (action === "inspect") {
+    const policy = loadPolicy(runtime);
+    console.log(JSON.stringify({ policyVersion: policy.policyVersion, mustPassInChange: changeMustPassFiles(root, policy), unclassifiedInChange: unclassifiedFiles(root, policy), repoMustPass: policy.repoMustPass, manualMustPass: policy.manualMustPass, exempt: policy.exempt, bannedWords: policy.bannedWords }, null, 2));
+    return;
+  }
+  fail("plain-language 的动作必须是 check、scan 或 inspect");
+}
+function main(): void { const parsed = parseArgs(process.argv.slice(2)); const root = resolve(requiredOption(parsed.options, "change-root")); const [command, action] = parsed.positional; if (command === "init") init(root, parsed.options); else if (command === "plain-language") plainLanguage(root, parsed.options, action); else if (command === "inspect") inspect(root); else if (command === "approval" && action === "inspect") approvalsInspect(root, parsed.options); else if (command === "approval" && action === "set") approvalSet(root, parsed.options); else if (command === "task" && action === "inspect") { const state = parseTasks(tasksPath(root)); verifyTaskProjection(root, state); console.log(JSON.stringify(state, null, 2)); } else if (command === "task" && action === "write") taskWrite(root, parsed.options); else if (command === "task" && action === "set") taskSet(root, parsed.options); else if (command === "task" && action === "render") renderTasks(root); else if (command === "adapter" && action === "inspect") adapterInspect(parsed.options); else if (command === "runtime-check") console.log(JSON.stringify({ allowed: true, runtime: "delivery-spec-runtime", schema: "delivery-change" }, null, 2)); else if (command === "guard") guard(root, requiredOption(parsed.options, "operation"), parsed.options); else fail("未知delivery-control命令"); }
 try { main(); } catch (error) { console.error((error as Error).message); process.exitCode = 1; }

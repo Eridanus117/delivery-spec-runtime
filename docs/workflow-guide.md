@@ -73,11 +73,15 @@ node --experimental-strip-types \
 
 `/opsx-explore` 适合第一阶段：帮助澄清问题、调查现状和比较方向，默认不建立 Change。确定要做之后使用 `/opsx-new` 或 `/opsx-propose` 建立 Change；不要把聊天记录、Issue 或 Intake 当作正式 Requirement 的唯一载体。
 
-Change 内不需要另造一个统一的“需求分析.md”。按分析性质填写既有工件：`01` 保留原始需求及来源（材料索引表的 RAW 编号顺序即权威顺序），`02` 归一化 WHAT/WHY、范围、术语和可验收 Scenario，`03` 记录业务与技术现状（v6 起合并为一份），`05` 记录候选方案和维护者决策。这样既保留原意，也让后续实现、Review 和归档可以逐项追溯。
+Change 内不需要另造一个统一的“需求分析.md”。按分析性质填进既有工件：`01-原始需求/原始需求索引.md` 保留原始需求及来源（材料索引表的 RAW 编号顺序即权威顺序），`specs/<能力>/spec.md` 归一化 WHAT/WHY、范围、术语和可验收 Scenario，`05-改造方案/方案提案.md` 写现状与候选方案（第 7 版起现状并入这里，不再单独成层），`05-改造方案/方案决策.md` 记录维护者的选择。这样既保留原意，也让后续实现、Review 和归档可以逐项追溯。
 
 Runtime 不会只生成一份静态方案。它把“为什么改、决定怎么改、实际改了什么、如何证明正确”保存在同一条可审计链中。
 
 ## 多 Profile Workflow System
+
+> **命令路径的两种写法**：下面的示例按 **Runtime 仓自己**的位置写成 `openspec/tools/...`。
+> 在**项目仓**里跑同一条命令，前面要加 `.delivery-spec-runtime/` 前缀——Runtime 是以 Git 子模块的
+> 形式接进去的，它的工具不在项目仓自己的 `openspec/tools/` 下。照抄前先确认自己在哪个仓。
 
 Runtime 同一仓库可以注册多套 workflow profile。Profile 是可版本化的阶段合同；它定义用途、适用范围、阶段顺序、每阶段输入、退出条件和人工判断节点。每个 Change 必须显式绑定 `profileId` 与 `profileVersion`，执行时只解析该精确版本，不自动选择最新版本，也不跨仓扫描其他 profile。
 
@@ -99,7 +103,13 @@ node --experimental-strip-types \
   --request-file request.json
 ```
 
-如果事项还没有正式 Change，可以直接调用 standalone workflow execution：
+如果事项还没有正式 Change，有两个入口，**按「要不要留下可追溯的产物」二选一**：
+
+- **要留产物**（走本仓流程的正常做法）：用 `workflow-control.ts run --intake-id`，见下文「事项还没立项时，
+  分析线怎么跑」。它把绑定、请求与结果三份产物落在 `openspec/intake/analysis/<事项记录 id>/`，
+  立项门会去读它们；不走这个入口，立项会因为「缺分析线产物」被拒。
+- **只想试跑一次、不留产物**：用下面这个独立入口。它只读你显式给的输入文件，把单次结果写到 stdout
+  或 `--output-file`，**不写任何仓内产物**，因此它的结果不能用来过立项门。
 
 ```bash
 node --experimental-strip-types \
@@ -131,6 +141,30 @@ capture → clarify ↺ → discover ↺ → evaluate ↺ → decision
 
 `analysisRounds` 是调用方累积的轮次数组；每项至少记录 `round`、`stage`、`known`、`unknown`、`evidence`、`confidence`、`judgment` 和 `decision`。Runtime 检查结构并在 `outputs.publishedInputs` 回显，不替调用方判断事实是否真实，也不替调用方持久化历史。
 
+### 事项还没立项时，分析线怎么跑
+
+立项之前还没有 Change，所以不能用 `--change-root`，要用 `--intake-id`。两个参数互斥，同时给会被拒绝。
+绑定与推进各一条命令，可以直接照抄：
+
+```bash
+# 一次性绑定：把 profile 钉到这条事项记录上
+node --experimental-strip-types \
+  openspec/tools/workflow-control.ts bind \
+  --intake-id INT-20260901-023-repo-suited-workflow \
+  --profile-id requirement-analysis --profile-version v1.0.0 \
+  --runtime-root .
+
+# 每补齐一站的输入就推进一次
+node --experimental-strip-types \
+  openspec/tools/workflow-control.ts run \
+  --intake-id INT-20260901-023-repo-suited-workflow \
+  --request-file openspec/intake/analysis/INT-20260901-023-repo-suited-workflow/workflow-request.json \
+  --runtime-root .
+```
+
+三份产物都落在 `openspec/intake/analysis/<事项记录 id>/`：`workflow-binding.json`（绑定）、
+`workflow-request.json`（各站输入）、`workflow-result.json`（运行结果）。目录名、绑定里的事项 id、
+请求里的事项 id 三者必须一致，否则会被拒——不然立项门可能拿另一条事项的分析结果给这条放行。
 `clarify`、`discover` 和 `evaluate` 都可在人工判断 `continue-analysis` 时保持当前阶段；判断 `sufficient` 才能进入下一阶段。决策处置只能是 `build`、`use-existing`、`defer` 或 `reject`。`build` 只表示“可以由调用方创建后续 Change”，不会自动创建 Change、读取 Desk 或写回 Desk。Desk 负责个人分析策略和事项归属；Runtime 负责阶段合同和结果状态。
 
 ## 一个完整例子
@@ -180,12 +214,11 @@ openspec/changes/add-order-export/
 
 | 阶段 | 主要产物 | 回答的问题 |
 |---|---|---|
-| 01 原始需求 | `原始需求索引.md`、来源合同 | 用户原本说了什么，证据来自哪里？ |
-| 02 需求理解 | delta specs、术语和边界 | 系统必须表现出什么可观察行为？ |
-| 03 现状 | 角色、对象、当前流程、入口、依赖、数据和失败语义 | 改造前业务如何运作，当前代码实际上如何实现？ |
-| 05 改造方案 | 方案提案、方案决策、改造计划 | 有哪些候选，维护者选择了什么？ |
-| 06 测试方案 | 场景、断言、fixture 和清理 | 怎样证明改造正确？ |
-| 07 实施任务 | `task-state.json` 和人工视图 | 具体修改什么，如何验证每项任务？ |
+| 01 原始需求 | `01-原始需求/原始需求索引.md` | 用户原本说了什么，证据来自哪里？ |
+| specs | `specs/<能力>/spec.md`（长期规范增量） | 系统必须表现出什么可观察行为？ |
+| 05 改造方案 | `方案提案.md`（含现状）、`方案决策.md` | 改造前是什么样，有哪些候选，维护者选了什么？ |
+| 06 测试方案 | `000-测试方案索引.md`：场景、断言、fixture 和清理 | 怎样证明改造正确？ |
+| 07 实施任务 | `实施任务.md`（含实施切片、迁移与回滚）与 `task-state.json` | 具体改什么，怎么验证每一项？ |
 
 重要边界：Proposal 可以推荐方案，但 `方案决策.md` 必须记录维护者的明确选择。批准后的工件内容变化会使原批准失效，下游不能继续假装有效。
 

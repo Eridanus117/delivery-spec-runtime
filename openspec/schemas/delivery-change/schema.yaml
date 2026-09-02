@@ -1,6 +1,6 @@
 name: delivery-change
-version: 6
-description: 面向真实交付的提案、决策、实现审查、验收、先归档后PR八层工作流
+version: 7
+description: 面向真实交付的提案、决策、实现审查、验收、先归档后PR六层工作流
 
 artifacts:
   - id: raw-requirements
@@ -22,40 +22,28 @@ artifacts:
     instruction: |
       基于原始材料形成正式需求增量，定义 WHAT 和 WHY，不写实现步骤。
       每个 capability 使用 OpenSpec 标准路径 specs/<capability>/spec.md；
-      02-需求理解/specs 是指向该目录的单一真源入口，不复制文件。
+      specs/ 就是单一真源，不另设入口目录、不复制文件。
       新能力使用 ## Purpose 和 ## ADDED Requirements；修改能力使用 ## MODIFIED Requirements；
       删除和重命名分别使用 ## REMOVED Requirements、## RENAMED Requirements。
       Requirement 使用 SHALL/MUST；每项 Requirement 至少包含一个四级标题 Scenario，使用 WHEN/THEN。
-      02-需求理解/需求理解.md 可记录术语、范围、非范围、澄清结论、冲突和待确认事项；
+      术语、范围、非范围、澄清结论、冲突和待确认事项写进 05-改造方案/方案提案.md；
       只有 specs/**/*.md 参与长期需求同步。
     requires:
       - raw-requirements
 
-  - id: current-state
-    generates: 03-现状/现状.md
-    description: 改造前的业务与技术现状（v6 起合并为一份）
-    template: current-state.md
-    instruction: |
-      描述改造前业务如何运行，以及它当前由什么技术实现。
-      业务面覆盖角色、触发、业务对象、状态、主路径、失败分支和上下游责任；
-      技术面引用实际仓库、分支、模块、类、接口、数据、事务、缓存、通知、部署和运行态证据。
-      使用 Mermaid 分别表达关键业务时序与技术流程。先锁定入口和关键边界，细节随调查补充。
-      区分源码事实、运行态事实和推断；不得把目标方案写成当前事实。
-    requires:
-      - raw-requirements
-      - specs
-
   - id: solution-proposal
     generates: 05-改造方案/方案提案.md
-    description: 候选方案、约束、Trade-off、推荐和未决问题
+    description: 现状、候选方案、约束、Trade-off、推荐、可感知变化清单和未决问题
     template: solution-proposal.md
     instruction: |
-      至少提出两个真实候选，记录约束、优缺点、成本、风险、可逆性和结构化 Trade-off。
+      先写现状：改造前业务如何运行、当前由什么技术实现，区分源码事实、运行态事实和推断，
+      不得把目标方案写成当前事实。v7 起现状并入本文件——它本来就是提案的事实依据，
+      拆成两份的唯一后果是多出一份没有任何读者的文档。
+      再写候选：至少两个真实候选，记录约束、优缺点、成本、风险、可逆性和结构化 Trade-off。
+      必须附一份「落地后维护者能感知到的具体变化清单」，缺这一节即为摆盘不合格。
       可以给出推荐，但不得把推荐写成最终决策；保留需要维护者决定的未决问题。
     requires:
       - specs
-      - current-state
-
   - id: solution-decision
     generates: 05-改造方案/方案决策.md
     description: 维护者对提案候选作出的权威选择
@@ -66,16 +54,6 @@ artifacts:
     requires:
       - solution-proposal
 
-  - id: change-plan
-    generates: 05-改造方案/改造方案.md
-    description: 将已批准决策转化为目标状态、实施切片、迁移和回滚计划
-    template: change-plan.md
-    instruction: |
-      只实现方案决策中已批准的候选。覆盖目标/非目标、目标流程、影响面、仓库切片、
-      兼容策略、迁移顺序、风险和回滚；不得重新引入已拒绝方案或在本文件替代决策。
-    requires:
-      - solution-decision
-
   - id: test-plan
     generates: 06-测试方案/000-测试方案索引.md
     description: 实现前的测试策略、场景、fixture、断言、运行配置和清理计划
@@ -85,22 +63,27 @@ artifacts:
       fixtures/、scenarios/、runtime/ 和 runner/*.ts 与本文件同目录；runs/ 不属于这里。
       本层只定义验收依据，不写实际运行结论；完整本地字段按原值保存且每类资产只保留一份。
     requires:
-      - change-plan
+      - solution-decision
 
   - id: tasks
     generates: 07-实施任务/实施任务.md
-    description: 基于改造计划和测试计划形成的实现任务拆分
+    description: 实施切片、迁移与回滚计划，加上由机器状态渲染的任务清单
     template: tasks.md
     instruction: |
-      同时读取 05 的实施切片和 06 的验证依据，拆成可执行实现任务。
-      任务的唯一状态真源是 `task-state.json`；初始化后由 runtime-entry 的 task 命令在 Change 根排他锁内原子更新，
-      `07-实施任务/实施任务.md` 只从机器状态渲染，禁止从复选框反向解析状态。
-      任务覆盖代码、配置、自动化测试、runner、迁移和验收前置；Review、Acceptance、Sync、Archive、PR 属于生命周期门禁，
-      不得写入 `task-state.json`，否则会形成“全部任务 verified 后才能 Acceptance”的状态循环。
+      本文件分两部分。前一部分「实施切片、迁移与回滚」由人写：目标与非目标、目标状态、
+      影响面、切片划分与依赖顺序、兼容策略、风险与回滚。v7 起它并入本文件——它与任务清单
+      同在方案决策之后产生、同是写给实施者看的，拆成两份的唯一后果是多一份没有读者的文档。
+      只实现方案决策中已批准的候选，不得重新引入已拒绝方案，也不得在此替代决策。
+      后一部分是任务清单：唯一状态真源是 `task-state.json`，由 delivery-control 的 task 命令
+      在 Change 根排他锁内原子更新，本文件只从机器状态渲染，禁止从复选框反向解析状态；
+      渲染以 `## 任务清单` 这一行为界，界线以上的人写内容原样保留。
+      每个任务必须声明这次验证能不能再跑一遍：可重跑的不留任何运行日志（要复核就当场重跑），
+      不可重跑的必须保存记录（做完就没了，那是唯一一次机会）。
+      Review、Acceptance、Sync、Archive、PR 属于生命周期门禁，不得写入 `task-state.json`，
+      否则会形成「全部任务 verified 后才能 Acceptance」的状态循环。
     requires:
-      - change-plan
+      - specs
       - test-plan
-
   - id: acceptance
     generates: 08-验收/验收记录.md
     description: 实现完成后的严格验收、run-id 原始证据和结论
@@ -133,7 +116,7 @@ apply:
   tracks: 07-实施任务/实施任务.md
   instruction: |
     先使用 openspec/tools/runtime-entry.ts guard apply 校验批准状态和运行时锁。
-    只读取 01～07 实现前产物，按已批准的 `07-实施任务/实施任务.md` 顺序实施，
+    只读取实现前的六份工件，按已批准的 `07-实施任务/实施任务.md` 顺序实施，
     通过 runtime-entry 的 task set 在排他锁内原子更新状态，再用 task render 更新人工审阅视图。
     本操作不生成 08 验收或 09 发布资产；全部任务完成后停止，并提示调用 /opsx-continue 进入严格验收。
     遇到需求、架构或高风险环境门禁未解决时写入 blocked_external 并停止，不通过默认值掩盖问题。

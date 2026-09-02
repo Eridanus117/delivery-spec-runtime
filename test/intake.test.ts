@@ -23,7 +23,7 @@ const minimalRouting = {
   routes: [
     { changeObject: "tool-code", displayName: "工具代码", description: "改工具行为", profileId: "delivery-change", requiresAnalysis: true, analysisProfileId: "requirement-analysis", rank: 20, pathPrefixes: ["openspec/tools/", "test/"], reason: "门禁执行体" },
     { changeObject: "doc-expression", displayName: "文档表达", description: "只改说明面", profileId: "light-change", requiresAnalysis: false, rank: 10, pathPrefixes: ["docs/"], reason: "零风险" },
-    { changeObject: "ledger-only", displayName: "纯台账", description: "只改台账条目", profileId: "light-change", requiresAnalysis: false, rank: 0, promotable: false, pathPrefixes: ["openspec/intake/"], reason: "自指循环" },
+    { changeObject: "ledger-only", displayName: "纯事项记录", description: "只改事项记录条目", profileId: "light-change", requiresAnalysis: false, rank: 0, promotable: false, pathPrefixes: ["openspec/intake/"], reason: "自指循环" },
   ],
 };
 function makeRuntimeRoot(routing: unknown = minimalRouting): string {
@@ -298,6 +298,50 @@ test("仓内路由表满足立项门的结构不变量", () => {
   assert.equal(ledger.promotable, false, "ledger-only 必须声明 promotable: false");
 });
 
+/**
+ * 曾经的四处路径空白（`.gitattributes`、`.github/`、`openspec/specs/`、`openspec/changes/archive/`）
+ * 一律落在「未匹配」上，于是这条流水线自己最后两站的收尾动作会被自己的越档校验拦住。
+ *
+ * 本组断言刻意只钉不变量，不钉某一时刻的取值：不断言「长期规范目录的 rank 等于 15」，
+ * 而是断言它与另外两档的相对位置。理由是取值是记账，相对位置背后才有真不变量——
+ * 「快车道碰不到长期规范」和「走完整流程的档位不会被自己的收尾动作拦住」这两条，
+ * 才是这次修表要保住的东西。行为侧的负向与正向对照在 control.test.ts 的 REV-002 用例里。
+ */
+test("路由表必须给流水线自己会碰的四处路径定档，且档位序保住两条不变量", () => {
+  const routing = JSON.parse(readFileSync(join(runtimeRoot, "openspec/profiles/change-routing-v1.json"), "utf8"));
+  type Route = { changeObject: string; rank: number; pathPrefixes: string[]; promotable?: boolean };
+  const routes: Route[] = routing.routes;
+  /** 与 delivery-control 的交叉校验同口径：命中多条前缀时取最重的一条。 */
+  const classify = (path: string): Route | null => {
+    let best: Route | null = null;
+    for (const route of routes) for (const prefix of route.pathPrefixes) {
+      if ((path === prefix || path.startsWith(prefix)) && (!best || route.rank > best.rank)) best = route;
+    }
+    return best;
+  };
+  for (const path of [".gitattributes", ".github/workflows/ci.yml", "openspec/specs/x/spec.md", "openspec/changes/archive/2026-01-01-x/y.md"]) {
+    assert.ok(classify(path), `路径仍未定档，会按未匹配取最重档并误挡：${path}`);
+  }
+  const rankOf = (changeObject: string) => routes.find((route) => route.changeObject === changeObject)?.rank ?? assert.fail(`路由表缺少 ${changeObject}`);
+  const specsRank = classify("openspec/specs/x/spec.md")!.rank;
+  const archiveRank = classify("openspec/changes/archive/2026-01-01-x/y.md")!.rank;
+  for (const [name, rank] of [["长期规范目录", specsRank], ["归档目录", archiveRank]] as const) {
+    // 不变量一：快车道的两档碰不到它们——否则一次「只改说明面」的快改就能重写长期规范或改写历史证据。
+    assert.ok(rank > rankOf("doc-expression"), `${name}的档位序必须严格高于文档表达`);
+    assert.ok(rank > rankOf("ledger-only"), `${name}的档位序必须严格高于纯事项记录`);
+    // 不变量二：走完整流程的两档做收尾动作时不会被自己拦住——这正是本次修表要消除的误挡。
+    assert.ok(rank <= rankOf("tool-code"), `${name}的档位序不得高于工具代码，否则工具代码档做规范同步与归档会被自己拦住`);
+  }
+  // 这一档只用于给路径定档，不是任何事项的「改动对象」，因此不可立项。
+  const pipeline = routes.find((route) => route.changeObject === "pipeline-output");
+  assert.ok(pipeline, "路由表缺少 pipeline-output");
+  assert.equal(pipeline!.promotable, false, "pipeline-output 必须声明 promotable: false");
+  // CI 配置是门禁在远端的执行体，必须落在需要完整流程的档位上，不能被快车道改。
+  assert.ok(classify(".github/workflows/ci.yml")!.rank >= rankOf("tool-code"), ".github/ 的档位序不得低于工具代码");
+  // 行尾属性决定全仓字节形态，所有按字节比对的检查都以它为前提，必须落在最重档。
+  assert.equal(classify(".gitattributes")!.changeObject, "governance-contract");
+});
+
 test("Intake init and inspect create the contract", () => {
   const rootPath = root();
   try {
@@ -502,5 +546,80 @@ test("REV-006 路由表的 analysisProfileId 真正生效", () => {
     assert.equal(ok.status, 0, ok.stderr);
     assert.equal(JSON.parse(ok.stdout).routing.analysisProfileId, "requirement-analysis");
     assert.match(readFileSync(file(rootPath), "utf8"), /promoted to target（交付档位 delivery-change，改动对象 tool-code）/);
+  } finally { rmSync(rootPath, removeOptions); rmSync(runtimePath, removeOptions); }
+});
+
+/**
+ * T-03（本 Change 立项时真实撞到的两处）
+ *
+ * 其一，敏感内容检查把网址整类当成本机盘符路径拦掉了：说明文件要求「存在 Issue 时记录
+ * 其网址」，而机器根本不让写。其二，立项门自称「写入任何状态之前完成全部判定，任一
+ * 不满足即两侧文件逐字节不变」，实际却是先给目标 Change 追加来源行、再校验条目内容。
+ */
+function makeChangeTarget(rootPath: string, slug: string, body = "# 原始需求索引\n"): string {
+  const changeRoot = join(rootPath, "openspec/changes", slug);
+  mkdirSync(join(changeRoot, "01-原始需求"), { recursive: true });
+  writeFileSync(join(changeRoot, "01-原始需求/原始需求索引.md"), body, "utf8");
+  return changeRoot;
+}
+function writeIntake(rootPath: string, changeObject: string, extra: string): void {
+  complete(rootPath);
+  const current = readFileSync(file(rootPath), "utf8");
+  writeFileSync(file(rootPath), current.replace("promotedTo: null\n", `promotedTo: null\nchangeObject: ${changeObject}\n`).replace("## History\n", `${extra}\n## History\n`), "utf8");
+}
+
+test("T-03.2/T-03.3/T-03.4 敏感内容检查放行网址，仍然拦住本机盘符路径", () => {
+  const rootPath = root();
+  try {
+    // T-03.2：网址能存进事项记录了。协议名至少两个字母，盘符只有一个，判据是「冒号左边那个
+    // 字母的左边还是不是字母」——这是结构判据，不需要维护一张协议名白名单。
+    const withUrl = invoke(rootPath, ["init", "--id", "INT-20260830-010-url", "--source", "synthetic", "--issue", "详见 https://example.com/issues/1 与 http://example.org/x"]);
+    assert.equal(withUrl.status, 0, withUrl.stderr);
+    assert.match(readFileSync(join(rootPath, "openspec/intake/INT-20260830-010-url.md"), "utf8"), /https:\/\/example\.com/);
+
+    // T-03.3：本机盘符绝对路径仍然被拦，且错误文案点名命中的是哪条规则。
+    for (const bad of ["见 C:/Workspace/x", "见 D:\\临时\\y"]) {
+      const blocked = invoke(rootPath, ["init", "--id", "INT-20260830-011-drive", "--source", "synthetic", "--issue", bad]);
+      assert.notEqual(blocked.status, 0, `未拦住: ${bad}`);
+      assert.match(blocked.stderr, /本机盘符绝对路径/);
+    }
+
+    // T-03.4：网址与盘符同时出现时仍然拒绝——放行网址不得连带把盘符也放开。
+    const mixed = invoke(rootPath, ["init", "--id", "INT-20260830-012-mixed", "--source", "synthetic", "--issue", "https://example.com 以及 E:/local"]);
+    assert.notEqual(mixed.status, 0);
+    assert.match(mixed.stderr, /本机盘符绝对路径/);
+
+    // 其余几条敏感规则一条不减。
+    const secret = invoke(rootPath, ["init", "--id", "INT-20260830-013-secret", "--source", "synthetic", "--issue", "token: abc"]);
+    assert.notEqual(secret.status, 0);
+    assert.match(secret.stderr, /凭据键值/);
+  } finally { rmSync(rootPath, removeOptions); }
+});
+
+test("T-03.1 立项门因内容检查拒绝时，两侧文件逐字节不变", () => {
+  const rootPath = root();
+  const runtimePath = makeRuntimeRoot();
+  try {
+    // doc-expression 不需要分析线，于是唯一会失败的判定就是内容检查——这样才测得到「顺序」，
+    // 而不是被更早的某个判定挡住。
+    writeIntake(rootPath, "doc-expression", "\n本机路径 F:/leak 写进了正文。\n");
+    const changeRoot = makeChangeTarget(rootPath, "target");
+    const changeFile = join(changeRoot, "01-原始需求/原始需求索引.md");
+    const intakeBefore = readFileSync(file(rootPath), "utf8");
+    const changeBefore = readFileSync(changeFile, "utf8");
+
+    const blocked = invoke(rootPath, ["promote", "--file", intakeRelative, "--change", "target", "--change-root", changeRoot, "--runtime-root", runtimePath]);
+    assert.notEqual(blocked.status, 0);
+    assert.match(blocked.stderr, /本机盘符绝对路径/);
+    // 关键断言：**两侧**都没有被写。此前失败的正是目标 Change 这一侧。
+    assert.equal(readFileSync(changeFile, "utf8"), changeBefore, "立项被拒，目标 Change 却被写入了半截来源行");
+    assert.equal(readFileSync(file(rootPath), "utf8"), intakeBefore, "立项被拒，条目文件却被改动了");
+
+    // 正向对照：把违规内容去掉之后，同一条立项应当成功，且这次两侧都被写。
+    writeFileSync(file(rootPath), intakeBefore.replace("本机路径 F:/leak 写进了正文。", "正文已经改成人话。"), "utf8");
+    const allowed = invoke(rootPath, ["promote", "--file", intakeRelative, "--change", "target", "--change-root", changeRoot, "--runtime-root", runtimePath]);
+    assert.equal(allowed.status, 0, allowed.stderr);
+    assert.match(readFileSync(changeFile, "utf8"), /- Intake 来源：/);
+    assert.match(readFileSync(file(rootPath), "utf8"), /state: promoted/);
   } finally { rmSync(rootPath, removeOptions); rmSync(runtimePath, removeOptions); }
 });

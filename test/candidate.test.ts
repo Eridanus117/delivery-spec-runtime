@@ -80,6 +80,9 @@ test("VC-037 allowlist 与实际文件集合一致", () => {
     "openspec/contracts/change-mode.schema.json",
     "openspec/schemas/delivery-change/templates/business-current.md",
     "openspec/schemas/delivery-change/templates/technical-current.md",
+    // v7 起再合两份：现状并进方案提案、改造方案并进实施任务，两份模板随之取消。
+    "openspec/schemas/delivery-change/templates/current-state.md",
+    "openspec/schemas/delivery-change/templates/change-plan.md",
   ]) {
     assert.equal(allowlist.paths.includes(removed), false, `已删除资产仍在 allowlist: ${removed}`);
   }
@@ -87,7 +90,11 @@ test("VC-037 allowlist 与实际文件集合一致", () => {
   for (const added of [
     "openspec/contracts/change-routing.schema.json",
     "openspec/profiles/change-routing-v1.json",
-    "openspec/schemas/delivery-change/templates/current-state.md",
+    "openspec/profiles/plain-language-v1.json",
+    "openspec/contracts/plain-language.schema.json",
+    "openspec/contracts/readability-review.schema.json",
+    "openspec/tools/plain-language.ts",
+    "openspec/tools/upgrade-report.ts",
   ]) {
     assert.equal(allowlist.paths.includes(added), true, `新增资产未进 allowlist: ${added}`);
   }

@@ -173,7 +173,7 @@ function parseInputContracts(value: unknown): Record<string, WorkflowInputContra
 
 function parseStage(value: unknown, index: number): WorkflowStage {
  const stage = object(value, `profile.stages[${index}]`);
- exactKeys(stage, ["id", "displayName", "description", "exitCondition", "requiredInputs", "humanJudgment", "judgmentOptions", "repeatOnJudgments", "outputInputs"], ["id", "displayName", "requiredInputs", "humanJudgment"], `profile.stages[${index}]`);
+ exactKeys(stage, ["id", "displayName", "description", "exitCondition", "requiredInputs", "humanJudgment", "judgmentOptions", "repeatOnJudgments", "outputInputs", "approvalRecord"], ["id", "displayName", "requiredInputs", "humanJudgment"], `profile.stages[${index}]`);
  const requiredInputs = stringArray(stage.requiredInputs, `profile.stages[${index}].requiredInputs`);
  const judgmentOptions = stage.judgmentOptions === undefined ? [] : stringArray(stage.judgmentOptions, `profile.stages[${index}].judgmentOptions`);
  const repeatOnJudgments = stage.repeatOnJudgments === undefined ? [] : stringArray(stage.repeatOnJudgments, `profile.stages[${index}].repeatOnJudgments`);
@@ -188,6 +188,12 @@ function parseStage(value: unknown, index: number): WorkflowStage {
   if (repeatOnJudgments.some((value) => !judgmentOptions.includes(value))) fail(`profile.stages[${index}].repeatOnJudgments 必须属于 judgmentOptions`);
   if (new Set(outputInputs).size !== outputInputs.length) fail(`profile.stages[${index}].outputInputs 不得重复`);
   if (typeof stage.humanJudgment !== "boolean") fail(`profile.stages[${index}].humanJudgment 必须是布尔值`);
+  // approvalRecord 声明该站的人工表态记在哪个文件里，让「需要人工批准的门」从站位定义推导，
+  // 不必另立一份会漂移的清单。机器站不得声明它——那说明两份模型又开始各说各话了。
+  if (stage.approvalRecord !== undefined) {
+    if (stage.humanJudgment !== true) fail(`profile.stages[${index}] 不是人工判断站，不得声明 approvalRecord`);
+    if (stage.approvalRecord !== "artifact-approvals" && stage.approvalRecord !== "acceptance-state") fail(`profile.stages[${index}].approvalRecord 取值非法`);
+  }
  const parsed: WorkflowStage = {
    id: assertId(stage.id, `profile.stages[${index}].id`),
    displayName: text(stage.displayName, `profile.stages[${index}].displayName`),
